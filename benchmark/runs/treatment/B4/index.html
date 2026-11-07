@@ -1,0 +1,684 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Larches — a stone hotel on Winder Water</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%231F3A33'/%3E%3Ccircle cx='8' cy='8' r='3.4' fill='%23C98A2D'/%3E%3C/svg%3E">
+<style>
+:root{
+  --ivory:#F6F0E4;       /* honeyed linen (v2 floor, kept) */
+  --surface:#FBF7EC;
+  --ink:#1E1811;         /* espresso */
+  --muted:#6E6353;
+  --bronze:#7E5218;      /* coppered bronze — focus, actions, prices */
+  --bronze-deep:#63400F;
+  --pine:#1F3A33;        /* lake pine — the world's dark */
+  --gold:#C98A2D;        /* larch gold — painted imagery only, never text */
+  --success:#166534; --danger:#B42318;
+  --shadow:0 1px 2px rgba(46,34,18,.06),0 14px 34px rgba(46,34,18,.1); /* tinted, directional */
+  --serif:Georgia,'Iowan Old Style','Times New Roman',serif;
+  --sans:'Segoe UI',system-ui,-apple-system,sans-serif;
+  --sans-light:'Segoe UI Light','Segoe UI',system-ui,sans-serif; /* the light end of the family */
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:#F6F0E4;
+  background-image:linear-gradient(180deg,#F7F1E5 0%,#F6F0E4 40%,#F3EAD9 100%); /* paper warmth, never a dead flat */
+  color:var(--ink);font-family:var(--serif);font-size:17px;line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:inherit;text-decoration-color:#D8CBB2;text-underline-offset:3px}
+a:hover{text-decoration-color:var(--bronze)}
+:focus-visible{outline:2px solid var(--bronze);outline-offset:3px}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+.wrap{max-width:1120px;margin:0 auto;padding:0 30px}
+.sans{font-family:var(--sans)}
+
+/* ---------- header: space, no rule ---------- */
+.top{display:flex;justify-content:space-between;align-items:baseline;padding:28px 0 22px}
+.wordmark{font-size:25px;font-weight:700;letter-spacing:.005em}
+.wordmark em{font-style:italic;font-weight:400;color:var(--muted);font-size:14.5px;margin-left:10px}
+.top nav{display:flex;gap:24px;font-family:var(--sans);font-size:13.5px;color:var(--muted)}
+.top nav a{text-decoration:none;display:inline-block;padding:6px 2px}
+.top nav a:hover{color:var(--ink);text-decoration:underline;text-decoration-color:var(--bronze)}
+
+/* ---------- hero: the one full-bleed moment ---------- */
+.hero{position:relative;height:74vh;min-height:500px;overflow:hidden}
+.h-sky{position:absolute;inset:0;background:linear-gradient(180deg,#F0D5A8 0%,#EACB96 42%,#E3C79E 58%,#D8BE93 100%)}
+.h-sun{position:absolute;inset:0;background:radial-gradient(circle at 58% 34%,rgba(253,246,226,1) 0 2.6%,rgba(253,246,226,.45) 8%,transparent 17%)}
+.h-mist{position:absolute;top:64%;height:12%;left:0;right:0;background:linear-gradient(180deg,transparent,rgba(243,229,200,.55) 45%,rgba(243,229,200,.55) 60%,transparent);filter:blur(7px)}
+.h-lake{position:absolute;top:68%;bottom:0;left:0;right:0;
+  background:
+    radial-gradient(30% 90% at 58% 0%,rgba(252,241,209,.5) 0%,transparent 70%),
+    linear-gradient(180deg,#D3B88C 0%,#B49A70 40%,#8A7454 74%,#5F5140 100%)}
+.h-gold{position:absolute;top:52%;height:14%;left:0;right:0;background:linear-gradient(180deg,#C08A34,#8A6224);
+  clip-path:polygon(0 66%,4% 56%,8% 64%,12% 52%,17% 62%,22% 50%,26% 60%,31% 54%,36% 66%,41% 52%,47% 62%,52% 56%,57% 66%,63% 54%,68% 62%,74% 55%,79% 64%,85% 54%,90% 62%,95% 57%,100% 63%,100% 100%,0 100%)}
+.h-pine{position:absolute;top:50%;height:10%;left:0;right:0;background:linear-gradient(180deg,#2C3A31,#1F2C25);
+  clip-path:polygon(0 62%,3% 44%,6% 60%,10% 38%,13% 58%,17% 42%,21% 62%,25% 40%,29% 56%,33% 44%,37% 62%,42% 42%,46% 55%,50% 47%,54% 62%,58% 44%,62% 54%,67% 46%,71% 60%,76% 44%,80% 56%,85% 48%,89% 62%,94% 46%,97% 54%,100% 58%,100% 100%,0 100%)}
+.h-shore{position:absolute;bottom:0;left:0;right:0;height:32%;background:linear-gradient(180deg,rgba(32,26,17,0) 0%,rgba(32,26,17,.32) 40%,rgba(24,19,12,.7) 100%)}
+.grain{position:absolute;inset:0;pointer-events:none;mix-blend-mode:overlay;opacity:.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* display over the scene: staggered lines, the one typographic asymmetry */
+.hero-cap{position:absolute;left:0;right:0;bottom:0;padding-bottom:34px;color:#F8F2E3}
+.hero-cap::before{content:"";position:absolute;left:-40px;width:72%;top:-96px;bottom:-40px;z-index:-1;
+  background:radial-gradient(72% 120% at 22% 100%,rgba(20,15,8,.74) 0%,rgba(20,15,8,.5) 42%,rgba(20,15,8,.2) 68%,transparent 88%);
+  filter:blur(22px)} /* a dark pool under the display, fading on every side */
+.hero-cap .over{font-style:italic;font-size:18px;color:#F0E7D2;margin-bottom:10px;text-shadow:0 1px 12px rgba(20,15,8,.45)}
+h1{font-size:clamp(50px,7vw,92px);font-style:italic;font-weight:400;line-height:1.02;letter-spacing:-.02em;
+  text-shadow:0 2px 24px rgba(20,15,8,.5)}
+h1 .l2{display:block;padding-left:1.6em} /* the stagger: one deliberate break */
+.reveal{animation:reveal .55s ease-out both}
+@keyframes reveal{from{opacity:0}to{opacity:1}}
+
+/* the one rotated accent: a note pinned to the morning, hand-placed */
+.pin-note{
+  position:absolute;top:72px;right:clamp(24px,6vw,84px);z-index:3;
+  background:var(--surface);color:var(--ink);padding:14px 18px 12px;max-width:250px;
+  transform:rotate(1.5deg);border-radius:2px;box-shadow:var(--shadow);
+}
+.pin-note::before{content:"";position:absolute;top:-5px;left:50%;margin-left:-4px;width:8px;height:8px;border-radius:50%;background:var(--bronze)}
+.pin-note p{font-style:italic;font-size:14.5px;line-height:1.45}
+.pin-note .sig{font-family:var(--sans);font-style:normal;font-size:12.5px;color:var(--muted);margin-top:6px}
+
+/* ---------- trust band, ending in the one organic divider: a broad arch ---------- */
+.band{background:var(--pine);color:var(--ivory);position:relative}
+.band .grain{opacity:.35}
+.band .wrap{display:grid;grid-template-columns:1fr 1fr 1fr;gap:34px;padding-top:30px;padding-bottom:30px}
+.band .fact b{display:block;font-size:18px;font-weight:400;font-style:italic}
+.band .fact span{font-family:var(--sans);font-size:13px;color:#C9D2C7;display:block;margin-top:3px}
+.band .fact{border-left:2px solid rgba(201,138,45,.55);padding-left:16px}
+.band-arch{display:block;width:100%;height:60px;margin-top:-1px}
+.band-arch path{fill:var(--pine)}
+
+/* ---------- booking: the cards rise into the arch — the one overlap ---------- */
+.booking{margin-top:-40px;padding-bottom:76px}
+.booking-grid{display:grid;grid-template-columns:7fr 5fr;gap:36px;align-items:start}
+.bookcard{background:var(--surface);border-radius:6px;box-shadow:var(--shadow);padding:30px 32px 32px}
+.steps{display:flex;gap:8px;margin-bottom:26px;flex-wrap:wrap}
+.steps button{font-family:var(--sans);font-size:13.5px;color:var(--muted);padding:8px 14px;border:1px solid #9A8D72;border-radius:2px;display:flex;gap:8px;align-items:center;background:#fff} /* border 3.27:1 UI floor */
+.steps button .n{font-family:var(--serif);font-style:italic;width:20px;height:20px;border:1px solid currentColor;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;font-size:12px}
+.steps button[aria-current="step"]{color:var(--ink);border-color:var(--bronze)}
+.steps button[aria-current="step"] .n{background:var(--bronze);border-color:var(--bronze);color:var(--ivory);font-style:normal}
+.steps button.done{color:var(--success)}
+h2{font-size:27px;font-weight:400;font-style:italic;letter-spacing:-.01em;margin-bottom:6px}
+.lede{color:var(--muted);font-size:15px;margin-bottom:22px}
+
+/* calendar (signature) */
+.cal{display:grid;grid-template-columns:1fr 1fr;gap:30px}
+.month h3{font-size:17px;font-weight:400;font-style:italic;margin-bottom:10px}
+.dow,.days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.dow span{font-family:var(--sans);font-size:12px;color:var(--muted);text-align:center;padding-bottom:4px}
+.day{position:relative;aspect-ratio:1/1;max-height:46px;font-family:var(--sans);font-size:13.5px;border-radius:3px;
+  display:flex;align-items:center;justify-content:center;color:var(--ink)}
+.day.weekend{font-weight:700}
+.day:hover:not(:disabled){background:#F0E4CB}
+.day:disabled{color:var(--muted);cursor:not-allowed}
+.day:disabled.closed{text-decoration:line-through;text-decoration-color:var(--muted)}
+.day:disabled.booked{background:repeating-linear-gradient(45deg,transparent 0 4px,rgba(180,169,143,.4) 4px 5px)}
+.day.tonight::after{content:"";position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--bronze)}
+.day.inrange{background:#EFE2C6}
+.day.start,.day.end{background:var(--bronze);color:var(--ivory);font-weight:600}
+.cal-msg{font-family:var(--sans);font-size:13px;color:var(--ink);border-left:3px solid var(--bronze);
+  padding:4px 0 4px 12px;margin-top:18px;min-height:1.5em}
+.legend{display:flex;gap:18px;font-family:var(--sans);font-size:12.5px;color:var(--muted);margin-top:14px;flex-wrap:wrap}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+
+.step-pane{display:none}
+.step-pane.on{display:block}
+.reveal-once{animation:reveal .3s ease-out}
+.row-btns{display:flex;justify-content:space-between;margin-top:26px}
+.btn{font-family:var(--sans);font-size:14px;padding:10px 24px;border-radius:2px;border:1px solid var(--muted);background:#fff}
+.btn:hover{border-color:var(--ink)}
+.btn-primary{background:var(--bronze);border-color:var(--bronze);color:var(--ivory);font-weight:600}
+.btn-primary:hover{background:var(--bronze-deep);border-color:var(--bronze-deep)}
+.btn:disabled{background:transparent;color:#B4A98F;border-color:#E2D8C4;cursor:not-allowed}
+
+/* rooms: arch-topped painted swatches — the house's own shape */
+.rooms{display:grid;gap:16px}
+.room{display:grid;grid-template-columns:150px 1fr;gap:0;border-radius:4px;overflow:hidden;background:#fff;text-align:left;
+  box-shadow:var(--shadow);transition:box-shadow .2s ease}
+.room:hover:not(:disabled){background:#FDF8EC}
+.room.sel{box-shadow:var(--shadow),0 0 0 2px var(--bronze)}
+.room:disabled{cursor:not-allowed;box-shadow:0 1px 2px rgba(46,34,18,.06)}
+.room .swatch{position:relative;min-height:124px;overflow:hidden;border-radius:78px 78px 0 0}
+.swatch::before{content:"";position:absolute;inset:0;pointer-events:none;mix-blend-mode:overlay;opacity:.4;z-index:1;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.sw-shore{background:
+  linear-gradient(200deg,rgba(247,238,218,.85) 0%,transparent 34%),
+  radial-gradient(60% 46% at 26% 30%,#F3E6C8 0%,transparent 70%),
+  linear-gradient(180deg,#E4D6B8 0%,#D8C8A8 58%,#C7B492 66%,#B49F7C 72%,#A8926E 100%)}
+.sw-shore::after{content:"";position:absolute;left:18%;top:14%;width:16%;height:42%;
+  background:linear-gradient(180deg,#9FB3A6 0%,#7E9690 100%);border:3px solid #EFE4CC}
+.sw-attic{background:
+  radial-gradient(46% 40% at 74% 26%,rgba(243,205,138,.8) 0%,transparent 70%),
+  linear-gradient(180deg,#DECBA8 0%,#D2BE9B 58%,#C2AC87 66%,#AE9773 74%,#A28C69 100%)}
+.sw-attic::after{content:"";position:absolute;inset:0 0 30% 0;background:linear-gradient(180deg,#CBB894,#C2AC87);
+  clip-path:polygon(0 0,58% 0,100% 62%,100% 0)}
+.sw-garden{background:
+  radial-gradient(40% 52% at 80% 24%,#A8B08A 0%,transparent 68%),
+  radial-gradient(34% 44% at 62% 34%,#8D9A74 0%,transparent 70%),
+  linear-gradient(180deg,#E0D4B4 0%,#D4C6A4 58%,#C4B28E 66%,#B09A76 74%,#A48E6B 100%)}
+.sw-garden::after{content:"";position:absolute;left:0;top:10%;width:30%;height:56%;
+  background:repeating-linear-gradient(90deg,#F0E6CC 0 5px,#A9B491 5px 14px);opacity:.9}
+.room .info{padding:14px 18px 14px}
+.room .info b{font-size:17.5px;font-weight:700}
+.room .info .rate{font-family:var(--sans);font-size:13px;color:var(--bronze);float:right}
+.room .info p{font-family:var(--sans);font-size:12.5px;color:var(--muted);margin-top:3px}
+.room .unavail{display:none;font-family:var(--sans);font-size:12.5px;color:var(--danger);margin-top:6px}
+.room:disabled .unavail{display:block}
+.room:disabled .info b{color:var(--muted)}
+
+/* extras */
+.extras{margin-top:20px;display:grid;gap:9px}
+.check{display:flex;align-items:center;gap:12px;font-family:var(--sans);font-size:14px;cursor:pointer}
+.check input{position:absolute;opacity:0;width:0}
+.check .box{width:19px;height:19px;border:1.5px solid #8A8275;border-radius:2px;flex:none;position:relative;background:#fff}
+.check input:checked + .box{border-color:var(--bronze)}
+.check input:checked + .box::after{content:"";position:absolute;left:5px;top:1px;width:5px;height:10px;
+  border:solid var(--bronze);border-width:0 2px 2px 0;transform:rotate(42deg)}
+.check input:focus-visible + .box{outline:2px solid var(--bronze);outline-offset:2px}
+.check .price{margin-left:auto;color:var(--muted);font-family:var(--sans);font-size:13px}
+
+/* form */
+.form{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
+.form .full{grid-column:1 / -1}
+.field label{display:block;font-family:var(--sans);font-size:13px;color:var(--muted);margin-bottom:5px}
+.field input{width:100%;font-family:var(--sans);font-size:14.5px;color:var(--ink);background:#fff;
+  border:1px solid #8A8275;padding:9px 12px;border-radius:2px}
+.field input:focus-visible{outline:2px solid var(--bronze);outline-offset:1px}
+.field .err{display:none;font-family:var(--sans);font-size:12.5px;color:var(--danger);margin-top:4px}
+.field.bad input{border-color:var(--danger)}
+.field.bad .err{display:block}
+.promo{display:flex;gap:8px;align-items:flex-start}
+.promo input{flex:1}
+.promo-msg{font-family:var(--sans);font-size:12.5px;min-height:1.4em;margin-top:5px}
+.promo-msg.good{color:var(--success)} .promo-msg.bad{color:var(--danger)}
+
+/* summary: the price wears display clothes */
+.summary{position:sticky;top:20px;background:var(--surface);border-radius:6px;box-shadow:var(--shadow);padding:26px 28px 28px}
+.summary h2{font-size:23px}
+.sum-rows{margin:12px 0 4px}
+.sum-row{display:flex;justify-content:space-between;gap:14px;padding:8px 0;
+  font-family:var(--sans);font-size:13.5px}
+.sum-row .k{color:var(--muted)}
+.sum-row .v{text-align:right}
+.sum-row[hidden]{display:none}
+.sum-row.total{display:block;font-family:var(--serif);padding-top:14px;margin-top:8px;border-top:1px solid #E9DFC9}
+.sum-row.total .k{display:block;font-family:var(--sans);font-size:13px}
+.sum-total{font-family:var(--sans-light);font-weight:300;font-size:46px;line-height:1.05;letter-spacing:-.02em;
+  color:var(--ink);font-variant-numeric:tabular-nums;display:block;margin-top:4px}
+.trust{font-style:italic;font-size:14.5px;color:var(--bronze);margin:14px 0 18px;line-height:1.5}
+
+/* confirmation */
+.confirm{display:none;text-align:center;padding:16px 8px}
+.confirm.on{display:block}
+.seal{width:80px;height:80px;border:2.5px solid var(--bronze);border-radius:50%;margin:0 auto 18px;
+  display:flex;align-items:center;justify-content:center;position:relative}
+.seal::before{content:"";position:absolute;inset:5px;border:1px solid #E2D8C4;border-radius:50%}
+.seal span{font-size:32px;font-style:italic;color:var(--bronze)}
+.confirm .code{font-family:var(--sans);font-size:13px;color:var(--muted);margin-top:10px}
+.confirm .code b{color:var(--ink)}
+.confirm p{max-width:44ch;margin:10px auto 0}
+.confirm .sub{color:var(--muted);font-size:14.5px}
+
+footer{padding:28px 0 44px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  font-family:var(--sans);font-size:13px;color:var(--muted)}
+
+@media (max-width:900px){
+  .booking-grid{grid-template-columns:1fr}
+  .summary{position:static}
+  .cal{grid-template-columns:1fr}
+  .band .wrap{grid-template-columns:1fr;gap:16px}
+  .room{grid-template-columns:120px 1fr}
+  .hero{height:60vh;min-height:440px}
+  h1{font-size:clamp(40px,9vw,60px)}
+  .pin-note{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .reveal,.step-pane.on,.confirm.on{animation:none}
+  *{transition:none!important}
+}
+</style>
+</head>
+<body>
+
+<header class="top wrap">
+  <div class="wordmark">The Larches <em>on Winder Water</em></div>
+  <nav class="sans" aria-label="Site">
+    <a href="#house">The house</a><a href="#book">Book a stay</a>
+  </nav>
+</header>
+
+<section class="hero" aria-label="The hotel at first light">
+  <div class="h-sky"></div>
+  <div class="h-sun"></div>
+  <div class="h-pine"></div>
+  <div class="h-gold"></div>
+  <div class="h-lake"></div>
+  <div class="h-mist"></div>
+  <div class="h-shore"></div>
+  <div class="grain"></div>
+  <div class="hero-cap wrap reveal">
+    <p class="over">A stone hotel on Winder Water, under old larches</p>
+    <h1><span class="l1">Seven rooms</span><span class="l2">above the water</span></h1>
+  </div>
+  <aside class="pin-note" aria-label="A note from the desk">
+    <p>Dogs report to the desk for biscuits.</p>
+    <p class="sig">the desk, most mornings</p>
+  </aside>
+</section>
+
+<section class="band" id="house" aria-label="What kind of house this is">
+  <div class="grain"></div>
+  <div class="wrap">
+    <div class="fact"><b>The house, not a chain</b><span>Seven rooms, one sitting room, fires lit by four.</span></div>
+    <div class="fact"><b>No prepayment, ever</b><span>You pay at the hotel, when you leave.</span></div>
+    <div class="fact"><b>Free cancellation</b><span>Until 48 hours before arrival, no questions.</span></div>
+  </div>
+</section>
+<svg class="band-arch" viewBox="0 0 1440 60" preserveAspectRatio="none" aria-hidden="true">
+  <path d="M0 0 H1440 V4 C 1160 58, 280 58, 0 4 Z"/>
+</svg>
+
+<main class="booking" id="book">
+  <div class="booking-grid wrap">
+
+    <div class="bookcard">
+      <ol class="steps" style="list-style:none">
+        <li><button type="button" data-step="1" aria-current="step"><span class="n">1</span>Dates</button></li>
+        <li><button type="button" data-step="2"><span class="n">2</span>Room &amp; extras</button></li>
+        <li><button type="button" data-step="3"><span class="n">3</span>Guest</button></li>
+      </ol>
+
+      <div class="step-pane on" id="pane-1">
+        <h2>Choose your weekend</h2>
+        <p class="lede">Two nights from Friday to Sunday is what the house does best. Tap an arrival, then a departure.</p>
+        <div class="cal" id="cal"></div>
+        <p class="cal-msg" id="cal-msg" aria-live="polite"></p>
+        <div class="legend">
+          <span><i style="background:#EFE2C6"></i>your stay</span>
+          <span><i style="background:repeating-linear-gradient(45deg,#fff 0 4px,rgba(180,169,143,.4) 4px 5px);border:1px solid #E2D8C4"></i>fully booked</span>
+          <span><i style="border:1px solid #E2D8C4;background:#FBF7EC"></i>past or the house is closed</span>
+        </div>
+        <div class="row-btns">
+          <span></span>
+          <button class="btn btn-primary" type="button" id="to-room" disabled>Choose a room</button>
+        </div>
+      </div>
+
+      <div class="step-pane" id="pane-2">
+        <h2>A room for the weekend</h2>
+        <p class="lede" id="room-lede">Three ways to sleep at the Larches. Every rate is for the room, breakfast included.</p>
+        <div class="rooms" id="rooms">
+          <button type="button" class="room" data-room="shore" data-rate="180">
+            <span class="swatch sw-shore" role="img" aria-label="The Shore Room: morning light across linen"></span>
+            <span class="info"><span class="rate num">£180 a night</span><b>The Shore Room</b>
+              <p>Over the water. Window seat, step straight onto the shore path.</p>
+              <span class="unavail"></span></span>
+          </button>
+          <button type="button" class="room" data-room="attic" data-rate="205">
+            <span class="swatch sw-attic" role="img" aria-label="The Attic Room: lamplight under a sloped ceiling"></span>
+            <span class="info"><span class="rate num">£205 a night</span><b>The Attic Room</b>
+              <p>Under the eaves. Deep bath, the best bed in the house.</p>
+              <span class="unavail"></span></span>
+          </button>
+          <button type="button" class="room" data-room="garden" data-rate="230">
+            <span class="swatch sw-garden" role="img" aria-label="The Garden Room: French doors open to the larches"></span>
+            <span class="info"><span class="rate num">£230 a night</span><b>The Garden Room</b>
+              <p>Ground floor, French doors to the larches. Takes a dog.</p>
+              <span class="unavail"></span></span>
+          </button>
+        </div>
+        <div class="extras">
+          <label class="check"><input type="checkbox" data-extra="dinner" data-price="65">
+            <span class="box"></span>Dinner for two, one evening — the table is yours at eight<span class="price num">£65</span></label>
+          <label class="check"><input type="checkbox" data-extra="dog" data-price="12">
+            <span class="box"></span>Dog's basket, towel and a map of good muddy walks<span class="price num">£12</span></label>
+          <label class="check"><input type="checkbox" data-extra="wood" data-price="8">
+            <span class="box"></span>A bundle of dry firewood for your sitting-room fire<span class="price num">£8</span></label>
+        </div>
+        <div class="row-btns">
+          <button class="btn" type="button" data-goto="1">Back to dates</button>
+          <button class="btn btn-primary" type="button" id="to-guest" disabled>Your details</button>
+        </div>
+      </div>
+
+      <div class="step-pane" id="pane-3">
+        <h2>Who is coming</h2>
+        <p class="lede">Nothing is charged now. The desk writes back within a day to confirm.</p>
+        <div class="form">
+          <div class="field" id="f-name">
+            <label for="name">Name</label>
+            <input id="name" type="text" autocomplete="name">
+            <p class="err" id="name-err">We need a name to hold the room.</p>
+          </div>
+          <div class="field" id="f-email">
+            <label for="email">Email</label>
+            <input id="email" type="email" autocomplete="email">
+            <p class="err" id="email-err">That email doesn't look complete.</p>
+          </div>
+          <div class="field full">
+            <label for="promo">Promo code, if the letter mentioned one</label>
+            <div class="promo">
+              <input id="promo" type="text" placeholder="Four letters, on the card">
+              <button class="btn" type="button" id="apply-promo">Apply</button>
+            </div>
+            <p class="promo-msg" id="promo-msg" aria-live="polite"></p>
+          </div>
+        </div>
+        <div class="row-btns">
+          <button class="btn" type="button" data-goto="2">Back to the room</button>
+          <button class="btn btn-primary" type="button" id="hold">Hold this room</button>
+        </div>
+      </div>
+
+      <div class="confirm" id="confirm">
+        <div class="seal"><span>L</span></div>
+        <h2 id="confirm-title">The room is held</h2>
+        <p class="sub" id="confirm-sub"></p>
+        <p class="code">Reference <b id="confirm-code"></b>. No payment has been taken.</p>
+        <p>You'll pay at the hotel, and you can still cancel free until 48 hours before arrival.
+           A letter is on its way to <span id="confirm-email"></span> with directions and the supper menu.</p>
+      </div>
+    </div>
+
+    <aside class="summary" aria-label="Your stay" aria-live="polite">
+      <h2>Your stay</h2>
+      <div class="sum-rows">
+        <div class="sum-row"><span class="k">Dates</span><span class="v" id="sum-dates">Not chosen yet</span></div>
+        <div class="sum-row"><span class="k">Room</span><span class="v" id="sum-room">Not chosen yet</span></div>
+        <div class="sum-row" id="row-extras" hidden><span class="k">Extras</span><span class="v" id="sum-extras"></span></div>
+        <div class="sum-row" id="row-promo" hidden><span class="k">LARCH, with our compliments</span><span class="v" id="sum-promo"></span></div>
+        <div class="sum-row total">
+          <span class="k">Total, payable at the hotel</span>
+          <span class="sum-total" id="sum-total">—</span>
+        </div>
+      </div>
+      <p class="trust">No prepayment. Free cancellation until 48 hours before arrival. The desk answers every enquiry itself.</p>
+      <button class="btn btn-primary" type="button" id="sum-cta" style="width:100%" disabled>Choose dates to begin</button>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="wrap">
+  <span>The Larches, Shore Lane, Winder Water</span>
+  <span>stay@thelarches.example</span>
+  <span>Well-behaved dogs are guests too</span>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var DAY=86400000, today=new Date(2026,10,7); /* 7 November 2026 */
+  function d(y,m,dd){return new Date(y,m,dd);}
+  function key(dt){return dt.getFullYear()+"-"+(dt.getMonth()+1)+"-"+dt.getDate();}
+  function sameDay(a,b){return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();}
+  var bookedSet={};
+  ["2026-11-13","2026-11-14"].forEach(function(k){bookedSet[k]=1;}); /* the house is full, Fri 13 – Sat 14 Nov */
+  var closedSet={};
+  ["2026-12-24","2026-12-25","2026-12-26"].forEach(function(k){closedSet[k]=1;});
+  var wedding=[d(2026,10,27),d(2026,10,28),d(2026,10,29)]; /* Garden Room blocked, 27–29 Nov */
+
+  var state={step:1,checkin:d(2026,10,20),checkout:d(2026,10,22),room:null,extras:[],promo:false};
+
+  /* ---------- calendar ---------- */
+  var calEl=document.getElementById('cal'),msg=document.getElementById('cal-msg');
+  var MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  var WD=["Mo","Tu","We","Th","Fr","Sa","Su"];
+  function isPast(dt){return dt.getTime()<today.getTime()&&!sameDay(dt,today);}
+  function status(dt){
+    if(closedSet[key(dt)])return 'closed';
+    if(bookedSet[key(dt)])return 'booked';
+    if(isPast(dt))return 'past';
+    return 'open';
+  }
+  function nights(){
+    if(!state.checkin||!state.checkout)return 0;
+    return Math.round((state.checkout-state.checkin)/DAY);
+  }
+  function fmt(dt){
+    var wd=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dt.getDay()];
+    return wd+" "+dt.getDate()+" "+MONTHS[dt.getMonth()].slice(0,3);
+  }
+  function buildMonth(y,m){
+    var box=document.createElement('div');box.className='month';
+    var h=document.createElement('h3');h.textContent=MONTHS[m]+" "+y;box.appendChild(h);
+    var dow=document.createElement('div');dow.className='dow';
+    WD.forEach(function(w){var s=document.createElement('span');s.textContent=w;dow.appendChild(s);});
+    box.appendChild(dow);
+    var grid=document.createElement('div');grid.className='days';
+    var first=new Date(y,m,1);var lead=(first.getDay()+6)%7; /* Monday-first */
+    for(var i=0;i<lead;i++){grid.appendChild(document.createElement('span'));}
+    var dim=new Date(y,m+1,0).getDate();
+    for(var dd=1;dd<=dim;dd++){
+      (function(){
+        var dt=d(y,m,dd),b=document.createElement('button');
+        b.type='button';b.className='day';b.textContent=dd;
+        var st=status(dt),wd=dt.getDay(); /* 5=Fri 6=Sat */
+        if(wd===5||wd===6)b.classList.add('weekend');
+        if(sameDay(dt,today))b.classList.add('tonight');
+        if(st!=='open'){
+          b.disabled=true;b.classList.add(st);
+          var why=st==='booked'?'fully booked':st==='closed'?'the house is closed':'in the past';
+          b.setAttribute('aria-label',dd+' '+MONTHS[m]+', '+why);
+          b.title=st==='closed'?'The house is closed between Christmas and Boxing Day':why.charAt(0).toUpperCase()+why.slice(1);
+        }else{
+          b.setAttribute('aria-label',dd+' '+MONTHS[m]+', available');
+          b.addEventListener('click',function(){pick(dt);});
+        }
+        grid.appendChild(b);
+      })();
+    }
+    box.appendChild(grid);
+    return box;
+  }
+  function paint(){
+    calEl.innerHTML='';
+    calEl.appendChild(buildMonth(2026,10));
+    calEl.appendChild(buildMonth(2026,11));
+    /* range fill */
+    if(state.checkin&&state.checkout){
+      var inT=state.checkin.getTime(),outT=state.checkout.getTime();
+      var MO={"Jan":0,"Feb":1,"Mar":2,"Apr":3,"May":4,"Jun":5,"Jul":6,"Aug":7,"Sep":8,"Oct":9,"Nov":10,"Dec":11};
+      calEl.querySelectorAll('.day:not(:disabled)').forEach(function(b){
+        var label=b.getAttribute('aria-label');
+        var m=label.match(/^(\d+)\s+(\w+)/);
+        if(!m)return;
+        var dd=parseInt(m[1],10);
+        var mo=MO[m[2].slice(0,3)];
+        if(mo===undefined)return;
+        var dt=d(2026,mo,dd),t=dt.getTime();
+        if(t>inT&&t<outT)b.classList.add('inrange');
+        if(sameDay(dt,state.checkin))b.classList.add('start');
+        if(sameDay(dt,state.checkout))b.classList.add('end');
+      });
+    }
+  }
+  function pick(dt){
+    var n=nights();
+    if(!state.checkin||(state.checkout&&n>0)||sameDay(dt,state.checkin)){
+      state.checkin=dt;state.checkout=null;
+      say("Arrival "+fmt(dt)+". Now choose a departure, up to 14 nights.");
+    }else if(dt<state.checkin){
+      state.checkin=dt;state.checkout=null;
+      say("Arrival moved to "+fmt(dt)+". Now choose a departure.");
+    }else{
+      var span=Math.round((dt-state.checkin)/DAY);
+      if(span>14){
+        state.checkout=new Date(state.checkin.getTime()+14*DAY);
+        say("The house takes stays up to 14 nights — we've set your departure to "+fmt(state.checkout)+".");
+      }else{
+        state.checkout=dt;
+        say("");
+      }
+    }
+    paint();sync();
+  }
+  function say(t){msg.textContent=t;}
+
+  /* ---------- steps ---------- */
+  var panes={1:document.getElementById('pane-1'),2:document.getElementById('pane-2'),3:document.getElementById('pane-3')};
+  var stepBtns=[].slice.call(document.querySelectorAll('.steps button'));
+  function goto(n){
+    state.step=n;
+    stepBtns.forEach(function(b){
+      var s=parseInt(b.dataset.step,10);
+      b.toggleAttribute('aria-current',s===n);
+      b.classList.toggle('done',s<n);
+    });
+    Object.keys(panes).forEach(function(k){
+      var p=panes[k],on=parseInt(k,10)===n;
+      p.classList.remove('reveal-once');
+      p.classList.toggle('on',on);
+      if(on){void p.offsetWidth;p.classList.add('reveal-once');}
+    });
+    document.getElementById('confirm').classList.remove('on');
+    document.querySelector('.bookcard').scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+  stepBtns.forEach(function(b){b.addEventListener('click',function(){
+    var n=parseInt(b.dataset.step,10);
+    if(n===1||state.room)goto(n);
+  });});
+  [].slice.call(document.querySelectorAll('[data-goto]')).forEach(function(b){
+    b.addEventListener('click',function(){goto(parseInt(b.dataset.goto,10));});
+  });
+
+  /* ---------- rooms ---------- */
+  var roomBtns=[].slice.call(document.querySelectorAll('.room'));
+  function weddingOverlap(){
+    if(!state.checkin||!state.checkout)return false;
+    var inT=state.checkin.getTime(),outT=state.checkout.getTime();
+    return wedding.some(function(dt){
+      var t=dt.getTime();return t>=inT&&t<outT;
+    });
+  }
+  function syncRooms(){
+    var w=weddingOverlap();
+    roomBtns.forEach(function(r){
+      var blocked=w&&r.dataset.room==='garden';
+      r.disabled=blocked;
+      r.classList.toggle('sel',state.room===r.dataset.room&&!blocked);
+      r.querySelector('.unavail').textContent=blocked
+        ?'Unavailable for your dates — a wedding has the garden, 27 to 29 November':'';
+    });
+    document.getElementById('room-lede').textContent=w
+      ?'The Garden Room is taken 27 to 29 November — a wedding has the garden. The other two are free.'
+      :'Three ways to sleep at the Larches. Every rate is for the room, breakfast included.';
+  }
+  roomBtns.forEach(function(r){
+    r.addEventListener('click',function(){
+      if(r.disabled)return;
+      state.room=(state.room===r.dataset.room)?null:r.dataset.room;
+      syncRooms();sync();
+    });
+  });
+
+  /* ---------- summary ---------- */
+  var roomNames={shore:'The Shore Room',attic:'The Attic Room',garden:'The Garden Room'};
+  function totals(){
+    var n=nights(),rate=0;
+    if(state.room){
+      rate=parseInt(document.querySelector('.room[data-room="'+state.room+'"]').dataset.rate,10);
+    }
+    var extras=0;
+    state.extras=[].slice.call(document.querySelectorAll('.check input:checked'))
+      .map(function(c){extras+=parseInt(c.dataset.price,10);return c.dataset.extra;});
+    var roomTotal=rate*n,discount=state.promo?Math.round(roomTotal*0.10):0;
+    return {n:n,rate:rate,roomTotal:roomTotal,extras:extras,discount:discount,
+            total:roomTotal+extras-discount};
+  }
+  function sync(){
+    var t=totals();
+    document.getElementById('sum-dates').textContent=
+      state.checkin&&state.checkout&&t.n>0
+        ?fmt(state.checkin)+" to "+fmt(state.checkout)+" ("+t.n+" nights)"
+        :state.checkin?"Arrival "+fmt(state.checkin)+", choose a departure":"Not chosen yet";
+    document.getElementById('sum-room').textContent=state.room?roomNames[state.room]+" ("+t.n+" × £"+t.rate+")":"Not chosen yet";
+    var ex=[].slice.call(document.querySelectorAll('.check input:checked'))
+      .map(function(c){return c.closest('.check').textContent.replace(/£\d+$/,'').trim().split(' — ')[0];});
+    document.getElementById('row-extras').hidden=!ex.length;
+    document.getElementById('sum-extras').textContent=ex.join(', ');
+    document.getElementById('row-promo').hidden=!state.promo;
+    document.getElementById('sum-promo').textContent="−£"+t.discount;
+    document.getElementById('sum-total').textContent=state.room?"£"+t.total.toLocaleString('en-GB'):"—";
+    var canRoom=state.checkin&&state.checkout&&t.n>0;
+    document.getElementById('to-room').disabled=!canRoom;
+    document.getElementById('to-guest').disabled=!state.room;
+    var cta=document.getElementById('sum-cta');
+    if(state.step===1){cta.disabled=!canRoom;cta.textContent=canRoom?'Choose a room':'Choose dates to begin';}
+    else if(state.step===2){cta.disabled=!state.room;cta.textContent=state.room?'Add your details':'Choose a room';}
+    else if(state.step===3){cta.disabled=false;cta.textContent='Hold this room';}
+    else {cta.disabled=true;cta.textContent='Held — see confirmation';}
+    syncRooms();
+  }
+  document.getElementById('sum-cta').addEventListener('click',function(){
+    if(state.step<3)goto(state.step+1);else hold();
+  });
+  document.getElementById('to-room').addEventListener('click',function(){goto(2);sync();});
+  document.getElementById('to-guest').addEventListener('click',function(){goto(3);sync();});
+
+  [].slice.call(document.querySelectorAll('.check input')).forEach(function(c){
+    c.addEventListener('change',sync);
+  });
+
+  /* ---------- promo ---------- */
+  var promoIn=document.getElementById('promo'),promoMsg=document.getElementById('promo-msg');
+  document.getElementById('apply-promo').addEventListener('click',function(){
+    var v=promoIn.value.trim().toUpperCase();
+    if(v==='LARCH'){
+      state.promo=true;
+      promoMsg.textContent='LARCH applied — 10% off the room, with our compliments.';
+      promoMsg.className='promo-msg good';
+    }else{
+      state.promo=false;
+      promoMsg.textContent='That code isn\u2019t recognised — the desk knows the current ones.';
+      promoMsg.className='promo-msg bad';
+    }
+    sync();
+  });
+
+  /* ---------- validation + hold ---------- */
+  var nameIn=document.getElementById('name'),emailIn=document.getElementById('email');
+  function bad(fieldId,cond){
+    var f=document.getElementById(fieldId);f.classList.toggle('bad',cond);
+    if(cond){f.querySelector('input').setAttribute('aria-invalid','true');return true;}
+    f.querySelector('input').removeAttribute('aria-invalid');return false;
+  }
+  nameIn.addEventListener('input',function(){bad('f-name',false);});
+  emailIn.addEventListener('input',function(){bad('f-email',false);});
+  function hold(){
+    var b1=bad('f-name',!nameIn.value.trim());
+    var b2=bad('f-email',!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailIn.value.trim()));
+    if(b1){nameIn.focus();return;} if(b2){emailIn.focus();return;}
+    var btn=document.getElementById('hold');
+    btn.disabled=true;btn.textContent='Holding your room…';
+    setTimeout(function(){
+      var t=totals();
+      document.getElementById('confirm-sub').textContent=
+        roomNames[state.room]+", "+fmt(state.checkin)+" to "+fmt(state.checkout)+
+        " ("+t.n+" nights"+(t.total?", £"+t.total.toLocaleString('en-GB')+" payable at the hotel":"")+").";
+      var seed=(nameIn.value.trim()+state.checkin.getDate()).split('').reduce(function(a,c){return a+c.charCodeAt(0);},0);
+      document.getElementById('confirm-code').textContent='LH-'+(1000+seed%9000);
+      document.getElementById('confirm-email').textContent=emailIn.value.trim();
+      document.getElementById('confirm-title').textContent='The room is held for you, '+nameIn.value.trim().split(' ')[0];
+      var cta=document.getElementById('sum-cta');
+      cta.disabled=true;cta.textContent='Held — see confirmation';
+      panes[3].classList.remove('on','reveal-once');
+      var cf=document.getElementById('confirm');
+      cf.classList.add('on');
+      void cf.offsetWidth;
+      cf.classList.add('reveal-once');
+      document.querySelector('.bookcard').scrollIntoView({behavior:'smooth',block:'nearest'});
+    },700);
+  }
+  document.getElementById('hold').addEventListener('click',hold);
+
+  paint();sync();say("Your weekend is pencilled in, Fri 20 to Sun 22 — tap any date to change it.");
+})();
+</script>
+</body>
+</html>

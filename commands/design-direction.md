@@ -3,7 +3,7 @@ description: Propose and lock a visual direction for a UI brief before building 
 argument-hint: "<brief or product description>"
 ---
 
-Set the visual direction for this brief with the frontend-aesthetics skill: $ARGUMENTS
+Set the visual direction for this brief with the polishkit skill: $ARGUMENTS
 
 1. Read the project's brief or contract first (DESIGN.md, PRODUCT.md, token files, contract documents). If one exists, it governs, and this step's output must not contradict it.
 2. Write the brief in the format of the skill's `references/principles.md`. Fill unknowns with stated assumptions instead of asking questions, unless the user is clearly available and the choice is about taste.

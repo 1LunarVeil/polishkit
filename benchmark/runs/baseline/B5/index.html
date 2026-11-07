@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>jfmt — straighten JSON without leaving the shell</title>
+<style>
+  :root{
+    --paper:#fbfbf9; --ink:#1d2024; --dim:#5d6570; --faint:#8a919b;
+    --line:#e4e4df; --blue:#2b50d9; --blue-soft:#eaeefb;
+    --term:#101318; --term-ink:#c9d1d9; --term-dim:#7d8590;
+    --key:#8fc1e3; --str:#d9b26a; --pun:#8b949e; --num:#c8a2d8;
+    --add:#7ec699; --del:#d97a6c; --mod:#d9c06a;
+    --mono:ui-monospace,"Cascadia Mono","SF Mono",Consolas,"Courier New",monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--paper);color:var(--ink);
+    font:16px/1.6 "Segoe UI",-apple-system,"Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  :focus-visible{outline:2px solid var(--blue);outline-offset:3px;border-radius:3px}
+  a{color:var(--blue);text-decoration:none}
+  a:hover{text-decoration:underline;text-underline-offset:3px}
+  .mono{font-family:var(--mono)}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 24px}
+  .skip{position:absolute;left:-999px;top:8px;background:var(--ink);color:#fff;padding:8px 14px;border-radius:6px;z-index:99}
+  .skip:focus{left:8px}
+
+  /* ── nav ── */
+  .nav{display:flex;align-items:center;gap:22px;padding:18px 0;border-bottom:1px solid var(--line)}
+  .logo{font-family:var(--mono);font-weight:700;font-size:18px;color:var(--ink)}
+  .logo .cursor{display:inline-block;width:9px;height:17px;background:var(--blue);vertical-align:-2px;
+    margin-left:2px;animation:blink 1.1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+  .ver{font-family:var(--mono);font-size:11px;color:var(--dim);border:1px solid var(--line);
+    border-radius:5px;padding:1px 7px}
+  .nav nav{margin-left:auto;display:flex;gap:20px;font-size:13.5px}
+  .nav nav a{color:var(--dim)}
+  .nav nav a:hover{color:var(--ink)}
+  .nav nav a.gh{font-weight:600}
+
+  /* ── hero ── */
+  .hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.12fr);gap:44px;
+    align-items:center;padding:64px 0 58px}
+  h1{font-size:clamp(34px,4.6vw,50px);line-height:1.06;letter-spacing:-.025em;font-weight:700}
+  h1 .thin{color:var(--faint);font-weight:300}
+  .sub{margin-top:16px;font-size:17px;color:var(--dim);max-width:44ch}
+  .sub b{color:var(--ink);font-weight:600}
+  .plat{display:flex;gap:6px;margin:26px 0 10px}
+  .plat button{font-family:var(--mono);font-size:12px;border:1px solid var(--line);background:var(--paper);
+    color:var(--dim);border-radius:6px;padding:4px 12px}
+  .plat button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+  .install{display:flex;align-items:center;gap:10px;background:var(--term);border-radius:9px;
+    padding:13px 14px;border:1px solid #262c36}
+  .install code{font-family:var(--mono);font-size:14px;color:var(--term-ink);flex:1;overflow-x:auto;white-space:nowrap}
+  .install code .p{color:var(--term-dim)}
+  .copy{font-family:var(--mono);font-size:11.5px;background:#1d232c;border:1px solid #2c3440;
+    color:#aab3c0;border-radius:6px;padding:5px 11px;cursor:pointer;flex:none}
+  .copy:hover{border-color:#3d4756;color:#fff}
+  .meta{margin-top:12px;font-size:12.5px;color:var(--faint);font-family:var(--mono)}
+
+  /* ── terminal ── */
+  .term{background:var(--term);border:1px solid #262c36;border-radius:12px;overflow:hidden;
+    box-shadow:0 24px 48px -28px rgba(16,19,24,.55)}
+  .term-bar{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid #212833}
+  .term-bar .dots{display:flex;gap:6px}
+  .term-bar .dots i{width:10px;height:10px;border-radius:50%;background:#2c3440}
+  .term-bar .t{font-family:var(--mono);font-size:11.5px;color:var(--term-dim)}
+  .term-bar .rp{margin-left:auto;font-family:var(--mono);font-size:11px;color:#aab3c0;background:#1d232c;
+    border:1px solid #2c3440;border-radius:5px;padding:3px 10px;cursor:pointer}
+  .term-bar .rp:hover{color:#fff}
+  .term-body{padding:16px 18px;font-family:var(--mono);font-size:13.5px;line-height:1.62;
+    height:378px;overflow:hidden;white-space:pre-wrap;word-break:break-all;color:var(--term-ink)}
+  .term-body .ln{min-height:1.62em}
+  .prompt{color:var(--add);font-weight:600}
+  .c-key{color:var(--key)} .c-str{color:var(--str)} .c-pun{color:var(--pun)} .c-num{color:var(--num)}
+  .c-dim{color:var(--term-dim)} .c-add{color:var(--add)} .c-del{color:var(--del)} .c-mod{color:var(--mod)}
+  .caret{display:inline-block;width:8px;height:16px;background:#aab3c0;vertical-align:-2px;animation:blink 1s steps(1) infinite}
+
+  /* ── bench ── */
+  .bench{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:34px 0;
+    display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.4fr);gap:40px;align-items:center}
+  .bench h2{font-size:22px;letter-spacing:-.01em;font-weight:700;line-height:1.25}
+  .bench .bs{margin-top:10px;color:var(--dim);font-size:14px;max-width:38ch}
+  .b-rows{font-family:var(--mono);font-size:12.5px}
+  .b-row{display:grid;grid-template-columns:170px 1fr 56px;gap:12px;align-items:center;padding:7px 0}
+  .b-row .nm{color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .b-row.hero .nm{color:var(--ink);font-weight:700}
+  .b-track{height:12px;background:var(--line);border-radius:6px;overflow:hidden}
+  .b-track i{display:block;height:100%;border-radius:6px}
+  .b-row.hero .b-track i{background:var(--blue)}
+  .b-row .b-track i{background:#b9bcc2}
+  .b-row .tm{text-align:right;color:var(--dim)}
+  .b-row.hero .tm{color:var(--blue);font-weight:700}
+  .b-note{grid-column:2;font-size:11px;color:var(--faint);margin-top:2px}
+
+  /* ── features ── */
+  .features{padding:58px 0 8px}
+  .features h2{font-size:26px;letter-spacing:-.015em;font-weight:700;margin-bottom:6px}
+  .features .fs{color:var(--dim);font-size:15px;margin-bottom:34px}
+  dl.feat{display:grid;grid-template-columns:1fr 1fr;gap:30px 46px}
+  dl.feat dt{font-family:var(--mono);font-size:15px;font-weight:700;margin-bottom:6px}
+  dl.feat dt::before{content:"— ";color:var(--blue)}
+  dl.feat dd{color:var(--dim);font-size:14.5px}
+  dl.feat dd code{font-family:var(--mono);font-size:12.5px;background:var(--blue-soft);color:#24359c;
+    border-radius:4px;padding:1px 6px;white-space:nowrap}
+
+  /* ── code blocks (config / jq) ── */
+  .code-duo{display:grid;grid-template-columns:1fr 1fr;gap:22px;padding:46px 0 60px}
+  .codeblk{background:var(--term);border-radius:10px;border:1px solid #262c36;overflow:hidden}
+  .codeblk .cb-h{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;
+    border-bottom:1px solid #212833;font-family:var(--mono);font-size:11.5px;color:var(--term-dim)}
+  .codeblk pre{padding:14px 16px;font-family:var(--mono);font-size:13px;line-height:1.7;color:var(--term-ink);overflow-x:auto}
+  .codeblk p.cap{padding:10px 16px 14px;font-size:12.5px;color:var(--term-dim);border-top:1px solid #212833}
+
+  /* ── bottom cta + footer ── */
+  .cta{border-top:1px solid var(--line);padding:52px 0 60px;text-align:center}
+  .cta h2{font-size:24px;font-weight:700;letter-spacing:-.01em}
+  .cta p{color:var(--dim);margin:8px auto 22px;max-width:46ch}
+  footer{border-top:1px solid var(--line);padding:22px 0 40px;display:flex;gap:18px;flex-wrap:wrap;
+    color:var(--faint);font-size:12.5px;font-family:var(--mono)}
+  footer .r{margin-left:auto}
+
+  @media (max-width:880px){
+    .hero{grid-template-columns:1fr;padding-top:44px;gap:34px}
+    .bench{grid-template-columns:1fr;gap:24px}
+    dl.feat{grid-template-columns:1fr}
+    .code-duo{grid-template-columns:1fr}
+    .nav nav{display:none}
+    .term-body{height:340px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    .logo .cursor,.caret{animation:none}
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="wrap nav">
+  <p class="logo">jfmt<span class="cursor" aria-hidden="true"></span></p>
+  <span class="ver">v1.4.2</span>
+  <nav aria-label="Site">
+    <a href="#features">Features</a>
+    <a href="#bench">Benchmarks</a>
+    <a href="#config">Config</a>
+    <a href="#install">Install</a>
+    <a class="gh" href="#install">GitHub ↗</a>
+  </nav>
+</header>
+
+<main id="main" class="wrap">
+  <section class="hero" id="install">
+    <div>
+      <h1>JSON, straightened<span class="thin"> — from the shell.</span></h1>
+      <p class="sub"><b>jfmt</b> formats, validates and diffs JSON without an editor round-trip. Pipe-friendly, config-light, and fast enough to run on every save.</p>
+
+      <div class="plat" role="group" aria-label="Choose your platform">
+        <button aria-pressed="true" data-cmd="brew install jfmt">macOS</button>
+        <button aria-pressed="false" data-cmd="cargo install jfmt">Linux</button>
+        <button aria-pressed="false" data-cmd="scoop install jfmt">Windows</button>
+      </div>
+      <div class="install">
+        <code id="cmdOut"><span class="p">$ </span>brew install jfmt</code>
+        <button class="copy" id="copyBtn">Copy</button>
+      </div>
+      <p class="meta">3.1 MB single binary · zero runtime dependencies · MIT license</p>
+    </div>
+
+    <div class="term">
+      <div class="term-bar">
+        <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="t">~/work/api — zsh</span>
+        <button class="rp" id="replay">Replay</button>
+      </div>
+      <div class="term-body" id="term" role="img" aria-label="Animated demo: cat prints a single unreadable line of JSON, then jfmt formats it into readable output, then jfmt --diff prints a semantic diff."></div>
+    </div>
+  </section>
+
+  <section class="bench" id="bench">
+    <div>
+      <h2>Fast enough to stop noticing it runs.</h2>
+      <p class="bs">One thread, memory-mapped input, no parse tree pretty-printing. The 48 MB city lots file is the worst case we could find on short notice.</p>
+    </div>
+    <div class="b-rows" role="table" aria-label="Formatting time for a 48 MB JSON file">
+      <div class="b-row hero" role="row">
+        <span class="nm" role="cell">jfmt</span>
+        <span class="b-track" role="cell"><i style="width:8%"></i></span>
+        <span class="tm num" role="cell">0.9 s</span>
+      </div>
+      <div class="b-row" role="row">
+        <span class="nm" role="cell">python -m json.tool</span>
+        <span class="b-track" role="cell"><i style="width:57%"></i></span>
+        <span class="tm num" role="cell">6.4 s</span>
+      </div>
+      <div class="b-row" role="row">
+        <span class="nm" role="cell">prettier --parser json</span>
+        <span class="b-track" role="cell"><i style="width:100%"></i></span>
+        <span class="tm num" role="cell">11.2 s</span>
+      </div>
+      <p class="b-note" role="cell">48.3 MB · single run · warm cache · Apple M1 Pro</p>
+    </div>
+  </section>
+
+  <section class="features" id="features">
+    <h2>Six ideas, no plugin system.</h2>
+    <p class="fs">Everything jfmt does fits on this page — deliberately.</p>
+    <dl class="feat">
+      <div>
+        <dt>Pipes in, pipes out</dt>
+        <dd><code>cat messy.json | jfmt</code> writes clean JSON to stdout; <code>jfmt -q</code> stays silent and just sets the exit code, so it drops straight into CI.</dd>
+      </div>
+      <div>
+        <dt>In-place, with a net</dt>
+        <dd><code>jfmt -w src/config.json</code> rewrites the file and leaves a <code>.bak</code> beside it. Silence the net with <code>--backup=false</code> once you trust it.</dd>
+      </div>
+      <div>
+        <dt>Diffs that mean something</dt>
+        <dd><code>jfmt --diff a.json b.json</code> prints a JSON Patch of real value changes — reindented noise never shows up.</dd>
+      </div>
+      <div>
+        <dt>Watch while you work</dt>
+        <dd><code>jfmt --watch .</code> re-formats on every save. At 3 ms per file, it finishes before your editor redraws.</dd>
+      </div>
+      <div>
+        <dt>Tolerant on the way in</dt>
+        <dd>Comments, trailing commas and unquoted keys are read without complaint. Output is always strict RFC 8259 JSON.</dd>
+      </div>
+      <div>
+        <dt>Config that fits in your head</dt>
+        <dd>Five keys, one file, no presets or shareable bundles. If a config needs documentation, it's too big.</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section class="code-duo wrap" id="config" style="max-width:1100px">
+    <div class="codeblk">
+      <div class="cb-h"><span>.jfmtrc</span><span style="font-family:var(--mono)">the whole thing</span></div>
+      <pre>{
+  <span class="c-key">"indent"</span><span class="c-pun">:</span> 2,
+  <span class="c-key">"maxLine"</span><span class="c-pun">:</span> 80,
+  <span class="c-key">"sortKeys"</span><span class="c-pun">:</span> false,
+  <span class="c-key">"arrayTrailingComma"</span><span class="c-pun">:</span> true,
+  <span class="c-key">"color"</span><span class="c-pun">:</span> <span class="c-str">"auto"</span>
+}</pre>
+      <p class="cap">Found by walking up from the file — nearest wins, like .editorconfig.</p>
+    </div>
+    <div class="codeblk">
+      <div class="cb-h"><span>plays well with jq</span><span style="font-family:var(--mono)">different jobs</span></div>
+      <pre><span class="prompt">$</span> curl -s https://api.github.com/repos/<br>    jfmt/jfmt/issues <span class="c-pun">|</span> jq <span class="c-str">'[.[] | {n, state}]'</span> <span class="c-pun">|</span> jfmt<br>
+<span class="c-pun">[</span>
+  <span class="c-pun">{</span> <span class="c-key">"n"</span><span class="c-pun">:</span> <span class="c-num">412</span>, <span class="c-key">"state"</span><span class="c-pun">:</span> <span class="c-str">"open"</span> <span class="c-pun">}</span>,
+  <span class="c-pun">{</span> <span class="c-key">"n"</span><span class="c-pun">:</span> <span class="c-num">411</span>, <span class="c-key">"state"</span><span class="c-pun">:</span> <span class="c-str">"closed"</span> <span class="c-pun">}</span>
+<span class="c-pun">]</span></pre>
+      <p class="cap">jq queries it, jfmt makes it readable. Neither tries to do the other's job.</p>
+    </div>
+  </section>
+
+  <section class="cta wrap">
+    <h2>Fix your JSON before it fixes you.</h2>
+    <p>One binary, five config keys, and a .bak file until you trust it. Two minutes from install to a tidy repo.</p>
+    <div class="install" style="max-width:420px;margin:0 auto;text-align:left">
+      <code id="cmdOut2"><span class="p">$ </span>brew install jfmt</code>
+      <button class="copy" id="copyBtn2">Copy</button>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <span>jfmt · MIT · v1.4.2</span>
+  <a href="#features">Changelog</a>
+  <a href="#features">Docs</a>
+  <span class="r">Built for people who live in a terminal.</span>
+</footer>
+
+<script>
+(function(){
+  'use strict';
+  var $ = function(s){ return document.querySelector(s); };
+
+  /* ── platform chips + copy ── */
+  var cmd = 'brew install jfmt';
+  function renderCmd(){
+    $('#cmdOut').innerHTML = '<span class="p">$ </span>' + cmd;
+    $('#cmdOut2').innerHTML = '<span class="p">$ </span>' + cmd;
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.plat button'), function(b){
+    b.addEventListener('click', function(){
+      Array.prototype.forEach.call(document.querySelectorAll('.plat button'), function(x){
+        x.setAttribute('aria-pressed','false');
+      });
+      b.setAttribute('aria-pressed','true');
+      cmd = b.dataset.cmd;
+      renderCmd();
+    });
+  });
+  function wireCopy(btnId){
+    var btn = $(btnId);
+    btn.addEventListener('click', function(){
+      var plain = cmd;
+      function ok(){ btn.textContent = 'Copied ✓'; setTimeout(function(){ btn.textContent = 'Copy'; }, 1600); }
+      function fail(){ btn.textContent = 'Press ⌘C'; setTimeout(function(){ btn.textContent = 'Copy'; }, 2000); }
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(plain).then(ok, fallback);
+      } else fallback();
+      function fallback(){
+        var ta = document.createElement('textarea');
+        ta.value = plain; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try{ document.execCommand('copy'); ok(); }catch(e){ fail(); }
+        document.body.removeChild(ta);
+      }
+    });
+  }
+  wireCopy('#copyBtn'); wireCopy('#copyBtn2');
+
+  /* ── terminal demo ── */
+  var term = $('#term');
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var K = function(s){ return '<span class="c-key">' + s + '</span>'; };
+  var S = function(s){ return '<span class="c-str">' + s + '</span>'; };
+  var P = function(s){ return '<span class="c-pun">' + s + '</span>'; };
+  var N = function(s){ return '<span class="c-num">' + s + '</span>'; };
+
+  var SCENES = [
+    {
+      cmd: 'cat api.json',
+      out: ['<span class="c-dim">{"id":17,"name":"beans","tags":["fresh","whole"],</span>' +
+            '<span class="c-dim">"meta":{"origin":"huila","alt_m":1750},"stock":{"on_hand":42,"reserved":6}}</span>']
+    },
+    {
+      cmd: 'jfmt api.json',
+      out: [
+        P('{'),
+        '  ' + K('"id"') + P(': ') + N('17') + P(','),
+        '  ' + K('"name"') + P(': ') + S('"beans"') + P(','),
+        '  ' + K('"tags"') + P(': [') + S('"fresh"') + P(', ') + S('"whole"') + P('],'),
+        '  ' + K('"meta"') + P(': {'),
+        '    ' + K('"origin"') + P(': ') + S('"huila"') + P(','),
+        '    ' + K('"alt_m"') + P(': ') + N('1750'),
+        '  ' + P('},'),
+        '  ' + K('"stock"') + P(': {'),
+        '    ' + K('"on_hand"') + P(': ') + N('42') + P(','),
+        '    ' + K('"reserved"') + P(': ') + N('6'),
+        '  ' + P('}'),
+        P('}')
+      ]
+    },
+    {
+      cmd: 'jfmt --diff api.json api.old.json',
+      out: [
+        '<span class="c-mod">~ .name</span>        ' + S('"beans"') + ' <span class="c-dim">→</span> ' + S('"Beans, Huila"'),
+        '<span class="c-add">+ .tags[2]</span>    ' + S('"organic"'),
+        '<span class="c-del">- .stock.reserved</span>  <span class="c-del">6 removed</span>',
+        '<span class="c-dim">3 changes · 0 formatting-only</span>'
+      ]
+    }
+  ];
+
+  var runId = 0;
+  function line(html){
+    var d = document.createElement('div');
+    d.className = 'ln'; d.innerHTML = html;
+    term.appendChild(d);
+  }
+  function promptLine(cmdHtml){
+    line('<span class="prompt">$</span> <span class="cmdline">' + cmdHtml + '</span><span class="caret"></span>');
+    return term.lastChild.querySelector('.cmdline');
+  }
+  function wait(ms, id){
+    return new Promise(function(res){
+      setTimeout(function(){ res(id === runId); }, ms);
+    });
+  }
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+  async function play(){
+    var id = ++runId;
+    term.innerHTML = '';
+    for(var s = 0; s < SCENES.length; s++){
+      var sc = SCENES[s];
+      var cl = promptLine('');
+      var caret = term.lastChild.querySelector('.caret');
+      if(reduce){
+        cl.innerHTML = esc(sc.cmd);
+      } else {
+        for(var i = 0; i <= sc.cmd.length; i++){
+          if(id !== runId) return;
+          cl.innerHTML = esc(sc.cmd.slice(0, i));
+          await wait(26 + Math.random() * 30, id);
+          if(id !== runId) return;
+        }
+      }
+      await wait(reduce ? 0 : 240, id);
+      if(id !== runId) return;
+      if(caret) caret.remove();
+      for(var j = 0; j < sc.out.length; j++){
+        if(id !== runId) return;
+        line(sc.out[j]);
+        if(!reduce) await wait(34, id);
+      }
+      await wait(reduce ? 0 : 460, id);
+      if(id !== runId) return;
+    }
+    promptLine('');
+  }
+  $('#replay').addEventListener('click', play);
+  play();
+})();
+</script>
+</body>
+</html>

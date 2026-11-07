@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fernwood House — Book your stay</title>
+<style>
+  :root{
+    --cream:#faf6ef;
+    --card:#fffdf8;
+    --ink:#2e2418;
+    --dim:#7a6d5a;
+    --line:#e7ddcc;
+    --rust:#b05a34;
+    --rust-dark:#93481f;
+    --sage:#6b7d5e;
+    --err:#b3382c;
+    --ok:#4e7a44;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--cream);color:var(--ink);
+    font-family:"Segoe UI",system-ui,-apple-system,sans-serif;
+    font-size:15px;line-height:1.6;
+  }
+  h1,h2,h3,.room h3,.step-title{font-family:Georgia,"Times New Roman",serif}
+
+  /* header */
+  .site-head{
+    padding:26px 0;border-bottom:1px solid var(--line);
+  }
+  .shell{max-width:1060px;margin:0 auto;padding:0 28px}
+  .site-head .shell{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  .site-head h1{font-size:24px;font-weight:normal;letter-spacing:.02em}
+  .site-head h1 small{color:var(--dim);font-size:13px;font-family:"Segoe UI",sans-serif;letter-spacing:.14em;text-transform:uppercase;margin-left:10px}
+  .site-head nav a{color:var(--dim);text-decoration:none;margin-left:22px;font-size:13px}
+  .site-head nav a:hover{color:var(--ink)}
+
+  /* trust strip */
+  .trust{display:flex;gap:26px;justify-content:center;padding:18px 28px;font-size:13px;color:var(--dim);flex-wrap:wrap}
+  .trust span::before{content:"—";color:var(--rust);margin-right:8px}
+
+  /* layout */
+  .booking{display:grid;grid-template-columns:1fr 320px;gap:36px;padding:34px 0 70px}
+
+  /* steps header */
+  .steps{display:flex;gap:6px;margin-bottom:26px;flex-wrap:wrap}
+  .steps li{
+    list-style:none;font-size:12px;letter-spacing:.06em;color:var(--dim);
+    padding:7px 14px;border:1px solid var(--line);border-radius:99px;background:var(--card);
+  }
+  .steps li b{font-family:Georgia,serif;font-weight:normal;color:var(--rust);margin-right:6px}
+  .steps li.current{border-color:var(--rust);color:var(--ink)}
+  .steps li.done{color:var(--sage);border-color:#cfd8c8}
+  .steps li.done b{color:var(--sage)}
+
+  .step-title{font-size:22px;margin-bottom:4px}
+  .step-sub{color:var(--dim);font-size:14px;margin-bottom:22px}
+
+  /* panels */
+  .step-panel{display:none}
+  .step-panel.active{display:block}
+
+  /* dates */
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:460px}
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
+  .field input,.field select,.field textarea{
+    width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:6px;
+    background:var(--card);color:var(--ink);
+  }
+  .field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--rust);outline-offset:1px;border-color:var(--rust)}
+  .field .err-msg{display:none;color:var(--err);font-size:12px;margin-top:5px}
+  .field.invalid input{border-color:var(--err)}
+  .field.invalid .err-msg{display:block}
+  .nights-note{font-size:13px;color:var(--sage);margin-top:4px;min-height:20px}
+
+  /* rooms */
+  .rooms{display:grid;gap:18px}
+  .room{
+    display:grid;grid-template-columns:200px 1fr;gap:0;
+    border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--card);
+    cursor:pointer;position:relative;
+  }
+  .room:hover{border-color:#cdbfa6}
+  .room.selected{border-color:var(--rust);box-shadow:0 0 0 2px rgba(176,90,52,.25)}
+  .room svg{display:block;width:100%;height:100%;min-height:150px}
+  .room .info{padding:16px 20px}
+  .room h3{font-size:18px;font-weight:normal}
+  .room .desc{font-size:13px;color:var(--dim);margin:4px 0 10px}
+  .room .amen{font-size:12px;color:var(--dim)}
+  .room .amen span{margin-right:12px}
+  .room .amen span::before{content:"\2022";color:var(--rust);margin-right:5px}
+  .room .price{position:absolute;top:14px;right:16px;text-align:right;background:var(--card);padding:2px 8px;border-radius:6px}
+  .room .price b{font-family:Georgia,serif;font-size:18px;font-weight:normal}
+  .room .price span{display:block;font-size:11px;color:var(--dim)}
+  .room .pick{
+    position:absolute;bottom:14px;right:16px;font-size:12px;color:var(--rust);
+    border:1px solid var(--rust);border-radius:99px;padding:5px 14px;background:none;font:inherit;cursor:pointer;
+  }
+  .room.selected .pick{background:var(--rust);color:#fff}
+  .room .tick{
+    position:absolute;top:12px;left:12px;width:22px;height:22px;border-radius:50%;
+    background:var(--rust);color:#fff;font-size:13px;display:none;align-items:center;justify-content:center;
+  }
+  .room.selected .tick{display:flex}
+
+  /* details */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;max-width:560px}
+
+  /* review */
+  .review{border:1px solid var(--line);border-radius:10px;background:var(--card);padding:20px 24px;max-width:560px}
+  .review dl{display:grid;grid-template-columns:140px 1fr;row-gap:8px;font-size:14px}
+  .review dt{color:var(--dim)}
+  .review dd{color:var(--ink)}
+  .confirm-note{font-size:13px;color:var(--dim);margin:16px 0}
+
+  /* nav buttons */
+  .wizard-nav{display:flex;justify-content:space-between;margin-top:26px;max-width:560px}
+  .btn{
+    font:inherit;font-size:14px;padding:10px 26px;border-radius:6px;cursor:pointer;border:1px solid var(--line);
+    background:var(--card);color:var(--ink);
+  }
+  .btn:hover{border-color:#cdbfa6}
+  .btn-primary{background:var(--rust);border-color:var(--rust);color:#fff}
+  .btn-primary:hover{background:var(--rust-dark)}
+  .btn[disabled]{opacity:.5;cursor:not-allowed}
+  .btn:focus-visible{outline:2px solid var(--rust);outline-offset:2px}
+
+  /* summary sidebar */
+  .summary{
+    border:1px solid var(--line);border-radius:10px;background:var(--card);
+    padding:20px 22px;position:sticky;top:24px;height:max-content;
+  }
+  .summary h3{font-size:17px;font-weight:normal;margin-bottom:14px}
+  .summary .srow{display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:1px dashed var(--line)}
+  .summary .srow span:first-child{color:var(--dim)}
+  .summary .srow.total{border-bottom:0;padding-top:12px}
+  .summary .srow.total span:first-child{color:var(--ink);font-size:14px}
+  .summary .srow.total b{font-family:Georgia,serif;font-size:20px;font-weight:normal}
+  .summary .placeholder{color:var(--muted,#9a8f7e);font-size:13px}
+  .summary .fineprint{font-size:11px;color:var(--dim);margin-top:14px}
+
+  /* success */
+  .success{display:none;text-align:center;padding:60px 20px 100px}
+  .success.show{display:block}
+  .success h2{font-size:28px;font-weight:normal;margin:18px 0 8px}
+  .success p{color:var(--dim);max-width:440px;margin:0 auto 8px}
+  .success .ref{font-family:Consolas,monospace;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:6px 14px;display:inline-block;margin-top:12px}
+
+  footer{border-top:1px solid var(--line);padding:22px 0;font-size:12px;color:var(--dim);text-align:center}
+
+  @media (max-width:860px){
+    .booking{grid-template-columns:1fr}
+    .room{grid-template-columns:1fr}
+    .room svg{min-height:120px;max-height:160px}
+    .field-row,.grid2{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<div class="site-head">
+  <div class="shell">
+    <h1>Fernwood House <small>Boutique stays · Est. 1926</small></h1>
+    <nav aria-label="Site">
+      <a href="#">The house</a>
+      <a href="#">Rooms</a>
+      <a href="#">Getting here</a>
+    </nav>
+  </div>
+</div>
+
+<div class="trust" aria-label="Booking assurances">
+  <span>Free cancellation up to 48 hours before arrival</span>
+  <span>No prepayment — pay at the house</span>
+  <span>Breakfast from the garden included</span>
+</div>
+
+<main class="shell">
+
+  <div class="booking" id="bookingLayout">
+
+    <section aria-label="Booking steps">
+      <ol class="steps" id="stepsBar">
+        <li data-step="1" class="current"><b>1</b> Dates</li>
+        <li data-step="2"><b>2</b> Room</li>
+        <li data-step="3"><b>3</b> Your details</li>
+        <li data-step="4"><b>4</b> Review</li>
+      </ol>
+
+      <!-- STEP 1 -->
+      <div class="step-panel active" id="step-1">
+        <h2 class="step-title">When would you like to come?</h2>
+        <p class="step-sub">Weekends fill up quickly in autumn — we hold rooms for 30 minutes while you decide.</p>
+        <div class="field-row">
+          <div class="field" id="f-checkin">
+            <label for="checkin">Check-in</label>
+            <input type="date" id="checkin">
+            <p class="err-msg">Please choose an arrival date.</p>
+          </div>
+          <div class="field" id="f-checkout">
+            <label for="checkout">Check-out</label>
+            <input type="date" id="checkout">
+            <p class="err-msg">Check-out must be after check-in.</p>
+          </div>
+        </div>
+        <div class="field" style="max-width:224px">
+          <label for="guests">Guests</label>
+          <select id="guests">
+            <option value="1">1 guest</option>
+            <option value="2" selected>2 guests</option>
+            <option value="3">3 guests</option>
+            <option value="4">4 guests</option>
+          </select>
+        </div>
+        <p class="nights-note" id="nightsNote"></p>
+        <div class="wizard-nav">
+          <span></span>
+          <button class="btn btn-primary" id="next1">Choose a room &rarr;</button>
+        </div>
+      </div>
+
+      <!-- STEP 2 -->
+      <div class="step-panel" id="step-2">
+        <h2 class="step-title">Pick your room</h2>
+        <p class="step-sub" id="roomSub">Three rooms, each facing the garden or the valley.</p>
+        <div class="rooms" id="roomList">
+
+          <div class="room" data-room="garden" data-rate="180" tabindex="0" role="radio" aria-checked="false">
+            <span class="tick" aria-hidden="true">&#10003;</span>
+            <svg viewBox="0 0 200 150" role="img" aria-label="Illustration of the Garden Room">
+              <rect width="200" height="150" fill="#e9e2d2"/>
+              <rect x="30" y="35" width="140" height="90" fill="#f6f1e5" stroke="#c9bda4" stroke-width="3"/>
+              <line x1="100" y1="35" x2="100" y2="125" stroke="#c9bda4" stroke-width="3"/>
+              <line x1="30" y1="80" x2="170" y2="80" stroke="#c9bda4" stroke-width="3"/>
+              <rect x="0" y="125" width="200" height="25" fill="#a8b38e"/>
+              <circle cx="30" cy="122" r="14" fill="#7d8f63"/>
+              <circle cx="172" cy="124" r="17" fill="#7d8f63"/>
+              <rect x="88" y="70" width="24" height="30" fill="#b05a34" opacity=".55"/>
+            </svg>
+            <div class="info">
+              <h3>Garden Room</h3>
+              <p class="desc">Ground floor, opens onto the herb garden. A favourite for slow mornings.</p>
+              <p class="amen"><span>Queen bed</span><span>En-suite</span><span> Tea tray</span></p>
+            </div>
+            <div class="price"><b>$180</b><span>per night</span></div>
+            <button class="pick" type="button">Select</button>
+          </div>
+
+          <div class="room" data-room="terrace" data-rate="260" tabindex="0" role="radio" aria-checked="false">
+            <span class="tick" aria-hidden="true">&#10003;</span>
+            <svg viewBox="0 0 200 150" role="img" aria-label="Illustration of the Terrace Suite">
+              <rect width="200" height="150" fill="#e4e7dd"/>
+              <rect x="24" y="30" width="152" height="95" fill="#f6f1e5" stroke="#c9bda4" stroke-width="3"/>
+              <rect x="24" y="112" width="152" height="14" fill="#b05a34" opacity=".8"/>
+              <line x1="46" y1="30" x2="46" y2="112" stroke="#c9bda4" stroke-width="3"/>
+              <line x1="154" y1="30" x2="154" y2="112" stroke="#c9bda4" stroke-width="3"/>
+              <circle cx="60" cy="120" r="10" fill="#7d8f63"/>
+              <circle cx="140" cy="121" r="12" fill="#7d8f63"/>
+              <rect x="0" y="130" width="200" height="20" fill="#a8b38e"/>
+              <path d="M0,150 Q60,128 200,146 L200,150 Z" fill="#94a06f"/>
+            </svg>
+            <div class="info">
+              <h3>Terrace Suite</h3>
+              <p class="desc">First floor with a private terrace over the valley — the sunset room.</p>
+              <p class="amen"><span>King bed</span><span> Sitting corner</span><span> Bathtub</span></p>
+            </div>
+            <div class="price"><b>$260</b><span>per night</span></div>
+            <button class="pick" type="button">Select</button>
+          </div>
+
+          <div class="room" data-room="loft" data-rate="340" tabindex="0" role="radio" aria-checked="false">
+            <span class="tick" aria-hidden="true">&#10003;</span>
+            <svg viewBox="0 0 200 150" role="img" aria-label="Illustration of the Corner Loft">
+              <rect width="200" height="150" fill="#eae4da"/>
+              <polygon points="24,120 100,38 176,120" fill="#f6f1e5" stroke="#c9bda4" stroke-width="3"/>
+              <polygon points="82,120 100,70 118,120" fill="#d9cdb6"/>
+              <line x1="62" y1="79" x2="138" y2="79" stroke="#c9bda4" stroke-width="3"/>
+              <rect x="0" y="120" width="200" height="30" fill="#a8b38e"/>
+              <circle cx="26" cy="118" r="12" fill="#7d8f63"/>
+              <circle cx="176" cy="119" r="14" fill="#7d8f63"/>
+            </svg>
+            <div class="info">
+              <h3>Corner Loft</h3>
+              <p class="desc">Top of the house under old beams, windows on two sides. Quiet and generous.</p>
+              <p class="amen"><span>King bed</span><span> Reading nook</span><span> Bathtub</span></p>
+            </div>
+            <div class="price"><b>$340</b><span>per night</span></div>
+            <button class="pick" type="button">Select</button>
+          </div>
+
+        </div>
+        <div class="wizard-nav">
+          <button class="btn" id="back2">&larr; Dates</button>
+          <button class="btn btn-primary" id="next2" disabled>Your details &rarr;</button>
+        </div>
+      </div>
+
+      <!-- STEP 3 -->
+      <div class="step-panel" id="step-3">
+        <h2 class="step-title">Who is staying?</h2>
+        <p class="step-sub">We only ask for what we need to have the kettle on when you arrive.</p>
+        <div class="grid2">
+          <div class="field" id="f-name">
+            <label for="gname">Full name</label>
+            <input type="text" id="gname" autocomplete="name" placeholder="Jane Doe">
+            <p class="err-msg">Please tell us your name.</p>
+          </div>
+          <div class="field" id="f-email">
+            <label for="gemail">Email</label>
+            <input type="email" id="gemail" autocomplete="email" placeholder="jane@example.com">
+            <p class="err-msg">That email doesn&rsquo;t look right.</p>
+          </div>
+          <div class="field" id="f-phone">
+            <label for="gphone">Phone (optional)</label>
+            <input type="tel" id="gphone" autocomplete="tel">
+          </div>
+          <div class="field" id="f-eta">
+            <label for="eta">Arrival time</label>
+            <select id="eta">
+              <option>Afternoon (2&ndash;5 pm)</option>
+              <option selected>Late afternoon (5&ndash;7 pm)</option>
+              <option>Evening (7&ndash;9 pm)</option>
+              <option>Not sure yet</option>
+            </select>
+          </div>
+        </div>
+        <div class="field" style="max-width:560px">
+          <label for="requests">Anything we should know? (optional)</label>
+          <textarea id="requests" rows="3" placeholder="Dietary needs, quiet floor, a birthday…"></textarea>
+        </div>
+        <div class="wizard-nav">
+          <button class="btn" id="back3">&larr; Room</button>
+          <button class="btn btn-primary" id="next3">Review &rarr;</button>
+        </div>
+      </div>
+
+      <!-- STEP 4 -->
+      <div class="step-panel" id="step-4">
+        <h2 class="step-title">Almost there</h2>
+        <p class="step-sub">Check the details below — nothing is charged now.</p>
+        <div class="review">
+          <dl id="reviewList"></dl>
+        </div>
+        <p class="confirm-note">By confirming you agree to our house rules. Cancel free of charge until 48 hours before your arrival — after that we charge the first night only.</p>
+        <div class="wizard-nav">
+          <button class="btn" id="back4">&larr; Details</button>
+          <button class="btn btn-primary" id="confirmBtn">Confirm booking</button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- SUMMARY -->
+    <aside class="summary" aria-label="Booking summary">
+      <h3>Your stay</h3>
+      <div id="sumBody">
+        <p class="placeholder">Pick your dates to begin.</p>
+      </div>
+      <p class="fineprint">Total shown includes the 12% lodging tax. Pay at the house — card or cash.</p>
+    </aside>
+
+  </div>
+
+  <!-- SUCCESS -->
+  <div class="success" id="successBox">
+    <h2>Your room is held</h2>
+    <p>Thank you — we&rsquo;ve reserved your stay at Fernwood House. A confirmation email with directions and our arrival notes is on its way.</p>
+    <p>Reference</p>
+    <p class="ref" id="bookingRef"></p>
+  </div>
+
+</main>
+
+<footer>Fernwood House · 12 Linden Lane · bookings@fernwood.example · +1 (555) 014-2266</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  var state = {
+    step: 1,
+    checkin: null, checkout: null, guests: 2,
+    room: null,       // {id, name, rate}
+    nights: 0,
+    name: "", email: "", phone: "", eta: "", requests: ""
+  };
+
+  var TAX = 0.12;
+  var fmtMoney = function(n){ return "$" + n.toLocaleString("en-US"); };
+
+  /* ---------- dates ---------- */
+  var checkinEl = document.getElementById("checkin");
+  var checkoutEl = document.getElementById("checkout");
+  var guestsEl = document.getElementById("guests");
+  var today = new Date(); today.setHours(0,0,0,0);
+  var iso = function(d){ return d.toISOString().slice(0,10); };
+  checkinEl.min = iso(today);
+  checkoutEl.min = iso(new Date(today.getTime() + 86400000));
+  var in2 = new Date(today.getTime() + 14*86400000);
+  var in3 = new Date(today.getTime() + 16*86400000);
+  checkinEl.value = iso(in2);
+  checkoutEl.value = iso(in3);
+  function nightsBetween(a, b){ return Math.round((b - a) / 86400000); }
+  function refreshDates(){
+    var ci = checkinEl.value ? new Date(checkinEl.value + "T12:00:00") : null;
+    var co = checkoutEl.value ? new Date(checkoutEl.value + "T12:00:00") : null;
+    state.checkin = ci; state.checkout = co;
+    state.guests = +guestsEl.value;
+    state.nights = (ci && co && co > ci) ? nightsBetween(ci, co) : 0;
+    var note = document.getElementById("nightsNote");
+    if (state.nights === 1){ note.textContent = "One night away — we\u2019ll leave the lamp on."; }
+    else if (state.nights === 2){ note.textContent = "Two nights — a proper weekend."; }
+    else if (state.nights >= 3){ note.textContent = state.nights + " nights — good things take time."; }
+    else { note.textContent = ""; }
+    checkoutEl.min = checkinEl.value ? iso(new Date(ci.getTime() + 86400000)) : "";
+    renderSummary();
+  }
+  checkinEl.addEventListener("change", function(){
+    document.getElementById("f-checkin").classList.remove("invalid");
+    if (checkoutEl.value && checkinEl.value && checkoutEl.value <= checkinEl.value){
+      var ci = new Date(checkinEl.value + "T12:00:00");
+      checkoutEl.value = iso(new Date(ci.getTime() + 2*86400000));
+    }
+    refreshDates();
+  });
+  checkoutEl.addEventListener("change", function(){
+    document.getElementById("f-checkout").classList.remove("invalid");
+    refreshDates();
+  });
+  guestsEl.addEventListener("change", refreshDates);
+
+  /* ---------- rooms ---------- */
+  var rooms = [
+    {id:"garden",  name:"Garden Room",  rate:180},
+    {id:"terrace", name:"Terrace Suite",rate:260},
+    {id:"loft",    name:"Corner Loft",  rate:340}
+  ];
+  function selectRoom(id){
+    state.room = rooms.find(function(r){ return r.id === id; });
+    document.querySelectorAll(".room").forEach(function(el){
+      var on = el.dataset.room === id;
+      el.classList.toggle("selected", on);
+      el.setAttribute("aria-checked", on ? "true" : "false");
+    });
+    document.getElementById("next2").disabled = !state.room;
+    renderSummary();
+  }
+  document.querySelectorAll(".room").forEach(function(el){
+    el.addEventListener("click", function(){ selectRoom(el.dataset.room); });
+    el.addEventListener("keydown", function(e){
+      if (e.key === "Enter" || e.key === " "){ e.preventDefault(); selectRoom(el.dataset.room); }
+    });
+  });
+
+  /* ---------- summary ---------- */
+  function renderSummary(){
+    var body = document.getElementById("sumBody");
+    var h = "";
+    if (state.checkin && state.checkout && state.nights > 0){
+      h += '<div class="srow"><span>Check-in</span><span>' + state.checkin.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"}) + ', from 2 pm</span></div>';
+      h += '<div class="srow"><span>Check-out</span><span>' + state.checkout.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"}) + ', by 11 am</span></div>';
+      h += '<div class="srow"><span>Guests</span><span>' + state.guests + '</span></div>';
+    } else if (state.checkin){
+      h += '<div class="srow"><span>Check-in</span><span>' + state.checkin.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"}) + '</span></div>';
+    }
+    if (state.room && state.nights > 0){
+      var sub = state.room.rate * state.nights;
+      var tax = Math.round(sub * TAX);
+      h += '<div class="srow"><span>Room</span><span>' + state.room.name + '</span></div>';
+      h += '<div class="srow"><span>' + fmtMoney(state.room.rate) + ' &times; ' + state.nights + ' night' + (state.nights>1?'s':'') + '</span><span>' + fmtMoney(sub) + '</span></div>';
+      h += '<div class="srow"><span>Lodging tax</span><span>' + fmtMoney(tax) + '</span></div>';
+      h += '<div class="srow total"><span>Total</span><b>' + fmtMoney(sub + tax) + '</b></div>';
+    } else if (state.nights > 0){
+      h += '<div class="srow"><span>' + state.nights + ' night' + (state.nights>1?'s':'') + ' selected</span><span class="placeholder">now choose a room</span></div>';
+    }
+    body.innerHTML = h || '<p class="placeholder">Pick your dates to begin.</p>';
+  }
+
+  /* ---------- step navigation ---------- */
+  function goStep(n){
+    state.step = n;
+    document.querySelectorAll(".step-panel").forEach(function(p){ p.classList.remove("active"); });
+    document.getElementById("step-" + n).classList.add("active");
+    document.querySelectorAll("#stepsBar li").forEach(function(li){
+      var s = +li.dataset.step;
+      li.classList.toggle("current", s === n);
+      li.classList.toggle("done", s < n);
+    });
+    if (n === 4) renderReview();
+    document.querySelector(".steps").scrollIntoView({behavior:"smooth", block:"nearest"});
+    if (n === 2 && !state.room) renderSummary();
+  }
+
+  document.getElementById("next1").addEventListener("click", function(){
+    var ok = true;
+    if (!checkinEl.value){ document.getElementById("f-checkin").classList.add("invalid"); ok = false; }
+    if (!checkoutEl.value || !state.nights){ document.getElementById("f-checkout").classList.add("invalid"); ok = false; }
+    if (ok) goStep(2);
+  });
+  document.getElementById("back2").addEventListener("click", function(){ goStep(1); });
+  document.getElementById("next2").addEventListener("click", function(){ if (state.room) goStep(3); });
+  document.getElementById("back3").addEventListener("click", function(){ goStep(2); });
+  document.getElementById("next3").addEventListener("click", function(){
+    var ok = true;
+    var nameEl = document.getElementById("gname");
+    var emailEl = document.getElementById("gemail");
+    if (!nameEl.value.trim()){ document.getElementById("f-name").classList.add("invalid"); ok = false; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailEl.value.trim())){
+      document.getElementById("f-email").classList.add("invalid"); ok = false;
+    }
+    if (!ok) return;
+    state.name = nameEl.value.trim();
+    state.email = emailEl.value.trim();
+    state.phone = document.getElementById("gphone").value.trim();
+    state.eta = document.getElementById("eta").value;
+    state.requests = document.getElementById("requests").value.trim();
+    goStep(4);
+  });
+  document.getElementById("back4").addEventListener("click", function(){ goStep(3); });
+
+  ["gname","gemail"].forEach(function(id){
+    document.getElementById(id).addEventListener("input", function(){
+      document.getElementById(id === "gname" ? "f-name" : "f-email").classList.remove("invalid");
+    });
+  });
+
+  function renderReview(){
+    var fmtD = function(d){ return d.toLocaleDateString("en-US",{weekday:"long", month:"long", day:"numeric"}); };
+    var sub = state.room.rate * state.nights;
+    var tax = Math.round(sub * TAX);
+    var rows = [
+      ["Dates", fmtD(state.checkin) + " \u2192 " + fmtD(state.checkout)],
+      ["Nights", state.nights],
+      ["Guests", state.guests],
+      ["Room", state.room.name],
+      ["Staying as", state.name + " \u00b7 " + state.email],
+      ["Arrival", state.eta],
+    ];
+    if (state.requests) rows.push(["Notes", state.requests]);
+    rows.push(["Total", fmtMoney(sub + tax) + " (incl. tax, due at the house)"]);
+    document.getElementById("reviewList").innerHTML = rows.map(function(r){
+      return "<dt>" + r[0] + "</dt><dd>" + r[1] + "</dd>";
+    }).join("");
+  }
+
+  document.getElementById("confirmBtn").addEventListener("click", function(){
+    var ref = "FH-" + String(Math.floor(1000 + Math.random()*9000)) + "-" + state.checkin.getMonth() + "" + state.checkin.getDate();
+    document.getElementById("bookingRef").textContent = ref;
+    document.getElementById("bookingLayout").style.display = "none";
+    document.getElementById("successBox").classList.add("show");
+    window.scrollTo({top:0, behavior:"smooth"});
+  });
+
+  refreshDates();
+})();
+</script>
+</body>
+</html>

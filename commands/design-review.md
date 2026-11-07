@@ -3,7 +3,7 @@ description: Review a UI for visual quality, accessibility and generic-default t
 argument-hint: "<path, directory, URL or screenshot>"
 ---
 
-Review this UI with the frontend-aesthetics critique procedure: $ARGUMENTS
+Review this UI with the polishkit critique procedure: $ARGUMENTS
 
 1. Read the skill's `references/critique.md` and follow its steps in order.
 2. Render and capture: follow the skill's `references/visual-review.md`. Use `scripts/visual_capture.py` (it waits for a settled frame) or the agent's own browser tool. Capture default, narrow and 150%-scale views, plus empty, loading and error states. Over CDP, add `--dark` (real `prefers-color-scheme` emulation) and `--hover`/`--focus`/`--element`/`--full-page` for the states plain screenshots cannot reach; the JSON states which engine ran. Look at the images.

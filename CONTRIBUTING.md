@@ -22,7 +22,7 @@
 
    ```
    python -B -m unittest discover -s tests -v
-   python skills/frontend-aesthetics/scripts/slop_scan.py tests/fixtures/tells/index.html
+   python skills/polishkit/scripts/slop_scan.py tests/fixtures/tells/index.html
    ```
 
 4. For a scanner rule, prove both directions: the fixture with the defect must trigger the rule, and a near-miss fixture without it must not. Add both to `tests/`.

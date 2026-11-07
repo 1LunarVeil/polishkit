@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LocalLLM 控制台 · 设置</title>
+<style>
+  :root{
+    --bg:#0e1116;
+    --panel:#151a22;
+    --panel-2:#1a212c;
+    --panel-3:#202836;
+    --border:#262f3d;
+    --text:#e6eaf0;
+    --text-dim:#9aa5b5;
+    --muted:#68737f;
+    --accent:#5b9dff;
+    --accent-soft:rgba(91,157,255,.12);
+    --ok:#3ecf8e;
+    --warn:#e5b567;
+    --err:#e5484d;
+    --radius:8px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    background:var(--bg);color:var(--text);font-size:13px;line-height:1.5;
+    font-variant-numeric:tabular-nums;
+  }
+  .app{display:flex;height:100vh;overflow:hidden}
+
+  /* ---------- 侧栏 ---------- */
+  .sidebar{
+    width:196px;flex:none;background:var(--panel);border-right:1px solid var(--border);
+    display:flex;flex-direction:column;
+  }
+  .brand{padding:14px 16px 12px;border-bottom:1px solid var(--border)}
+  .brand h1{font-size:14px;font-weight:600;letter-spacing:.02em}
+  .brand p{font-size:11px;color:var(--muted);margin-top:2px}
+  .nav{padding:8px;flex:1}
+  .nav button{
+    display:flex;width:100%;align-items:center;gap:8px;
+    background:none;border:0;color:var(--text-dim);
+    font:inherit;text-align:left;padding:7px 10px;border-radius:6px;cursor:pointer;
+  }
+  .nav button:hover{background:var(--panel-2);color:var(--text)}
+  .nav button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent)}
+  .nav button .dot{width:6px;height:6px;border-radius:50%;background:var(--muted);flex:none}
+  .nav button[aria-selected="true"] .dot{background:var(--accent)}
+  .sidebar-foot{padding:10px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--muted)}
+  .sidebar-foot b{color:var(--text-dim);font-weight:500}
+
+  /* ---------- 主区 ---------- */
+  .main{flex:1;display:flex;flex-direction:column;min-width:0}
+  .topbar{
+    height:48px;flex:none;display:flex;align-items:center;gap:12px;
+    padding:0 16px;border-bottom:1px solid var(--border);background:var(--panel);
+  }
+  .topbar h2{font-size:13px;font-weight:600}
+  .topbar .spacer{flex:1}
+  .search{
+    background:var(--bg);border:1px solid var(--border);border-radius:6px;
+    color:var(--text);font:inherit;padding:5px 10px;width:220px;
+  }
+  .search:focus{outline:none;border-color:var(--accent)}
+  .btn{
+    background:var(--panel-3);border:1px solid var(--border);color:var(--text);
+    font:inherit;padding:5px 12px;border-radius:6px;cursor:pointer;
+  }
+  .btn:hover{border-color:#38455a}
+  .btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .btn-primary{background:var(--accent);border-color:var(--accent);color:#0b1220;font-weight:600}
+  .btn-primary:hover{background:#74acff}
+  .btn[disabled]{opacity:.45;cursor:not-allowed}
+  .btn-ghost{background:none;border-color:transparent;color:var(--text-dim)}
+  .btn-ghost:hover{color:var(--text);border-color:var(--border)}
+  .content{flex:1;overflow:auto;padding:14px 16px}
+
+  /* ---------- 面板通用 ---------- */
+  .panel{display:none}
+  .panel.active{display:block}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:14px}
+  .card-h{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+  .card-h h3{font-size:12px;font-weight:600;color:var(--text-dim)}
+  .card-h .hint{font-size:11px;color:var(--muted)}
+  .card-h .spacer{flex:1}
+  .card-b{padding:12px 14px}
+
+  /* 状态徽标 */
+  .badge{display:inline-block;font-size:11px;padding:1px 8px;border-radius:99px;line-height:1.6}
+  .badge.ok{background:rgba(62,207,142,.12);color:var(--ok)}
+  .badge.dim{background:rgba(154,165,181,.1);color:var(--text-dim)}
+  .badge.acc{background:var(--accent-soft);color:var(--accent)}
+  .badge.warn{background:rgba(229,181,103,.12);color:var(--warn)}
+  .badge.err{background:rgba(229,72,77,.12);color:var(--err)}
+
+  /* ---------- 模型列表 ---------- */
+  .toolbar{display:flex;gap:8px;margin-bottom:12px;align-items:center}
+  .toolbar select{background:var(--panel);border:1px solid var(--border);color:var(--text);font:inherit;border-radius:6px;padding:4px 8px}
+  table{width:100%;border-collapse:collapse}
+  th{
+    text-align:left;font-size:11px;font-weight:500;color:var(--muted);
+    padding:6px 10px;border-bottom:1px solid var(--border);white-space:nowrap;
+  }
+  td{padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap;color:var(--text-dim)}
+  tr:last-child td{border-bottom:0}
+  td.model-name{color:var(--text);font-weight:500;font-family:Consolas,Menlo,monospace;font-size:12px}
+  tr:hover td{background:rgba(255,255,255,.02)}
+  .row-progress{width:120px;height:4px;background:var(--panel-3);border-radius:99px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:8px}
+  .row-progress i{display:block;height:100%;background:var(--warn)}
+
+  /* ---------- 参数调节 ---------- */
+  .preset-chips{display:flex;gap:8px;margin-bottom:16px}
+  .chip{
+    background:var(--panel-2);border:1px solid var(--border);color:var(--text-dim);
+    font:inherit;font-size:12px;padding:4px 14px;border-radius:99px;cursor:pointer;
+  }
+  .chip:hover{color:var(--text)}
+  .chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+  .params-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 32px}
+  .param-row{padding:10px 0;border-bottom:1px dashed var(--border)}
+  .param-row label{display:flex;justify-content:space-between;margin-bottom:8px;font-size:12px;color:var(--text-dim)}
+  .param-row label output{color:var(--text);font-family:Consolas,Menlo,monospace}
+  .param-row input[type=range]{width:100%;accent-color:var(--accent)}
+  .param-row .desc{font-size:11px;color:var(--muted);margin-top:4px}
+  .switch-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px dashed var(--border);font-size:12px;color:var(--text-dim)}
+  .switch-row:last-child{border-bottom:0}
+
+  /* ---------- 显存监控 ---------- */
+  .gpu-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .gpu-card{background:var(--panel-2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px}
+  .gpu-card h4{font-size:12px;font-weight:600;display:flex;justify-content:space-between;margin-bottom:10px}
+  .gpu-card h4 span{color:var(--muted);font-weight:400;font-size:11px}
+  .vram-bar{height:8px;background:var(--bg);border-radius:99px;overflow:hidden;margin:6px 0 10px}
+  .vram-bar i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .6s}
+  .vram-bar i.hot{background:var(--warn)}
+  .vram-nums{display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim)}
+  .gpu-meta{display:flex;gap:16px;margin-top:8px;font-size:11px;color:var(--muted)}
+  .proc-table td,.proc-table th{font-size:11px;padding:5px 8px}
+  .pause-row{display:flex;align-items:center;gap:8px}
+
+  /* ---------- 日志 ---------- */
+  .log{
+    background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);
+    padding:10px 14px;font-family:Consolas,Menlo,monospace;font-size:11px;
+    height:calc(100vh - 160px);overflow:auto;color:var(--text-dim);
+  }
+  .log p{padding:1px 0;white-space:pre-wrap}
+  .log .t{color:var(--muted)}
+  .log .lv-info{color:var(--text-dim)}
+  .log .lv-ok{color:var(--ok)}
+  .log .lv-warn{color:var(--warn)}
+  .log .lv-err{color:var(--err)}
+
+  /* ---------- Toast ---------- */
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(8px);
+    background:var(--panel-3);border:1px solid var(--border);color:var(--text);
+    padding:8px 18px;border-radius:8px;font-size:12px;opacity:0;pointer-events:none;
+    transition:opacity .2s,transform .2s;box-shadow:0 6px 24px rgba(0,0,0,.4);
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .empty{padding:32px;text-align:center;color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <h1>LocalLLM 控制台</h1>
+      <p>本地推理 · v0.9.2</p>
+    </div>
+    <nav class="nav" role="tablist" aria-label="设置分区">
+      <button role="tab" aria-selected="true" data-panel="models"><span class="dot"></span>模型列表</button>
+      <button role="tab" aria-selected="false" data-panel="params"><span class="dot"></span>参数调节</button>
+      <button role="tab" aria-selected="false" data-panel="vram"><span class="dot"></span>显存监控</button>
+      <button role="tab" aria-selected="false" data-panel="logs"><span class="dot"></span>运行日志</button>
+    </nav>
+    <div class="sidebar-foot">
+      引擎 <b>llama.cpp b3912</b><br>
+      CUDA 12.4 · 驱动 551.86
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <h2 id="panelTitle">模型列表</h2>
+      <div class="spacer"></div>
+      <input type="search" class="search" id="modelSearch" placeholder="搜索模型…" aria-label="搜索模型">
+      <button class="btn btn-primary" id="saveBtn">保存设置</button>
+    </div>
+
+    <div class="content">
+
+      <!-- ============ 模型列表 ============ -->
+      <section class="panel active" id="panel-models" role="tabpanel" aria-label="模型列表">
+        <div class="toolbar">
+          <select id="statusFilter" aria-label="按状态筛选">
+            <option value="">全部状态</option>
+            <option value="running">运行中</option>
+            <option value="stopped">已停止</option>
+            <option value="ready">已下载</option>
+            <option value="downloading">下载中</option>
+          </select>
+          <span style="font-size:11px;color:var(--muted)" id="modelCount"></span>
+        </div>
+        <div class="card">
+          <div class="card-h">
+            <h3>本地模型仓库</h3>
+            <span class="hint">D:\models\gguf</span>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>模型</th><th>参数量</th><th>量化</th><th>磁盘</th>
+                <th>显存估算</th><th>上下文</th><th>状态</th><th style="width:90px">操作</th>
+              </tr>
+            </thead>
+            <tbody id="modelTableBody"></tbody>
+          </table>
+          <div class="empty" id="modelEmpty" hidden>没有匹配的模型</div>
+        </div>
+        <p style="font-size:11px;color:var(--muted)">显存估算按满上下文加载计算，实际占用以「显存监控」为准。</p>
+      </section>
+
+      <!-- ============ 参数调节 ============ -->
+      <section class="panel" id="panel-params" role="tabpanel" aria-label="参数调节">
+        <div class="preset-chips" role="group" aria-label="推理预设">
+          <button class="chip" data-preset="precise" aria-pressed="false">精确</button>
+          <button class="chip" data-preset="balanced" aria-pressed="true">平衡</button>
+          <button class="chip" data-preset="creative" aria-pressed="false">创意</button>
+        </div>
+        <div class="card">
+          <div class="card-h"><h3>采样参数</h3><span class="hint">改动即时生效，保存后写入 config.yaml</span></div>
+          <div class="card-b params-grid">
+            <div class="param-row">
+              <label>温度 temperature <output id="v-temp">0.70</output></label>
+              <input type="range" id="p-temp" min="0" max="2" step="0.01" value="0.7">
+              <p class="desc">越高越随机，越低越确定。</p>
+            </div>
+            <div class="param-row">
+              <label>核采样 top_p <output id="v-topp">0.90</output></label>
+              <input type="range" id="p-topp" min="0.05" max="1" step="0.01" value="0.9">
+              <p class="desc">只从累计概率前 p 的词中采样。</p>
+            </div>
+            <div class="param-row">
+              <label>top_k <output id="v-topk">40</output></label>
+              <input type="range" id="p-topk" min="1" max="100" step="1" value="40">
+              <p class="desc">每步只保留概率最高的 k 个候选。</p>
+            </div>
+            <div class="param-row">
+              <label>重复惩罚 repeat_penalty <output id="v-rp">1.10</output></label>
+              <input type="range" id="p-rp" min="1" max="1.5" step="0.01" value="1.1">
+              <p class="desc">抑制重复片段，1.0 表示关闭。</p>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><h3>运行时</h3></div>
+          <div class="card-b params-grid">
+            <div class="param-row">
+              <label>最大生成 tokens <output id="v-maxtok">1024</output></label>
+              <input type="range" id="p-maxtok" min="64" max="4096" step="64" value="1024">
+              <p class="desc">单次回复的生成长度上限。</p>
+            </div>
+            <div class="param-row">
+              <label>上下文窗口 <output id="v-ctx">8192</output></label>
+              <input type="range" id="p-ctx" min="0" max="6" step="1" value="3">
+              <p class="desc">窗口越大占用显存越多。</p>
+            </div>
+            <div class="param-row">
+              <label>GPU 层数卸载 <output id="v-gpulayers">100%</output></label>
+              <input type="range" id="p-gpulayers" min="0" max="100" step="5" value="100">
+              <p class="desc">显存不足时降低该值，剩余层走 CPU。</p>
+            </div>
+            <div class="param-row" style="border-bottom:0">
+              <label>批量大小 batch_size <output id="v-batch">512</output></label>
+              <input type="range" id="p-batch" min="64" max="2048" step="64" value="512">
+              <p class="desc">提示词处理的批容量。</p>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><h3>行为开关</h3></div>
+          <div class="card-b">
+            <div class="switch-row"><input type="checkbox" id="sw-stream" checked><label for="sw-stream">流式输出（逐 token 返回）</label></div>
+            <div class="switch-row"><input type="checkbox" id="sw-echo"><label for="sw-echo">回显提示词（调试用）</label></div>
+            <div class="switch-row"><input type="checkbox" id="sw-mmap" checked><label for="sw-mmap">mmap 加载权重（降低载入峰值显存）</label></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 显存监控 ============ -->
+      <section class="panel" id="panel-vram" role="tabpanel" aria-label="显存监控">
+        <div class="toolbar">
+          <div class="pause-row">
+            <input type="checkbox" id="vramPause"><label for="vramPause">暂停刷新</label>
+          </div>
+          <span style="font-size:11px;color:var(--muted)">每 2 秒采样一次</span>
+        </div>
+        <div class="gpu-grid" id="gpuGrid"></div>
+        <div class="card" style="margin-top:14px">
+          <div class="card-h"><h3>显存占用明细</h3><span class="hint">按进程统计</span></div>
+          <table class="proc-table">
+            <thead><tr><th>GPU</th><th>进程 / 模型</th><th>显存占用</th><th>说明</th></tr></thead>
+            <tbody id="procTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============ 运行日志 ============ -->
+      <section class="panel" id="panel-logs" role="tabpanel" aria-label="运行日志">
+        <div class="log" id="logBox" role="log" aria-live="polite"></div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ================= 状态数据 ================= */
+  var STATUS = {
+    running:    ["运行中","ok"],
+    stopped:    ["已停止","dim"],
+    ready:      ["已下载","acc"],
+    downloading:["下载中","warn"]
+  };
+
+  var models = [
+    {name:"Qwen2.5-7B-Instruct",            params:"7.6B",  quant:"Q4_K_M", disk:"4.7 GB",  vram:5.6,  ctx:"32K", status:"running"},
+    {name:"Llama-3.1-8B-Instruct",          params:"8.0B",  quant:"Q5_K_M", disk:"5.7 GB",  vram:6.6,  ctx:"128K",status:"stopped"},
+    {name:"DeepSeek-R1-Distill-Qwen-14B",   params:"14.8B", quant:"Q4_K_M", disk:"9.0 GB",  vram:10.1, ctx:"32K", status:"running"},
+    {name:"Yi-1.5-9B-Chat",                 params:"8.9B",  quant:"Q4_K_M", disk:"5.2 GB",  vram:6.1,  ctx:"32K", status:"stopped"},
+    {name:"Phi-4-14B",                      params:"14.7B", quant:"Q6_K",   disk:"11.9 GB", vram:12.8, ctx:"16K", status:"ready"},
+    {name:"Mistral-7B-Instruct-v0.3",       params:"7.2B",  quant:"Q4_K_M", disk:"4.4 GB",  vram:5.3,  ctx:"32K", status:"stopped"},
+    {name:"Gemma-2-9B-it",                  params:"9.2B",  quant:"Q4_K_M", disk:"5.4 GB",  vram:6.3,  ctx:"8K",  status:"downloading", progress:68}
+  ];
+
+  var GPUS = [
+    {id:0, name:"NVIDIA GeForce RTX 4090", total:24, base:1.2, temp:52, power:120, procs:[]},
+    {id:1, name:"NVIDIA GeForce RTX 4090", total:24, base:0.8, temp:48, power:95,  procs:[]}
+  ];
+
+  var logs = [];
+  var logBox = document.getElementById("logBox");
+
+  function ts(){
+    var d = new Date();
+    function p(n){return (n<10?"0":"")+n;}
+    return p(d.getHours())+":"+p(d.getMinutes())+":"+p(d.getSeconds());
+  }
+  function addLog(level, msg){
+    logs.push({t:ts(), level:level, msg:msg});
+    if (logs.length > 200) logs.shift();
+    var p = document.createElement("p");
+    p.innerHTML = '<span class="t">'+logs[logs.length-1].t+'</span>  <span class="lv-'+level+'">['+
+      level.toUpperCase()+']</span> '+msg;
+    logBox.appendChild(p);
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+
+  /* ================= 面板切换 ================= */
+  var titles = {models:"模型列表", params:"参数调节", vram:"显存监控", logs:"运行日志"};
+  var navBtns = document.querySelectorAll(".nav [data-panel]");
+  navBtns.forEach(function(btn){
+    btn.addEventListener("click", function(){
+      navBtns.forEach(function(b){ b.setAttribute("aria-selected","false"); });
+      btn.setAttribute("aria-selected","true");
+      document.querySelectorAll(".panel").forEach(function(p){ p.classList.remove("active"); });
+      document.getElementById("panel-"+btn.dataset.panel).classList.add("active");
+      document.getElementById("panelTitle").textContent = titles[btn.dataset.panel];
+      // 模型搜索框只对模型列表有意义
+      document.getElementById("modelSearch").style.visibility =
+        btn.dataset.panel === "models" ? "visible" : "hidden";
+    });
+  });
+
+  /* ================= 模型表格 ================= */
+  var tbody = document.getElementById("modelTableBody");
+  var emptyEl = document.getElementById("modelEmpty");
+  var countEl = document.getElementById("modelCount");
+  var searchEl = document.getElementById("modelSearch");
+  var filterEl = document.getElementById("statusFilter");
+
+  function renderModels(){
+    var q = searchEl.value.trim().toLowerCase();
+    var f = filterEl.value;
+    var rows = models.filter(function(m){
+      if (f && m.status !== f) return false;
+      if (q && m.name.toLowerCase().indexOf(q) === -1) return false;
+      return true;
+    });
+    tbody.innerHTML = rows.map(function(m, i){
+      var st = STATUS[m.status];
+      var action;
+      if (m.status === "running"){
+        action = '<button class="btn btn-ghost" data-act="unload" data-i="'+models.indexOf(m)+'">卸载</button>';
+      } else if (m.status === "downloading"){
+        action = '<span class="row-progress"><i style="width:'+m.progress+'%"></i></span>'+
+                 '<span style="font-size:11px">'+m.progress+'%</span>';
+      } else {
+        action = '<button class="btn" data-act="load" data-i="'+models.indexOf(m)+'">加载</button>';
+      }
+      return '<tr>'+
+        '<td class="model-name">'+m.name+'</td>'+
+        '<td>'+m.params+'</td><td>'+m.quant+'</td><td>'+m.disk+'</td>'+
+        '<td>'+m.vram.toFixed(1)+' GB</td><td>'+m.ctx+'</td>'+
+        '<td><span class="badge '+st[1]+'">'+st[0]+'</span></td>'+
+        '<td>'+action+'</td>'+
+      '</tr>';
+    }).join("");
+    emptyEl.hidden = rows.length > 0;
+    countEl.textContent = rows.length + " / " + models.length + " 个模型";
+  }
+
+  tbody.addEventListener("click", function(e){
+    var btn = e.target.closest("[data-act]");
+    if (!btn) return;
+    var m = models[+btn.dataset.i];
+    if (btn.dataset.act === "load"){
+      m.status = "running";
+      addLog("ok", "已加载模型 "+m.name+"（估算显存 "+m.vram.toFixed(1)+" GB）");
+      toast("已提交加载请求："+m.name);
+    } else {
+      m.status = "stopped";
+      addLog("info", "已卸载模型 "+m.name);
+      toast("已卸载："+m.name);
+    }
+    renderModels();
+    renderGPUs();
+  });
+  searchEl.addEventListener("input", renderModels);
+  filterEl.addEventListener("change", renderModels);
+
+  /* ================= 参数调节 ================= */
+  var CTX_STEPS = [512,1024,2048,4096,8192,16384,32768];
+  function bindSlider(id, outId, fmt){
+    var el = document.getElementById(id), out = document.getElementById(outId);
+    el.addEventListener("input", function(){
+      out.textContent = fmt(+el.value);
+    });
+    return {el:el, out:out, fmt:fmt};
+  }
+  var sliders = {
+    temp:     bindSlider("p-temp","v-temp",function(v){return v.toFixed(2);}),
+    topp:     bindSlider("p-topp","v-topp",function(v){return v.toFixed(2);}),
+    topk:     bindSlider("p-topk","v-topk",function(v){return String(v);}),
+    rp:       bindSlider("p-rp","v-rp",function(v){return v.toFixed(2);}),
+    maxtok:   bindSlider("p-maxtok","v-maxtok",function(v){return String(v);}),
+    ctx:      bindSlider("p-ctx","v-ctx",function(v){return String(CTX_STEPS[v]);}),
+    gpulayers:bindSlider("p-gpulayers","v-gpulayers",function(v){return v+"%";}),
+    batch:    bindSlider("p-batch","v-batch",function(v){return String(v);})
+  };
+
+  var PRESETS = {
+    precise:  {temp:0.20, topp:0.80, topk:20, rp:1.15, maxtok:512,  ctx:2, gpulayers:100, batch:256},
+    balanced: {temp:0.70, topp:0.90, topk:40, rp:1.10, maxtok:1024, ctx:3, gpulayers:100, batch:512},
+    creative: {temp:1.00, topp:0.95, topk:60, rp:1.05, maxtok:2048, ctx:4, gpulayers:100, batch:512}
+  };
+  document.querySelectorAll(".chip").forEach(function(chip){
+    chip.addEventListener("click", function(){
+      document.querySelectorAll(".chip").forEach(function(c){ c.setAttribute("aria-pressed","false"); });
+      chip.setAttribute("aria-pressed","true");
+      var p = PRESETS[chip.dataset.preset];
+      for (var k in p){
+        sliders[k].el.value = p[k];
+        sliders[k].out.textContent = sliders[k].fmt(p[k]);
+      }
+      toast("已应用预设："+chip.textContent);
+    });
+  });
+
+  /* ================= 显存监控 ================= */
+  var gpuGrid = document.getElementById("gpuGrid");
+  var procBody = document.getElementById("procTableBody");
+  var paused = document.getElementById("vramPause");
+
+  function assignProcs(){
+    GPUS.forEach(function(g){ g.procs = [{name:"系统 / 桌面合成器", vram:g.base, note:"驱动保留"}]; });
+    var gi = 0;
+    models.forEach(function(m){
+      if (m.status !== "running") return;
+      // 优先放到当前卡，放不下换下一张；都不行则共享（简化处理）
+      var g = GPUS[gi];
+      if (g.base + g.procs.reduce(function(s,p){return s+p.vram;},0) + m.vram > g.total * 0.92 && gi < GPUS.length-1){
+        gi++; g = GPUS[gi];
+      }
+      g.procs.push({name:m.name, vram:m.vram, note:"推理服务 · 端口 8080"});
+    });
+  }
+
+  function renderGPUs(){
+    assignProcs();
+    gpuGrid.innerHTML = GPUS.map(function(g){
+      var used = g.procs.reduce(function(s,p){return s+p.vram;},0);
+      var pct = Math.min(100, Math.round(used / g.total * 100));
+      var hot = pct > 80 ? " hot" : "";
+      return '<div class="gpu-card">'+
+        '<h4>GPU '+g.id+' · '+g.name+'<span>'+g.temp+'°C · '+Math.round(g.power)+' W</span></h4>'+
+        '<div class="vram-bar" role="progressbar" aria-valuenow="'+pct+'" aria-valuemin="0" aria-valuemax="100" aria-label="GPU'+g.id+' 显存占用 '+pct+'%"><i class="'+hot.trim()+'" style="width:'+pct+'%"></i></div>'+
+        '<div class="vram-nums"><span>已用 '+used.toFixed(1)+' GB</span><span>共 '+g.total+' GB</span></div>'+
+        '<div class="gpu-meta"><span>利用率 '+(g.power>150? "活跃":"空闲")+'</span><span>温度 '+g.temp+'°C</span></div>'+
+      '</div>';
+    }).join("");
+    procBody.innerHTML = GPUS.map(function(g){
+      return g.procs.map(function(p){
+        return '<tr><td>GPU '+g.id+'</td><td class="model-name" style="font-size:11px">'+p.name+'</td>'+
+               '<td>'+p.vram.toFixed(1)+' GB</td><td>'+p.note+'</td></tr>';
+      }).join("");
+    }).join("");
+  }
+
+  setInterval(function(){
+    if (paused.checked) return;
+    GPUS.forEach(function(g){
+      g.temp = Math.max(44, Math.min(80, g.temp + (Math.random()*4-2)));
+      var busy = g.procs.length > 1;
+      var target = busy ? 320 : 90;
+      g.power = Math.max(60, Math.min(450, g.power + (target - g.power)*0.2 + (Math.random()*20-10)));
+    });
+    renderGPUs();
+  }, 2000);
+
+  /* ================= 模拟日志流 ================= */
+  var ambient = [
+    ["info","prefill batch 完成：512 tokens / 38 ms"],
+    ["info","吞吐 42.7 tok/s（Qwen2.5-7B-Instruct）"],
+    ["warn","上下文使用率已达 78%（会话 #12）"],
+    ["info","KV cache 命中率 91.2%"],
+    ["info","吞吐 39.1 tok/s（DeepSeek-R1-Distill-Qwen-14B）"]
+  ];
+  var ambientIdx = 0;
+  setInterval(function(){
+    var a = ambient[ambientIdx++ % ambient.length];
+    addLog(a[0], a[1]);
+  }, 6000);
+
+  addLog("info","LocalLLM 控制台已启动");
+  addLog("ok","检测到 2 张 GPU：RTX 4090 × 2（24 GB each）");
+  addLog("info","已加载 7 个本地模型的元信息");
+
+  /* ================= 保存 / Toast ================= */
+  var toastEl = document.getElementById("toast");
+  var toastTimer = null;
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toastEl.classList.remove("show"); }, 2200);
+  }
+  document.getElementById("saveBtn").addEventListener("click", function(){
+    var t = +sliders.temp.el.value;
+    if (t > 1.5){
+      toast("提示：temperature 超过 1.5，输出可能不稳定");
+      addLog("warn","保存被确认：temperature=" + t.toFixed(2) + " 偏高");
+    } else {
+      addLog("ok","推理参数已写入 config.yaml");
+    }
+    toast("设置已保存");
+  });
+
+  renderModels();
+  renderGPUs();
+})();
+</script>
+</body>
+</html>

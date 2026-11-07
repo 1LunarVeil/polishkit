@@ -1,4 +1,4 @@
-# 前端审美（Frontend Aesthetics）
+# PolishKit
 
 一个用于"让视觉决策有依据"的 agent 技能：先写 brief，再定方向，最后用可以跑的工具验证。它与官方 `frontend-design` 技能配合使用——后者提供立场（选定方向、不做没人选过的默认值），本技能提供决策规则、先例数据和检查手段。
 
@@ -44,10 +44,10 @@
 本插件改写并综合了他人的工作，这里如实列出。
 
 - **Anthropic 的 `frontend-design`** 提供了本技能所依托的立场，"截图自检"那句话是视觉回路的来源。
-- **ui-ux-pro-max-skill**（Next Level Builder，MIT）提供八个 CSV 数据集，原样收录并在 `THIRD_PARTY_NOTICES.md`、`skills/frontend-aesthetics/data/PROVENANCE.md` 中署名。
+- **ui-ux-pro-max-skill**（Next Level Builder，MIT）提供八个 CSV 数据集，原样收录并在 `THIRD_PARTY_NOTICES.md`、`skills/polishkit/data/PROVENANCE.md` 中署名。
 - **claude-dev-kit**（pillip，MIT）是"截图脚本 + 像素差异验收"的先例；本仓库的实现是独立写的。
 - **buildwithclaude**、"4 design skills"那篇博文、**AI UX Playground** 目录与 **Learning AI** 章节提供了框架与流程思路，均为改写而非照抄。
-- 逐条说明（包括刻意拒绝的内容及原因）见 `skills/frontend-aesthetics/references/sources.md`。
+- 逐条说明（包括刻意拒绝的内容及原因）见 `skills/polishkit/references/sources.md`。
 
 `frontend-design` 是本插件要配合使用的对象，不是被替代的对象。
 
@@ -65,16 +65,16 @@
 复制技能目录，确保 `SKILL.md` 的上一级目录名与技能名一致：
 
 ```
-git clone https://github.com/1LunarVeil/frontend-aesthetics
-cp -r frontend-aesthetics/skills/frontend-aesthetics ~/.claude/skills/
+git clone https://github.com/1LunarVeil/polishkit
+cp -r polishkit/skills/polishkit ~/.claude/skills/
 ```
 
 | Agent | 项目级 | 用户级 |
 |---|---|---|
-| Claude Code | `.claude/skills/frontend-aesthetics/` | `~/.claude/skills/frontend-aesthetics/` |
-| Cursor | `.cursor/skills/frontend-aesthetics/` 或 `.agents/skills/...` | `~/.cursor/skills/...` 或 `~/.agents/skills/...` |
-| OpenAI Codex | `.codex/skills/frontend-aesthetics/` | `~/.codex/skills/frontend-aesthetics/` |
-| VS Code Copilot | `.github/skills/frontend-aesthetics/` | `~/.copilot/skills/frontend-aesthetics/` |
+| Claude Code | `.claude/skills/polishkit/` | `~/.claude/skills/polishkit/` |
+| Cursor | `.cursor/skills/polishkit/` 或 `.agents/skills/...` | `~/.cursor/skills/...` 或 `~/.agents/skills/...` |
+| OpenAI Codex | `.codex/skills/polishkit/` | `~/.codex/skills/polishkit/` |
+| VS Code Copilot | `.github/skills/polishkit/` | `~/.copilot/skills/polishkit/` |
 
 目录名必须与 frontmatter 的 `name` 一致。最常见的安装失败是多套了一层目录，导致 `SKILL.md` 藏进了子目录。
 
@@ -83,23 +83,23 @@ cp -r frontend-aesthetics/skills/frontend-aesthetics ~/.claude/skills/
 也可以用 `skills` CLI 从仓库直接安装：
 
 ```
-npx skills add 1LunarVeil/frontend-aesthetics --skill frontend-aesthetics
+npx skills add 1LunarVeil/polishkit --skill polishkit
 ```
 
 ### Claude Code 插件
 
 ```
-/plugin marketplace add 1LunarVeil/frontend-aesthetics
-/plugin install frontend-aesthetics@frontend-aesthetics
+/plugin marketplace add 1LunarVeil/polishkit
+/plugin install polishkit@polishkit
 ```
 
 ### ZCode 插件
 
-在插件市场中把本仓库目录（或本地 clone 的目录）添加为市场源，然后安装 **前端审美**。清单在 `.zcode-plugin/plugin.json`。
+在插件市场中把本仓库目录（或本地 clone 的目录）添加为市场源，然后安装 **PolishKit**。清单在 `.zcode-plugin/plugin.json`。
 
 ### 不安装也能用
 
-只需要一次任务时，把 `skills/frontend-aesthetics/SKILL.md` 和该任务用到的 reference 文件一起给 agent。脚本可选，但建议使用。
+只需要一次任务时，把 `skills/polishkit/SKILL.md` 和该任务用到的 reference 文件一起给 agent。脚本可选，但建议使用。
 
 ## 怎么用
 
@@ -118,14 +118,14 @@ npx skills add 1LunarVeil/frontend-aesthetics --skill frontend-aesthetics
 
 ## 工具
 
-在 `skills/frontend-aesthetics/` 目录下运行：
+在 `skills/polishkit/` 目录下运行：
 
 ```
-python skills/frontend-aesthetics/scripts/wcag.py "#1f2937" "#ffffff" "#556070" "#f6f7f9"
-python skills/frontend-aesthetics/scripts/design_lookup.py "saas dashboard" --ux --motion
-python skills/frontend-aesthetics/scripts/slop_scan.py path/to/frontend/src
-python skills/frontend-aesthetics/scripts/visual_capture.py http://127.0.0.1:5173 --out shots --matrix
-python skills/frontend-aesthetics/scripts/image_diff.py shots/wide-1440x900-light@1.png shots2/wide-1440x900-light@1.png
+python skills/polishkit/scripts/wcag.py "#1f2937" "#ffffff" "#556070" "#f6f7f9"
+python skills/polishkit/scripts/design_lookup.py "saas dashboard" --ux --motion
+python skills/polishkit/scripts/slop_scan.py path/to/frontend/src
+python skills/polishkit/scripts/visual_capture.py http://127.0.0.1:5173 --out shots --matrix
+python skills/polishkit/scripts/image_diff.py shots/wide-1440x900-light@1.png shots2/wide-1440x900-light@1.png
 ```
 
 - `wcag.py FG BG ...` 输出每对颜色的对比度，并给出 AA 正文（4.5:1）、大字号与 UI（3:1）、AAA 正文（7:1）的判定。支持 `#hex`、`rgb()`、`oklch()`；超出 sRGB 的 OKLCH 会像浏览器一样被裁切。`--apca` 追加草案版 APCA Lc 值，标注为补充信息；WCAG 判定仍是唯一门禁。
@@ -153,7 +153,7 @@ Windows 上若 `python` 不可用，改用 `py -3`。
 ## 目录结构
 
 ```
-skills/frontend-aesthetics/
+skills/polishkit/
   SKILL.md                  工作流、底线、品味规则、"选择测试"
   references/
     principles.md           决策顺序与 brief 模板
@@ -197,6 +197,19 @@ python -B -m unittest discover -s tests -v
 - 脚本要求 Python 3.9 以上，只用标准库，在所有平台输出 UTF-8。
 - 任何脚本都不联网；截图工具只访问你传入的 URL，并先校验协议与地址。
 - 除截图输出目录外不写磁盘，因此可以在评审不受信任的仓库时安全运行。
+
+## 基准
+
+`benchmark/` 内置 5 brief × 三条件的试点，用插件自己的工具（page_audit、slop_scan、visual_capture）度量：**裸模型**（无任何设计指导）vs **frontend-design** 单跑 vs **frontend-design + PolishKit**。
+
+| 指标 | bare | frontend-design | + PolishKit |
+|---|---|---|---|
+| 渲染页对比度 fail | 48 | 101 | **0** |
+| 扫描发现 | 54（27 important） | 88（45 important） | **2（review）** |
+| 零状态标记页 | 1 | 2 | **0** |
+| 永不稳定渲染 | 1 | 3 | **0** |
+
+裸模型条件自己的输出恰好收敛到立场警告的那条 AI-slop 配方（暖奶油 + 赤陶 + 衬线，无人引导）。完整表格、协议与如实局限：`benchmark/RESULTS.md`。维护者裁决：地板守住，审美以更张狂的风格追平。
 
 ## 许可
 

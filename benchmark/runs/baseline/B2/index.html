@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Noa Lindqvist — Landscape Photographs</title>
+<style>
+  :root{
+    --paper:#fafaf8; --ink:#23262a; --dim:#6e747c; --line:#e5e4df;
+    --pine:#2f5d52;
+    --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--paper);color:var(--ink);
+    font:15px/1.6 "Segoe UI",-apple-system,"Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  :focus-visible{outline:2px solid var(--pine);outline-offset:3px}
+  a{color:inherit}
+  .serif{font-family:Georgia,"Times New Roman",serif}
+
+  /* ── masthead ── */
+  .mast{max-width:1200px;margin:0 auto;padding:26px 24px 20px;
+    display:flex;align-items:baseline;justify-content:space-between;gap:20px;flex-wrap:wrap}
+  .wordmark{font-family:Georgia,serif;font-size:20px;letter-spacing:.01em}
+  .wordmark em{font-style:italic;color:var(--dim)}
+  nav.mastnav{display:flex;gap:22px;font-size:13px;color:var(--dim)}
+  nav.mastnav a{text-decoration:none}
+  nav.mastnav a:hover{color:var(--ink)}
+
+  /* ── hero ── */
+  .hero{position:relative;height:76vh;min-height:440px;overflow:hidden}
+  .hero .scene{
+    position:absolute;inset:0;
+    background:
+      radial-gradient(58% 34% at 62% 44%, rgba(255,214,170,.5), transparent 70%),
+      linear-gradient(180deg,#31405e 0%,#6a6286 26%,#c78d84 40%,#e9c9a4 47%,#a8b6b4 52%,#5d7178 58%,#2c3a40 70%,#1a2429 100%);
+    animation:drift 26s ease-in-out infinite alternate;
+  }
+  @keyframes drift{to{transform:scale(1.045) translateY(-6px)}}
+  .hero .ridge{position:absolute;left:0;right:0;bottom:0;height:46%;
+    background:#141b1f;
+    clip-path:polygon(0 62%,7% 48%,14% 55%,22% 38%,30% 52%,38% 30%,46% 48%,55% 34%,63% 50%,72% 28%,80% 44%,88% 36%,100% 52%,100% 100%,0 100%)}
+  .hero .ridge.back{height:56%;background:#26333a;opacity:.55;
+    clip-path:polygon(0 40%,10% 58%,20% 36%,31% 52%,42% 30%,54% 46%,66% 26%,77% 44%,88% 30%,100% 46%,100% 100%,0 100%)}
+  .hero .grain,.plate::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background-image:var(--grain);opacity:.16;mix-blend-mode:overlay}
+  .hero .vin{position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(120% 90% at 50% 42%, transparent 55%, rgba(8,12,16,.42) 100%)}
+  .hero .cap{position:absolute;left:24px;right:24px;bottom:34px;color:#f4f2ec}
+  .hero .cap .kicker{font-size:12.5px;letter-spacing:.04em;color:rgba(244,242,236,.75)}
+  .hero h1{font-family:Georgia,serif;font-weight:500;font-size:clamp(34px,5.2vw,58px);
+    line-height:1.08;margin:8px 0 10px;max-width:14ch}
+  .hero .sub{font-size:14px;color:rgba(244,242,236,.82);max-width:52ch}
+  .hero .cta{display:inline-block;margin-top:18px;font-size:13.5px;color:#f4f2ec;
+    text-decoration:underline;text-underline-offset:4px;text-decoration-color:rgba(244,242,236,.5)}
+  .hero .cta:hover{text-decoration-color:#f4f2ec}
+
+  /* ── series sections ── */
+  main{max-width:1200px;margin:0 auto;padding:0 24px}
+  .series{padding-top:88px}
+  .s-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;
+    border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:30px;flex-wrap:wrap}
+  .s-head h2{font-family:Georgia,serif;font-weight:500;font-size:24px}
+  .s-head .meta{font-size:12.5px;color:var(--dim)}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:34px 22px}
+  figure{min-width:0}
+  figure.wide{grid-column:span 2}
+  .plate{position:relative;aspect-ratio:3/2;border-radius:2px;overflow:hidden;cursor:zoom-in;
+    background-size:cover;transition:filter .3s ease}
+  .plate:hover{filter:brightness(1.04)}
+  figure.wide .plate{aspect-ratio:16/9}
+
+  .t1{background:linear-gradient(180deg,#2b3550 0%,#7a6a8a 24%,#d9a08c 38%,#e8c9a8 45%,#9fb3b8 52%,#8fa4a4 60%,#31414a 78%,#1c262c 100%)}
+  .t1::before{content:"";position:absolute;left:0;right:0;bottom:0;height:34%;background:#1a2228;
+    clip-path:polygon(0 55%,9% 38%,18% 52%,28% 30%,37% 48%,47% 26%,56% 44%,66% 22%,76% 42%,86% 30%,100% 48%,100% 100%,0 100%)}
+  .t2{background:linear-gradient(180deg,#c4cacc 0%,#aeb6ba 30%,#dfe3e2 44%,#cfd5d3 52%,#8e979b 66%,#5c666b 84%,#454e52 100%)}
+  .t2::before{content:"";position:absolute;left:0;right:0;bottom:0;height:30%;background:#394247;
+    clip-path:polygon(0 66%,12% 44%,24% 58%,38% 34%,52% 54%,68% 38%,82% 56%,100% 42%,100% 100%,0 100%)}
+  .t3{background:
+      repeating-linear-gradient(178deg, rgba(255,255,255,.05) 0 2px, transparent 2px 9px),
+      linear-gradient(180deg,#2e5f63 0%,#44736f 26%,#6f968a 46%,#a3b8a4 62%,#cbbfa3 80%,#b7a98c 100%)}
+  .t4{background:
+      linear-gradient(115deg, transparent 0 34%, rgba(122,142,162,.16) 34.5% 37%, transparent 37.5% 58%, rgba(122,142,162,.14) 58.5% 61%, transparent 61.5%),
+      linear-gradient(180deg,#eef1f3 0%,#e2e8ec 42%,#d5dde3 70%,#c7d1d8 100%)}
+  .t5{background:linear-gradient(180deg,#0d1626 0%,#182941 34%,#2c425c 48%,#51687e 55%,#233850 58%,#14243a 76%,#0b1424 100%)}
+  .t6{background:linear-gradient(180deg,#9aa08c 0%,#6b7558 30%,#55614a 48%,#49543f 64%,#3a4234 82%,#2c3329 100%)}
+  .t6::before{content:"";position:absolute;left:0;right:0;bottom:0;height:26%;background:#22281f;
+    clip-path:polygon(0 58%,14% 40%,28% 56%,44% 34%,60% 52%,76% 38%,90% 54%,100% 44%,100% 100%,0 100%)}
+  .t7{background:
+      repeating-linear-gradient(87deg, rgba(255,255,255,.045) 0 3px, transparent 3px 14px),
+      linear-gradient(180deg,#b9c2c6 0%,#9aa6ab 26%,#6a767c 44%,#3c454c 60%,#252c32 82%,#181d22 100%)}
+  .t8{background:linear-gradient(180deg,#8ba2ad 0%,#7c94a0 40%,#5a7684 50%,#71899a 52%,#8ba2ad 78%,#9db1b9 100%)}
+
+  .plate::after{border-radius:2px;
+    background-image:var(--grain),radial-gradient(120% 90% at 50% 40%, transparent 58%, rgba(10,14,18,.24) 100%);
+    opacity:.9;mix-blend-mode:normal}
+  .plate::after{opacity:.5}
+
+  figcaption{margin-top:10px}
+  figcaption .t{font-family:Georgia,serif;font-style:italic;font-size:15.5px}
+  figcaption .m{font-size:12.5px;color:var(--dim);margin-top:2px}
+
+  /* ── about ── */
+  .about{padding:110px 0 40px;display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:60px}
+  .about h2{font-size:12.5px;letter-spacing:.05em;color:var(--dim);font-weight:500;margin-bottom:18px}
+  .about .statement{font-family:Georgia,serif;font-size:21px;line-height:1.65;max-width:56ch;font-weight:400}
+  .about .statement em{font-style:italic}
+  .about dl{font-size:13.5px;display:grid;grid-template-columns:auto 1fr;gap:8px 18px;align-content:start}
+  .about dt{color:var(--dim)}
+  .about dd a{color:var(--pine);text-underline-offset:3px}
+  .note{margin-top:22px;padding-top:16px;border-top:1px solid var(--line);font-size:12.5px;color:var(--dim)}
+
+  footer{max-width:1200px;margin:60px auto 0;padding:20px 24px 34px;border-top:1px solid var(--line);
+    display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--dim)}
+
+  /* ── lightbox ── */
+  .lb{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;
+    background:rgba(16,20,24,.92);padding:4vh 4vw}
+  .lb.open{display:flex}
+  .lb .stage{position:relative;max-width:1100px;width:100%;pointer-events:none}
+  .lb .plate{aspect-ratio:3/2;width:100%;cursor:default;filter:none}
+  figure.wide .lb .plate{aspect-ratio:16/9}
+  .lb .plate::after{opacity:.5}
+  .lb figcaption{color:#e9e7e0;max-width:1100px;margin:14px auto 0}
+  .lb figcaption .m{color:rgba(233,231,224,.6)}
+  .lb .close{position:absolute;top:18px;right:22px;background:none;border:1px solid rgba(233,231,224,.4);
+    color:#e9e7e0;border-radius:999px;width:38px;height:38px;font-size:16px;cursor:pointer;pointer-events:auto}
+  .lb .close:hover{border-color:#e9e7e0}
+
+  @media (max-width:860px){
+    .grid{grid-template-columns:1fr 1fr}
+    figure.wide{grid-column:span 2}
+    .about{grid-template-columns:1fr;gap:40px}
+  }
+  @media (max-width:560px){
+    .grid{grid-template-columns:1fr}
+    figure.wide{grid-column:span 1}
+    figure.wide .plate{aspect-ratio:3/2}
+    nav.mastnav{gap:14px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    .hero .scene{animation:none}
+    .plate{transition:none}
+  }
+</style>
+</head>
+<body>
+
+<header class="mast">
+  <p class="wordmark">Noa Lindqvist <em>— landscape photographs</em></p>
+  <nav class="mastnav" aria-label="Site">
+    <a href="#coast">Coast</a>
+    <a href="#moor">Moorland</a>
+    <a href="#ice">Ice</a>
+    <a href="#about">About</a>
+    <a href="#about">Prints</a>
+  </nav>
+</header>
+
+<section class="hero" aria-label="Featured series: The Quiet Edge">
+  <div class="scene" aria-hidden="true"></div>
+  <div class="ridge back" aria-hidden="true"></div>
+  <div class="ridge" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="vin" aria-hidden="true"></div>
+  <div class="cap">
+    <p class="kicker">New series · 2025</p>
+    <h1>The Quiet Edge</h1>
+    <p class="sub">Eight studies from the Norwegian coast — fishing towns at first light, water that behaves like glass, and the hour when the mountains stop being landmarks and become weather.</p>
+    <a class="cta" href="#coast">View the series</a>
+  </div>
+</section>
+
+<main>
+  <!-- ── Coast ── -->
+  <section class="series" id="coast" aria-labelledby="coast-h">
+    <div class="s-head">
+      <h2 id="coast-h">The Quiet Edge</h2>
+      <p class="meta">Lofoten &amp; the Norwegian Sea · 2025 · 4 of 14 plates shown</p>
+    </div>
+    <div class="grid">
+      <figure class="wide">
+        <div class="plate t1" role="button" tabindex="0" aria-label="Enlarge: First Light, Reine">
+        </div>
+        <figcaption><p class="t">First Light, Reine</p><p class="m">Moskenesøya, Norway · February 2025 · 4×5 film</p></figcaption>
+      </figure>
+      <figure>
+        <div class="plate t2" role="button" tabindex="0" aria-label="Enlarge: Fog Line, Faroe"></div>
+        <figcaption><p class="t">Fog Line, Faroe</p><p class="m">Vágar, Faroe Islands · March 2025</p></figcaption>
+      </figure>
+      <figure>
+        <div class="plate t3" role="button" tabindex="0" aria-label="Enlarge: Tide Study I"></div>
+        <figcaption><p class="t">Tide Study I</p><p class="m">Ramberg strand · February 2025</p></figcaption>
+      </figure>
+      <figure>
+        <div class="plate t4" role="button" tabindex="0" aria-label="Enlarge: Snowfield"></div>
+        <figcaption><p class="t">Snowfield</p><p class="m">Leknes · January 2025</p></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ── Moorland ── -->
+  <section class="series" id="moor" aria-labelledby="moor-h">
+    <div class="s-head">
+      <h2 id="moor-h">Moorland</h2>
+      <p class="meta">Yorkshire Dales · 2022–23 · 2 of 9 plates shown</p>
+    </div>
+    <div class="grid">
+      <figure class="wide">
+        <div class="plate t6" role="button" tabindex="0" aria-label="Enlarge: Moor, After Rain"></div>
+        <figcaption><p class="t">Moor, After Rain</p><p class="m">Wharfedale · November 2022 · fieldwork for <em>Ground Cover</em></p></figcaption>
+      </figure>
+      <figure>
+        <div class="plate t5" role="button" tabindex="0" aria-label="Enlarge: The Sound at Midnight"></div>
+        <figcaption><p class="t">The Sound at Midnight</p><p class="m">Isle of Skye · June 2023 · midsummer exposure, 4 min</p></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ── Ice ── -->
+  <section class="series" id="ice" aria-labelledby="ice-h">
+    <div class="s-head">
+      <h2 id="ice-h">Ice</h2>
+      <p class="meta">Vatnajökull region · 2019–21 · 2 of 11 plates shown</p>
+    </div>
+    <div class="grid">
+      <figure>
+        <div class="plate t7" role="button" tabindex="0" aria-label="Enlarge: Cliff, West Fjords"></div>
+        <figcaption><p class="t">Cliff, West Fjords</p><p class="m">Patreksfjörður · September 2021 · basalt, 60 m</p></figcaption>
+      </figure>
+      <figure>
+        <div class="plate t8" role="button" tabindex="0" aria-label="Enlarge: Still Water"></div>
+        <figcaption><p class="t">Still Water</p><p class="m">Jökulsárlón · October 2020 · wind 0 m/s</p></figcaption>
+      </figure>
+      <figure>
+        <div class="plate t4" role="button" tabindex="0" aria-label="Enlarge: Whiteout, Breiðamerkurjökull"></div>
+        <figcaption><p class="t">Whiteout, Breiðamerkurjökull</p><p class="m">Iceland · March 2019 · from the series <em>Ice</em></p></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ── About ── -->
+  <section class="about" id="about" aria-labelledby="about-h">
+    <div>
+      <h2 id="about-h">About</h2>
+      <p class="statement">I photograph northern landscapes in the hours when light gives up on drama — fog, overcast, the tail of dusk. The work is slow and mostly grey, and I would rather one plate you keep looking at than ten you scroll past. <em>Everything is shot on film and printed by hand.</em></p>
+    </div>
+    <div>
+      <h2>Contact &amp; prints</h2>
+      <dl>
+        <dt>Studio</dt><dd>Útlagarður 4, Reykjavík, Iceland</dd>
+        <dt>Email</dt><dd><a href="mailto:studio@noalindqvist.is">studio@noalindqvist.is</a></dd>
+        <dt>Prints</dt><dd><a href="mailto:prints@noalindqvist.is">Editions of 12, from €480</a></dd>
+        <dt>Journal</dt><dd><a href="#about">Field notes, updated monthly</a></dd>
+        <dt>Instagram</dt><dd><a href="#about">@noa.lindqvist</a></dd>
+      </dl>
+      <p class="note">Currently exhibiting: <em>The Quiet Edge</em> at Berger &amp; Sons, London, until 14 December 2025.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <p>© 2025 Noa Lindqvist. All photographs made in-camera; no composites.</p>
+  <p>Site built by hand — last touched November 2025.</p>
+</footer>
+
+<!-- ── lightbox ── -->
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Enlarged photograph">
+  <figure class="wide" id="lbFig">
+    <div class="plate" id="lbPlate"></div>
+    <figcaption><p class="t serif" id="lbT"></p><p class="m" id="lbM"></p></figcaption>
+  </figure>
+  <button class="close" id="lbClose" aria-label="Close enlarged view">✕</button>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var lb = document.getElementById('lb');
+  var lbPlate = document.getElementById('lbPlate');
+  var lbT = document.getElementById('lbT');
+  var lbM = document.getElementById('lbM');
+  var lbFig = document.getElementById('lbFig');
+  var lbClose = document.getElementById('lbClose');
+  var lastFocus = null;
+
+  function open(fig){
+    var plate = fig.querySelector('.plate');
+    var cap = fig.querySelector('figcaption');
+    lbPlate.className = 'plate ' + plate.className.replace(/\bplate\b/g,'').trim();
+    lbT.textContent = cap.querySelector('.t').textContent;
+    lbM.textContent = cap.querySelector('.m').textContent;
+    lbFig.className = fig.classList.contains('wide') ? 'wide' : '';
+    lastFocus = plate;
+    lb.classList.add('open');
+    lbClose.focus();
+    document.body.style.overflow = 'hidden';
+  }
+  function close(){
+    lb.classList.remove('open');
+    document.body.style.overflow = '';
+    if(lastFocus) lastFocus.focus();
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('figure .plate'), function(p){
+    p.addEventListener('click', function(){ open(p.closest('figure')); });
+    p.addEventListener('keydown', function(e){
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); open(p.closest('figure')); }
+    });
+  });
+  lbClose.addEventListener('click', close);
+  lb.addEventListener('click', function(e){ if(e.target === lb) close(); });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && lb.classList.contains('open')) close();
+  });
+})();
+</script>
+</body>
+</html>

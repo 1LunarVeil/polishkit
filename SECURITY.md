@@ -40,7 +40,7 @@ Expect an acknowledgement within about a week. This is a small, single-maintaine
 
 ## Scope
 
-In scope: anything under `skills/frontend-aesthetics/scripts/`, the manifests, and the CI workflow, since those are what run on a user's machine.
+In scope: anything under `skills/polishkit/scripts/`, the manifests, and the CI workflow, since those are what run on a user's machine.
 
 Out of scope: the content of the vendored CSV data (report data quality as a normal issue), and findings that require an already-compromised machine.
 

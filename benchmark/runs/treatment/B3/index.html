@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mill &amp; Crumb — today at the bakehouse</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23963D0D'/%3E%3C/svg%3E">
+<style>
+:root{
+  --canvas:#F7F3EA;      /* flour paper (v2 floor, kept) */
+  --surface:#FFFDF8;
+  --ink:#241D14;         /* rye ink */
+  --muted:#6B6257;
+  --border:#8A8275;      /* UI boundaries only, 3.74:1 on surface */
+  --divider:#E4DCCC;     /* the only hairlines left: table rows */
+  --accent:#963D0D;      /* burnt crust */
+  --accent-hover:#7C3209;
+  --accent-graphic:#A9702F; /* weekday columns, graphic-only */
+  --tint-green:#E4EFE6; --tint-amber:#F3E3C9; --tint-crust:#F6E7DC; --tint-red:#F9E4E0;
+  --success:#15803D; --warning:#8A6D00; --danger:#B42318;  /* fixed status colors */
+  --shadow:0 1px 2px rgba(58,44,24,.05),0 10px 28px rgba(58,44,24,.07); /* tinted, directional */
+  --mono:'Cascadia Code',Consolas,'Courier New',monospace;
+  --sans:'Segoe UI',system-ui,-apple-system,sans-serif;
+  --serif:Georgia,'Iowan Old Style','Times New Roman',serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--canvas);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:none}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.page{max-width:1280px;margin:0 auto;padding:0 28px 44px}
+.wrap{max-width:1280px;margin:0 auto;padding:0 28px}
+
+/* ---------- top bar ---------- */
+.bar{display:flex;align-items:center;gap:14px;padding:18px 0 14px}
+.mark{width:34px;height:34px;flex:none}
+.bar h1{font-family:var(--serif);font-style:italic;font-weight:400;font-size:21px;letter-spacing:.005em}
+.bar .sub{color:var(--muted);font-size:13px;margin-top:1px}
+.bar .spacer{flex:1}
+.updated{color:var(--muted);font-size:12.5px}
+.btn{border:1px solid var(--border);background:var(--surface);padding:7px 16px;border-radius:3px;font-size:13.5px}
+.btn:hover{border-color:var(--ink)}
+.btn:disabled{color:var(--muted);border-color:var(--divider);cursor:not-allowed;background:var(--canvas)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.btn-primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn-primary:disabled{background:var(--divider);border-color:var(--divider);color:var(--muted)}
+
+/* ---------- the morning band: the one full-bleed moment, textured like flour dust ---------- */
+.dawn{position:relative;margin-top:10px;
+  background-color:#F4EDDD;
+  background-image:linear-gradient(120deg,#F9F5EC 0%,#F5EFDF 55%,#F1E7D2 100%);}
+.dawn .grain{position:absolute;inset:0;pointer-events:none;mix-blend-mode:overlay;opacity:.4;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.dawn-in{position:relative;display:flex;align-items:center;gap:26px;padding:36px 28px 30px}
+.dawn-label{
+  writing-mode:vertical-rl;transform:rotate(180deg); /* the one asymmetry: a gauge-style vertical label */
+  font-size:13px;letter-spacing:.08em;color:var(--muted);white-space:nowrap;
+}
+.dawn-fig{display:inline-flex;align-items:baseline;gap:16px}
+.dawn-fig .fig{
+  font-family:'Segoe UI Light','Segoe UI',system-ui,sans-serif;font-weight:300; /* the light end of the family */
+  font-variant-numeric:tabular-nums;
+  font-size:clamp(54px,5.4vw,70px);line-height:1;letter-spacing:-.03em;color:var(--ink);
+}
+.dawn-fig .fig small{font-size:.42em;font-weight:300;color:var(--muted);letter-spacing:0;margin-left:6px}
+/* the delta badge: beside the figure, upright on the shared baseline — never
+   across the digits (instrument screens: the focal point IS the data) */
+.chip{
+  background:var(--tint-crust);color:var(--accent);font-weight:600;font-size:13px;
+  padding:6px 12px;border-radius:3px;white-space:nowrap;
+}
+.dawn-side{margin-left:auto;text-align:right;color:var(--muted);font-size:13px;line-height:1.55}
+.dawn-side b{display:block;color:var(--ink);font-weight:600;font-size:14.5px}
+/* the one organic divider: the baker's score, cut across just below the band */
+.score{display:block;width:100%;height:30px;color:#D8CAAC}
+.score path{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+
+/* ---------- quiet secondary KPIs: the band's lower half — working density in the frame ---------- */
+.kpis-quiet{position:relative;display:flex;gap:64px;padding:0 28px 26px;flex-wrap:wrap}
+.kpis-quiet .k .label{color:var(--muted);font-size:12.5px}
+.kpis-quiet .k .value{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:22px;font-weight:600;margin-top:2px}
+.kpis-quiet .k .delta{font-size:12.5px;margin-top:2px;color:var(--muted)}
+.up{color:var(--success)} .down{color:var(--danger)}
+.dawn .up{color:#12703A} /* band-safe green: 5.0:1 on the darkest flour stop (#F1E7D2) where --success would read 4.08 */
+
+/* ---------- panels: separated by space and shadow, not borders ---------- */
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:18px;margin-top:22px}
+.panel{background:var(--surface);border-radius:6px;box-shadow:var(--shadow);min-width:0}
+.panel-h{display:flex;align-items:baseline;gap:10px;padding:16px 18px 8px}
+.panel-h .idx{font-family:var(--mono);font-weight:400;font-size:13px;color:#6B6257} /* 5.89:1 on surface */
+.panel-h h2{font-size:14.5px;font-weight:700;letter-spacing:.005em}
+.panel-h .hint{color:var(--muted);font-size:12.5px}
+.panel-h .spacer{flex:1}
+.span8{grid-column:span 8}.span4{grid-column:span 4}
+.stack{display:flex;flex-direction:column;gap:18px;min-width:0}
+
+/* ---------- chart (signature) ---------- */
+.tabs{display:flex;gap:4px}
+.tabs button{font-size:12.5px;color:var(--muted);padding:4px 11px;border-radius:3px;border:1px solid transparent}
+.tabs button:hover{color:var(--ink)}
+.tabs button[aria-pressed="true"]{color:var(--ink);border-color:var(--border);background:var(--canvas)}
+.chart-wrap{position:relative;padding:10px 18px 4px}
+#chart{display:block;width:100%;height:auto}
+#chart rect.col{cursor:pointer}
+#chart rect.col:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+#tip{position:absolute;pointer-events:none;background:var(--ink);color:#F7F3EA;padding:7px 11px;border-radius:3px;
+  font-size:12.5px;line-height:1.45;display:none;max-width:220px;box-shadow:0 4px 14px rgba(36,29,20,.25);z-index:5}
+.chart-note{color:var(--muted);font-size:12.5px;padding:2px 18px 14px}
+
+/* ---------- orders table ---------- */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:var(--muted);font-weight:700;font-size:12px;padding:9px 18px;border-bottom:1px solid var(--divider)}
+th.r,td.r{text-align:right}
+td{padding:8px 18px;border-bottom:1px solid var(--divider);white-space:nowrap;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#FBF6EA}
+.items{color:var(--muted);max-width:230px;overflow:hidden;text-overflow:ellipsis}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:12px;color:var(--ink)}
+.pill i{width:7px;height:7px;border-radius:50%;flex:none}
+.pill.paid{background:var(--tint-green)} .pill.paid i{background:var(--success)}
+.pill.await{background:var(--tint-amber)} .pill.await i{background:var(--warning)}
+.pill.oven{background:var(--tint-crust)} .pill.oven i{background:var(--accent)}
+.pill.refund{background:var(--tint-red)} .pill.refund i{background:var(--danger)}
+select.channel{font:inherit;font-size:12.5px;color:var(--ink);background:var(--surface);
+  border:1px solid var(--border);border-radius:3px;padding:3px 8px}
+.empty-row td{padding:30px 18px;text-align:center;color:var(--muted);white-space:normal}
+.empty-row b{display:block;color:var(--ink);font-size:13.5px;margin-bottom:4px}
+.link-btn{color:var(--accent);text-decoration:underline;text-underline-offset:3px;font-size:13px}
+
+/* ---------- products ---------- */
+.prod{padding:4px 18px 14px}
+.prod-row{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:9px 0;border-bottom:1px solid var(--divider)}
+.prod-row:last-child{border-bottom:none}
+.prod-row .name{font-weight:600;font-size:13.5px}
+.prod-row .units{color:var(--muted);font-size:12.5px}
+.prod-row .rev{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;font-size:13.5px}
+.meter{grid-column:1 / -1;height:5px;border-radius:3px;background:#F1EADA;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent-graphic)}
+.meter.top i{background:var(--accent)}
+
+/* ---------- funnel + attention ---------- */
+.funnel{padding:4px 18px 16px}
+.f-step{padding:8px 0}
+.f-step .f-head{display:flex;justify-content:space-between;font-size:12.5px}
+.f-step .f-head .n{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.f-bar{height:10px;border-radius:3px;background:#F1EADA;margin-top:5px;overflow:hidden}
+.f-bar i{display:block;height:100%;background:var(--accent-graphic)}
+.f-step.paid-step .f-bar i{background:var(--accent)}
+.attention{padding:2px 18px 16px}
+.att-row{padding:11px 0}
+.att-row + .att-row{border-top:1px solid var(--divider)}
+.att-row p{font-size:13px;line-height:1.45}
+.att-row .state{color:var(--success);font-size:12.5px;margin-top:5px;display:none}
+.att-row.done .state{display:block}
+.att-row.done p{color:var(--muted)}
+.att-row button{margin-top:7px}
+.att-row.done button{display:none}
+.foot-note{color:var(--muted);font-size:12.5px;margin-top:22px}
+
+/* ---------- toasts ---------- */
+#toasts{position:fixed;left:22px;bottom:22px;display:flex;flex-direction:column;gap:8px;z-index:30}
+.toast{background:var(--ink);color:#F7F3EA;padding:10px 16px;border-radius:4px;font-size:13px;
+  box-shadow:0 6px 18px rgba(36,29,20,.3);display:flex;gap:10px;align-items:center}
+.toast i{width:8px;height:8px;border-radius:50%;background:#8FB98F;flex:none}
+
+@media (max-width:1000px){
+  .kpis{grid-template-columns:1fr 1fr}
+  .span8,.span4{grid-column:span 12}
+  .dawn-in{flex-wrap:wrap;gap:18px}
+  .dawn-label{writing-mode:horizontal-tb;transform:none}
+  .dawn-fig{flex-wrap:wrap;row-gap:12px}
+  .dawn-side{margin-left:0;text-align:left;width:100%}
+  .kpis-quiet{gap:32px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+</style>
+</head>
+<body>
+
+<header class="bar wrap">
+  <svg class="mark" viewBox="0 0 34 34" aria-hidden="true">
+    <rect width="34" height="34" rx="4" fill="#963D0D"/>
+    <path d="M17 27 V13" stroke="#FFFDF8" stroke-width="2" stroke-linecap="round"/>
+    <ellipse cx="17" cy="10" rx="2.4" ry="3.6" fill="#FFFDF8"/>
+    <ellipse cx="12.6" cy="14.5" rx="2.2" ry="3.2" fill="#FFFDF8" transform="rotate(-38 12.6 14.5)"/>
+    <ellipse cx="21.4" cy="14.5" rx="2.2" ry="3.2" fill="#FFFDF8" transform="rotate(38 21.4 14.5)"/>
+    <ellipse cx="12.6" cy="20" rx="2.2" ry="3.2" fill="#FFFDF8" transform="rotate(-38 12.6 20)"/>
+    <ellipse cx="21.4" cy="20" rx="2.2" ry="3.2" fill="#FFFDF8" transform="rotate(38 21.4 20)"/>
+  </svg>
+  <div>
+    <h1>Mill &amp; Crumb</h1>
+    <div class="sub">Saturday 7 November 2026. Shop opens 07:30; figures refresh every 5 min</div>
+  </div>
+  <div class="spacer"></div>
+  <span class="updated" id="updated">Updated 08:12</span>
+  <button class="btn" id="refresh" type="button">Refresh</button>
+</header>
+
+<section class="dawn" aria-label="Revenue this morning">
+  <div class="grain"></div>
+  <div class="dawn-in">
+    <span class="dawn-label" aria-hidden="true">Revenue today, to 14:00</span>
+    <div class="dawn-fig">
+      <div class="fig" id="big-fig">£1,847</div>
+      <span class="chip">+12% vs last Saturday, same time</span>
+    </div>
+    <div class="dawn-side">
+      <b>The Saturday lift</b>
+      Ovens warmed at 05:30.<br>Collection rush peaked at 08:00.
+    </div>
+  </div>
+  <section class="kpis-quiet" aria-label="Today's other numbers">
+    <div class="k"><div class="label">Orders</div><div class="value">96</div>
+      <div class="delta"><span class="up num">+8%</span> vs last Saturday</div></div>
+    <div class="k"><div class="label">Conversion</div><div class="value">3.4%</div>
+      <div class="delta"><span class="up num">+0.3 pt</span> vs 3.1% last week</div></div>
+    <div class="k"><div class="label">Average basket</div><div class="value">£19.24</div>
+      <div class="delta"><span class="down num">−4%</span> smaller baskets, more of them</div></div>
+  </section>
+
+  <svg class="score" viewBox="0 0 1200 30" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0 20 C 220 10, 460 24, 680 15 S 1020 8, 1200 17"/>
+  </svg>
+</section>
+
+<div class="page">
+
+  <div class="grid">
+
+    <section class="panel span8" aria-label="Revenue chart">
+      <div class="panel-h">
+        <span class="idx num" aria-hidden="true">01</span>
+        <h2>Revenue</h2>
+        <span class="hint">dashed line is the £1,200-a-day target</span>
+        <div class="spacer"></div>
+        <div class="tabs" role="group" aria-label="Chart range">
+          <button data-range="today" aria-pressed="false">Today</button>
+          <button data-range="week" aria-pressed="true">This week</button>
+          <button data-range="month" aria-pressed="false">28 days</button>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <svg id="chart" viewBox="0 0 640 320" role="group" aria-label="Revenue bar chart"></svg>
+        <div id="tip" role="status"></div>
+      </div>
+      <p class="chart-note" id="chart-note">Saturday and Sunday in crust brown. Today is live to 14:00 — the column will keep climbing until the ovens cool.</p>
+    </section>
+
+    <section class="panel span4" aria-label="Top products">
+      <div class="panel-h"><span class="idx num" aria-hidden="true">02</span><h2>Top products</h2><span class="hint">units sold today</span></div>
+      <div class="prod" id="products"></div>
+    </section>
+
+    <section class="panel span8" aria-label="Recent orders">
+      <div class="panel-h">
+        <span class="idx num" aria-hidden="true">03</span>
+        <h2>Recent orders</h2>
+        <span class="hint">online shop, next-day collection</span>
+        <div class="spacer"></div>
+        <label class="hint" for="channel" style="margin-right:6px">Channel</label>
+        <select class="channel" id="channel">
+          <option value="all" selected>All channels</option>
+          <option value="online">Online</option>
+          <option value="market">Market pre-orders</option>
+          <option value="wholesale">Wholesale</option>
+        </select>
+      </div>
+      <table>
+        <thead>
+          <tr><th>Order</th><th>Customer</th><th>Items</th><th>Placed</th><th>Status</th><th class="r">Total</th></tr>
+        </thead>
+        <tbody id="orders-body"></tbody>
+      </table>
+    </section>
+
+    <div class="span4 stack">
+      <section class="panel" aria-label="Conversion funnel">
+        <div class="panel-h"><span class="idx num" aria-hidden="true">04</span><h2>Conversion today</h2><span class="hint">online shop</span></div>
+        <div class="funnel">
+          <div class="f-step">
+            <div class="f-head"><span>Shop visits</span><span class="n">2,830</span></div>
+            <div class="f-bar"><i style="width:100%"></i></div>
+          </div>
+          <div class="f-step">
+            <div class="f-head"><span>Added to basket</span><span class="n">214 (7.6%)</span></div>
+            <div class="f-bar"><i style="width:53%"></i></div>
+          </div>
+          <div class="f-step">
+            <div class="f-head"><span>Reached checkout</span><span class="n">122 (4.3%)</span></div>
+            <div class="f-bar"><i style="width:30%"></i></div>
+          </div>
+          <div class="f-step paid-step">
+            <div class="f-head"><span>Paid</span><span class="n">96 (3.4%)</span></div>
+            <div class="f-bar"><i style="width:24%"></i></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" aria-label="Needs attention">
+        <div class="panel-h"><span class="idx num" aria-hidden="true">05</span><h2>Needs attention</h2><span class="hint">3 items</span></div>
+        <div class="attention">
+          <div class="att-row">
+            <p>Refund requested on <b>#2298</b> — her card was declined twice.</p>
+            <button class="btn" data-act="refund">Approve refund</button>
+            <p class="state num">Refund approved, £23.40 back on Priya's card</p>
+          </div>
+          <div class="att-row">
+            <p>Rye flour down to <b>14 kg</b> — about two more bakes.</p>
+            <button class="btn" data-act="po">Draft purchase order</button>
+            <p class="state num">PO-118 drafted and sent to Northmill Mills</p>
+          </div>
+          <div class="att-row">
+            <p><b>6 collections</b> have waited more than 24 hours.</p>
+            <button class="btn" data-act="remind">Send reminders</button>
+            <p class="state num">Reminders queued for 6 customers</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  </div>
+
+  <p class="foot-note">Today's figures update live until the shop closes at 14:00; yesterday's are final. Market pre-orders settle Sunday evening.</p>
+</div>
+
+<div id="toasts" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  "use strict";
+  /* ---------------- data ---------------- */
+  var week=[
+    {d:"Sun 1 Nov",v:1385,we:true},{d:"Mon 2",v:812},{d:"Tue 3",v:906},{d:"Wed 4",v:978},
+    {d:"Thu 5",v:1124},{d:"Fri 6",v:1502},{d:"Sat 7",v:1847,we:true,today:true}
+  ];
+  var today=[
+    {d:"06:00",v:62},{d:"07:00",v:186},{d:"08:00",v:305},{d:"09:00",v:268},
+    {d:"10:00",v:240},{d:"11:00",v:214},{d:"12:00",v:188},{d:"13:00",v:121},{d:"14:00",v:63,today:true}
+  ];
+  var month=[
+    1295,838,901,962,1088,1455,1698, 1318,851,915,989,1101,1467,1735,
+    1310,845,920,1010,1090,1470,1720, 1385,812,906,978,1124,1502,1847
+  ].map(function(v,i){
+    var d=new Date(2026,9,11+i); /* Sun 11 Oct .. Sat 7 Nov, four full weeks */
+    var names=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    return {d:names[d.getDay()]+" "+d.getDate(),v:v,we:(d.getDay()===0||d.getDay()===6),today:i===27};
+  });
+
+  var products=[
+    {name:"Cardamom knots",units:86,rev:"£344.00"},
+    {name:"Almond croissants",units:74,rev:"£333.00"},
+    {name:"Butter shortbread",units:52,rev:"£145.60"},
+    {name:"Seeded rye miche",units:41,rev:"£205.00"},
+    {name:"Sourdough tin",units:38,rev:"£126.08"}
+  ];
+  var maxUnits=86;
+  var orders=[
+    {id:"2298",who:"Priya N.",items:"2 seeded rye, 6 cardamom knots",t:"08:41",st:"refund",stl:"Refunded",ch:["online"],tot:"£23.40"},
+    {id:"2297",who:"Tom W.",items:"1 sourdough tin",t:"08:37",st:"paid",stl:"Collected",ch:["online"],tot:"£8.60"},
+    {id:"2296",who:"Agnes K.",items:"4 almond croissants",t:"08:29",st:"await",stl:"Awaiting collection",ch:["online"],tot:"£18.00"},
+    {id:"2295",who:"Callum R.",items:"2 butter shortbread",t:"08:22",st:"await",stl:"Awaiting collection",ch:["online"],tot:"£11.20"},
+    {id:"2294",who:"Freya M.",items:"celebration order, Sat pickup",t:"08:15",st:"oven",stl:"In the oven",ch:["online"],tot:"£64.00"},
+    {id:"2293",who:"Dougal S.",items:"3 seeded rye",t:"08:09",st:"paid",stl:"Collected",ch:["market"],tot:"£19.50"},
+    {id:"2292",who:"Ines P.",items:"6 cardamom knots",t:"07:58",st:"paid",stl:"Collected",ch:["online"],tot:"£16.20"},
+    {id:"2291",who:"Rory B.",items:"2 sourdough, 2 croissants",t:"07:44",st:"await",stl:"Awaiting collection",ch:["online","market"],tot:"£26.80"},
+    {id:"2290",who:"Nell F.",items:"1 market box",t:"07:31",st:"oven",stl:"In the oven",ch:["market"],tot:"£32.00"},
+    {id:"2289",who:"Bracken Cafe",items:"24 morning rolls",t:"06:50",st:"paid",stl:"Collected",ch:["wholesale"],tot:"£57.60"}
+  ];
+
+  /* ---------------- toasts ---------------- */
+  var toasts=document.getElementById('toasts');
+  function toast(msg){
+    var t=document.createElement('div');t.className='toast';
+    var i=document.createElement('i');t.appendChild(i);
+    t.appendChild(document.createTextNode(msg));
+    toasts.appendChild(t);
+    setTimeout(function(){t.remove();},4200);
+  }
+
+  /* ---------------- chart ---------------- */
+  var svg=document.getElementById('chart'),tip=document.getElementById('tip'),
+      note=document.getElementById('chart-note'),W=640,H=320,
+      m={t:18,r:12,b:34,l:50},cw=W-m.l-m.r,chh=H-m.t-m.b;
+  var NS="http://www.w3.org/2000/svg";
+  function el(n,a){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);return e;}
+  function money(v){return "£"+v.toLocaleString("en-GB");}
+  function draw(range){
+    var data=range==='today'?today:range==='week'?week:month;
+    var max=range==='today'?350:2000;
+    var stepTop=range==='today'?100:500;
+    svg.innerHTML="";
+    /* baseline + gridlines + y labels */
+    for(var g=0;g<=max;g+=stepTop){
+      var y=m.t+chh-(g/max)*chh;
+      svg.appendChild(el('line',{x1:m.l,y1:y,x2:W-m.r,y2:y,stroke:g===0?'#C9BC9F':'#EDE3CC','stroke-width':g===0?1.4:1}));
+      var t=el('text',{x:m.l-8,y:y+4,'text-anchor':'end','font-size':'12','fill':'#6B6257',
+        'font-family':"Consolas,'Courier New',monospace"});
+      t.textContent=g===0?'0':(range==='today'?'£'+g:'£'+(g/1000).toFixed(1).replace('.0','')+'k');
+      svg.appendChild(t);
+    }
+    var n=data.length,slot=cw/n,bw=Math.min(slot*0.56,range==='month'?12:44);
+    var target=m.t+chh-(1200/max)*chh;
+    data.forEach(function(r,i){
+      var h=(r.v/max)*chh,x=m.l+i*slot+(slot-bw)/2,y=m.t+chh-h;
+      var fill=r.today?'#963D0D':(r.we?'#963D0D':'#A9702F');
+      var c=el('rect',{x:x,y:y,width:bw,height:h,fill:fill,rx:2,'class':'col',tabindex:'0',
+        role:'img','aria-label':r.d+": "+money(r.v)});
+      c.addEventListener('mouseenter',function(){showTip(r,x+bw/2,y);});
+      c.addEventListener('mouseleave',hideTip);
+      c.addEventListener('focus',function(){showTip(r,x+bw/2,y);});
+      c.addEventListener('blur',hideTip);
+      svg.appendChild(c);
+      if(range==='week'&&r.today){
+        svg.appendChild(el('circle',{cx:x+bw/2,cy:y-10,r:3,fill:'#963D0D'}));
+      }
+      if(range!=='today'||i%2===0){
+        var lb=el('text',{x:m.l+i*slot+slot/2,y:H-9,'text-anchor':'middle','font-size':'12',
+          fill:r.today?'#963D0D':'#6B6257','font-weight':r.today?'600':'400',
+          'font-family':"Consolas,'Courier New',monospace"});
+        lb.textContent=range==='month'?(r.we?r.d:''):r.d;
+        svg.appendChild(lb);
+      }
+    });
+    if(range!=='today'){
+      svg.appendChild(el('line',{x1:m.l,y1:target,x2:W-m.r,y2:target,stroke:'#241D14',
+        'stroke-width':1.4,'stroke-dasharray':'5 4'}));
+      var tly=range==='week'?target-24:target-6;
+      var bg=el('rect',{x:m.l+2,y:tly-14,width:88,height:17,fill:'#FFFDF8',opacity:.94,rx:2});
+      svg.appendChild(bg);
+      var tl=el('text',{x:m.l+6,y:tly,'text-anchor':'start','font-size':'12',fill:'#241D14','font-weight':'600'});
+      tl.textContent='target £1,200';
+      svg.appendChild(tl);
+    }
+    note.textContent=range==='today'
+      ? "Each column is an hour of takings. The ovens warm at 05:30; the 07:00 collection rush is the peak."
+      : range==='week'
+      ? "Saturday and Sunday in crust brown. Today is live to 14:00 — the column will keep climbing until the ovens cool."
+      : "Four weeks, weekends in crust brown. The Saturday lift is the shop's whole rhythm — bake stock follows it.";
+  }
+  function showTip(r,cx,cy){
+    tip.innerHTML='<b>'+r.d+'</b><br><span class="num">'+money(r.v)+'</span>'+(r.today?' so far':'');
+    tip.style.display='block';
+    var wrap=svg.parentElement.getBoundingClientRect();
+    var px=(cx/W)*wrap.width,py=(cy/H)*wrap.height;
+    tip.style.left=Math.min(px+12,wrap.width-230)+'px';
+    tip.style.top=Math.max(py-54,4)+'px';
+  }
+  function hideTip(){tip.style.display='none';}
+  var tabs=[].slice.call(document.querySelectorAll('.tabs button'));
+  tabs.forEach(function(t){
+    t.addEventListener('click',function(){
+      tabs.forEach(function(o){o.setAttribute('aria-pressed',String(o===t));});
+      draw(t.dataset.range);
+    });
+  });
+  draw('week');
+
+  /* ---------------- products ---------------- */
+  var pWrap=document.getElementById('products');
+  products.forEach(function(p){
+    var row=document.createElement('div');row.className='prod-row';
+    row.innerHTML='<span class="name">'+p.name+'</span><span class="rev num">'+p.rev+'</span>'+
+      '<span class="units num">'+p.units+' sold</span>'+
+      '<div class="meter'+(p.units===maxUnits?' top':'')+'"><i style="width:'+Math.round(p.units/maxUnits*100)+'%"></i></div>';
+    pWrap.appendChild(row);
+  });
+
+  /* ---------------- orders ---------------- */
+  var body=document.getElementById('orders-body'),channel=document.getElementById('channel');
+  function renderOrders(){
+    body.innerHTML='';
+    var rows=orders.filter(function(o){
+      return channel.value==='all'||o.ch.indexOf(channel.value)>=0;
+    });
+    if(!rows.length){
+      var tr=document.createElement('tr');tr.className='empty-row';
+      tr.innerHTML='<td colspan="6"><b>No '+channel.value+' orders yet today</b>'+
+        (channel.value==='wholesale'
+          ? 'Wholesale pickups land before 07:00 on weekdays — the next van is Monday.'
+          : 'This channel has nothing queued. Anything ordered now arrives for collection tomorrow.')+
+        '<br><button class="link-btn" id="clear-channel" type="button">Show all orders</button></td>';
+      body.appendChild(tr);
+      document.getElementById('clear-channel').addEventListener('click',function(){
+        channel.value='all';renderOrders();
+      });
+      return;
+    }
+    rows.forEach(function(o){
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td class="num">#'+o.id+'</td><td>'+o.who+'</td><td class="items">'+o.items+'</td>'+
+        '<td class="num">'+o.t+'</td>'+
+        '<td><span class="pill '+o.st+'"><i></i>'+o.stl+'</span></td>'+
+        '<td class="r num">'+o.tot+'</td>';
+      body.appendChild(tr);
+    });
+  }
+  channel.addEventListener('change',renderOrders);
+  renderOrders();
+
+  /* ---------------- attention actions ---------------- */
+  var acts={refund:'Refund approved for order #2298',
+            po:'PO-118 drafted for rye flour',
+            remind:'Reminders sent to 6 waiting customers'};
+  [].slice.call(document.querySelectorAll('.att-row button')).forEach(function(b){
+    b.addEventListener('click',function(){
+      b.closest('.att-row').classList.add('done');
+      toast(acts[b.dataset.act]);
+    });
+  });
+
+  /* ---------------- refresh (loading state) ---------------- */
+  var refreshBtn=document.getElementById('refresh'),updated=document.getElementById('updated');
+  refreshBtn.addEventListener('click',function(){
+    refreshBtn.disabled=true;refreshBtn.textContent='Refreshing…';
+    document.querySelector('.kpis-quiet').setAttribute('aria-busy','true');
+    setTimeout(function(){
+      refreshBtn.disabled=false;refreshBtn.textContent='Refresh';
+      document.querySelector('.kpis-quiet').removeAttribute('aria-busy');
+      var t=new Date();
+      updated.textContent='Updated '+String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
+      toast('Dashboard refreshed — all figures current');
+    },800);
+  });
+})();
+</script>
+</body>
+</html>

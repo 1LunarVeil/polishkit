@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maren Holt, landscape photographs</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23175E52'/%3E%3Crect y='10' width='16' height='6' fill='%231B2224'/%3E%3C/svg%3E">
+<style>
+:root{
+  --paper:#F1F2EE;      /* sea-fog paper (v2 floor, kept) */
+  --ink:#1B2224;        /* basalt ink */
+  --muted:#59645F;      /* sea grey */
+  --teal:#175E52;       /* deep sea-glass teal — the accent, the colour of the subject's water */
+  --tide:#D3D6CE;       /* quietest tone, ornaments only */
+  --card:#FAFBF8;       /* the one elevated paper, for the hanging field note */
+  --box:#121517;        /* lightbox chamber */
+  --box-text:#E8EAE6;
+  --box-dim:#9FA9A4;
+  --err:#8C2F1B;
+  --input-border:#77837C; /* UI boundary, 3:1 floor */
+  --serif:Georgia,'Iowan Old Style','Times New Roman',serif;
+  --sans:'Segoe UI',system-ui,-apple-system,'Helvetica Neue',sans-serif;
+  --sans-light:'Segoe UI Light','Segoe UI',system-ui,sans-serif; /* weight 200 end of the family */
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:#F1F2EE;
+  background-image:linear-gradient(180deg,#F3F4F0 0%,#F0F1EC 46%,#EDEFE9 100%); /* paper warmth: tint gradient, never a dead flat */
+  color:var(--ink);
+  font-family:var(--serif);font-size:17.5px;line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:inherit;text-decoration-color:var(--tide);text-underline-offset:3px}
+a:hover{text-decoration-color:var(--teal)}
+:focus-visible{outline:2px solid var(--teal);outline-offset:3px;border-radius:1px}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+.sans{font-family:var(--sans)}
+.wrap{max-width:1200px;margin:0 auto;padding:0 32px}
+
+/* ---------- header: separated by space, no rule ---------- */
+.top{display:flex;justify-content:space-between;align-items:baseline;padding:30px 0 26px}
+.wordmark{font-size:22px;font-weight:700;letter-spacing:.005em}
+.wordmark em{font-style:italic;font-weight:400;color:var(--muted);font-size:15px;margin-left:10px}
+.top nav{display:flex;gap:26px;font-family:var(--sans);font-size:14px;color:var(--muted)}
+.top nav a{text-decoration:none;display:inline-block;padding:6px 2px}
+.top nav a:hover{color:var(--ink);text-decoration:underline;text-decoration-color:var(--teal)}
+
+/* ---------- hero: the one full-bleed moment ---------- */
+.hero{position:relative}
+.hero-frame{position:relative;height:82vh;min-height:540px;overflow:hidden;background:#c3cabe}
+.hero-frame .layer{position:absolute;left:0;right:0}
+.h-drift{position:absolute;top:0;bottom:0;left:-3%;right:-3%;animation:drift 56s ease-in-out infinite alternate}
+@keyframes drift{from{transform:translateX(-1.4%)}to{transform:translateX(1.4%)}}
+.h-sky{top:0;bottom:0;background:linear-gradient(180deg,#b7c0ba 0%,#ccd2c6 26%,#dee1d6 44%,#eaecdf 54%)}
+.h-sun{top:0;bottom:0;background:radial-gradient(circle at 64% 28%,rgba(250,246,232,1) 0 3%,rgba(250,246,232,.55) 8.5%,rgba(250,246,232,.16) 15%,transparent 22%)}
+.h-sea{top:54%;bottom:0;background:
+  radial-gradient(24% 150% at 64% 100%,rgba(244,241,226,.6) 0%,rgba(244,241,226,.2) 46%,transparent 74%),
+  repeating-linear-gradient(180deg,rgba(234,236,227,.14) 0 1px,transparent 1px 9px),
+  repeating-linear-gradient(180deg,rgba(28,38,34,.10) 0 2px,transparent 2px 23px),
+  linear-gradient(180deg,#a4afa4 0%,#7d8b81 26%,#5b6a62 62%,#46544d 100%)}
+.h-head{top:47%;height:9%;background:linear-gradient(180deg,#4c5850,#39443e);
+  clip-path:polygon(0 74%,7% 64%,15% 50%,24% 38%,31% 46%,40% 60%,52% 50%,63% 58%,74% 42%,86% 56%,100% 48%,100% 100%,0 100%)}
+.h-fog{top:44%;height:16%;background:linear-gradient(180deg,transparent,rgba(230,232,222,.92) 42%,rgba(230,232,222,.92) 60%,transparent);filter:blur(7px)}
+.h-shore{top:88%;height:12%;background:linear-gradient(180deg,#28322d,#1d2622);
+  clip-path:polygon(0 55%,9% 40%,20% 62%,31% 30%,44% 58%,57% 44%,70% 66%,84% 38%,100% 52%,100% 100%,0 100%)}
+.grain{position:absolute;inset:0;pointer-events:none;mix-blend-mode:overlay;opacity:.55;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.vig{position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 90% at 50% 42%,transparent 58%,rgba(15,22,20,.34) 100%)}
+.h-scrim{position:absolute;left:0;right:0;bottom:0;height:52%;pointer-events:none;
+  background:linear-gradient(180deg,transparent 0%,rgba(16,22,20,.34) 55%,rgba(14,19,17,.62) 100%)}
+
+/* display sits on the photograph: the one overlap, backed by the scrim */
+.hero-display{position:absolute;left:0;right:0;bottom:76px;color:#FDFDFB;pointer-events:none}
+.hero-display .over{font-family:var(--sans);font-size:13.5px;letter-spacing:.04em;color:#E8EAE6;margin-bottom:10px}
+.hero-display .over b{color:#fff}
+h1{
+  font-size:clamp(58px,8.2vw,102px);   /* 5.8x body — display drama */
+  font-style:italic;font-weight:400;
+  letter-spacing:-.022em;line-height:1.0;
+  text-shadow:0 2px 26px rgba(10,16,14,.45);
+}
+
+/* the hanging field note: the one asymmetry — it breaks the hero's bottom edge into the paper */
+.hero-note{
+  position:absolute;right:clamp(24px,5vw,72px);bottom:-42px;z-index:3;
+  width:min(380px,84vw);background:var(--card);color:var(--ink);
+  padding:20px 24px 18px;
+  box-shadow:0 1px 2px rgba(16,26,23,.08),0 18px 44px rgba(16,26,23,.16);
+}
+.hero-note p{font-style:italic;font-size:16.5px;line-height:1.5}
+.hero-note .meta{font-family:var(--sans);font-style:normal;font-size:13px;color:var(--muted);margin-top:10px}
+
+/* ---------- works ---------- */
+.works{padding:118px 0 8px}
+.sec-head{display:flex;justify-content:space-between;align-items:baseline;gap:20px;flex-wrap:wrap;margin-bottom:30px}
+h2{font-size:26px;font-weight:400;font-style:italic;letter-spacing:-.01em}
+.filters{display:flex;gap:6px;flex-wrap:wrap}
+.filters button{font-family:var(--sans);font-size:14px;color:var(--muted);padding:7px 13px;border:1px solid transparent;border-radius:2px}
+.filters button:hover{color:var(--ink)}
+.filters button[aria-pressed="true"]{color:var(--ink);border-color:var(--tide);background:var(--card)}
+.filters button .n{color:var(--teal);font-weight:700;font-style:normal;margin-left:5px;font-size:12.5px}
+.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:40px 30px}
+.plate{cursor:zoom-in}
+.plate.w3{grid-column:span 3}.plate.w2{grid-column:span 2}.plate.w6{grid-column:span 6}
+.plate:focus-visible{outline:2px solid var(--teal);outline-offset:4px}
+.art{position:relative;overflow:hidden;background:#888}
+.plate .art{transition:filter .25s ease}
+.plate:hover .art,.plate:focus-visible .art{filter:brightness(1.045)}
+.r32{aspect-ratio:3/2}.r169{aspect-ratio:16/9}.r34{aspect-ratio:3/4}
+.r169-wide{aspect-ratio:21/8}
+/* plate paints — each a layered composition, the signature of the page */
+.p-kelp{background:
+  radial-gradient(52% 16% at 30% 66%,#8d7c2f 0%,rgba(141,124,47,.72) 45%,transparent 72%),
+  radial-gradient(46% 13% at 62% 47%,#6d7a2c 0%,rgba(109,122,44,.66) 48%,transparent 74%),
+  radial-gradient(58% 17% at 45% 82%,#55632c 0%,rgba(85,99,44,.72) 50%,transparent 76%),
+  radial-gradient(38% 11% at 78% 66%,#7a6d28 0%,rgba(122,109,40,.58) 50%,transparent 75%),
+  radial-gradient(30% 10% at 16% 38%,#4c5a35 0%,rgba(76,90,53,.5) 55%,transparent 78%),
+  linear-gradient(155deg,#2e3a34 0%,#22302a 50%,#161f1b 100%)}
+.p-kelp::after{content:"";position:absolute;inset:0;background:
+  radial-gradient(42% 3% at 38% 28%,rgba(228,232,218,.22) 0%,transparent 100%),
+  radial-gradient(52% 3% at 72% 56%,rgba(228,232,218,.17) 0%,transparent 100%),
+  linear-gradient(180deg,rgba(222,227,211,.10) 0%,transparent 26%)}
+.p-fog{background:
+  linear-gradient(180deg,transparent 34%,rgba(226,229,219,.9) 42%,rgba(226,229,219,.9) 50%,transparent 60%),
+  radial-gradient(50% 26% at 30% 44%,rgba(236,238,229,.75) 0%,transparent 100%),
+  linear-gradient(180deg,#ccd2c6 0%,#d9dcd0 40%,#9aa69b 62%,#4e5c55 78%,#3c4a44 100%)}
+.p-fog::after{content:"";position:absolute;top:60%;left:0;right:0;height:4%;
+  background:linear-gradient(90deg,transparent,rgba(240,241,233,.5) 30%,rgba(240,241,233,.5) 70%,transparent);filter:blur(3px)}
+.p-stack{background:
+  radial-gradient(circle at 30% 26%,rgba(244,241,228,.8) 0 2%,transparent 12%),
+  linear-gradient(180deg,#c7cec2 0%,#dde0d3 48%,#aab5a8 62%,#6d7b71 80%,#55625a 100%)}
+.p-stack .stack{position:absolute;bottom:0;left:51%;width:17%;height:56%;
+  background:linear-gradient(90deg,#39453f 0%,#2a352f 48%,#4a574f 100%);
+  clip-path:polygon(0 13%,13% 5%,24% 11%,37% 2%,49% 9%,64% 0,77% 8%,100% 4%,93% 34%,97% 62%,86% 100%,9% 100%,2% 66%,7% 34%)}
+.p-stack .refl{position:absolute;bottom:0;left:52%;width:15%;height:13%;
+  background:repeating-linear-gradient(180deg,rgba(47,58,52,.5) 0 3px,transparent 3px 8px);filter:blur(1px)}
+.p-harbour{background:
+  radial-gradient(9% 14% at 27% 46%,rgba(233,190,101,.85) 0 30%,rgba(233,190,101,.16) 60%,transparent 100%),
+  radial-gradient(7% 11% at 71% 40%,rgba(221,160,90,.8) 0 30%,rgba(221,160,90,.14) 62%,transparent 100%),
+  linear-gradient(180deg,#0d1517 0%,#131e21 46%,#1a2629 70%,#0e171a 100%)}
+.p-harbour::after{content:"";position:absolute;inset:52% 0 0 0;
+  background:repeating-linear-gradient(180deg,rgba(226,180,96,.10) 0 2px,transparent 2px 11px)}
+.p-rain{background:
+  repeating-linear-gradient(100deg,rgba(214,219,210,.16) 0 3px,transparent 3px 34px),
+  linear-gradient(180deg,#aeb6ab 0%,#98a299 34%,#77837a 58%,#4f5c55 82%,#414d47 100%)}
+.p-rain::after{content:"";position:absolute;inset:0;
+  background:radial-gradient(70% 40% at 50% 96%,rgba(20,28,26,.4) 0%,transparent 70%)}
+.p-ebb{background:
+  linear-gradient(180deg,rgba(207,214,201,.9) 0%,rgba(207,214,201,.9) 48%,transparent 52%),
+  linear-gradient(180deg,#d4d8cb 0%,#c6ccbd 30%,#9fa795 55%,#8a9184 76%,#9aa08f 100%)}
+.p-ebb::before{content:"";position:absolute;inset:0;
+  background:repeating-linear-gradient(180deg,rgba(244,245,237,.13) 0 2px,transparent 2px 18px)}
+.p-ebb::after{content:"";position:absolute;top:47%;left:0;right:0;height:5%;
+  background:linear-gradient(90deg,transparent,rgba(250,250,243,.75) 34%,rgba(250,250,243,.75) 62%,transparent);filter:blur(4px)}
+.cap{display:flex;justify-content:space-between;align-items:baseline;gap:14px;margin-top:13px}
+.cap .t{font-style:italic;font-size:18.5px}
+.cap .t .no{font-style:normal;color:var(--muted);font-size:13.5px;margin-right:9px;font-family:var(--sans)}
+.meta{color:var(--muted);font-size:13.5px;font-family:var(--sans);margin-top:3px}
+.cap .ed{font-family:var(--sans);font-size:12.5px;color:var(--teal);white-space:nowrap}
+.cap .ed.sold{color:var(--muted)}
+/* the one rotated accent: a gallery pencil stamp, placed by hand */
+.stamp{
+  display:inline-block;font-family:var(--sans);font-size:12.5px;color:var(--teal);
+  border:1px solid var(--teal);border-radius:999px;padding:4px 13px;white-space:nowrap;
+  transform:rotate(-2deg);background:var(--card);
+}
+.empty{border:1px solid var(--tide);padding:38px;text-align:center;color:var(--muted);font-style:italic;margin-top:8px}
+.empty button{font-style:normal;font-family:var(--sans);color:var(--teal);text-decoration:underline;text-underline-offset:3px;margin-left:8px}
+
+/* ---------- the tide line: the one organic divider, between works and about ---------- */
+.tide-line{display:block;width:100%;height:26px;margin:96px auto 0;color:#C7CDC2}
+.about{padding:64px 0 8px;display:grid;grid-template-columns:7fr 4fr;gap:64px}
+.pull{font-size:clamp(24px,2.8vw,32px);line-height:1.35;font-weight:400;letter-spacing:-.012em}
+.pull em{color:var(--teal)}
+.about .body p{color:var(--muted);margin-top:20px;max-width:56ch}
+.editions{margin-bottom:26px}
+.editions .big{
+  font-family:var(--sans-light);font-weight:200;font-size:118px;line-height:.9;
+  letter-spacing:-.04em;color:var(--muted); /* real information at display scale — passes 4.5:1 */
+}
+.editions .cap{display:block;margin-top:6px;font-style:italic;font-size:15px;color:var(--muted)}
+.facts{font-family:var(--sans);font-size:14px;color:var(--muted)}
+.facts div{padding:12px 0;display:flex;justify-content:space-between;gap:14px}
+.facts b{color:var(--ink);font-weight:600}
+
+/* ---------- prints ---------- */
+.prints{padding:96px 0 88px}
+.prints .lede{color:var(--muted);max-width:62ch;margin:14px 0 34px}
+form.request{display:grid;grid-template-columns:2fr 1fr 2fr auto;gap:14px;align-items:start;max-width:900px}
+.field label{display:block;font-family:var(--sans);font-size:13px;color:var(--muted);margin-bottom:6px}
+.field select,.field input{width:100%;font-family:var(--sans);font-size:14.5px;color:var(--ink);
+  background:#fff;border:1px solid var(--input-border);padding:9px 11px;border-radius:2px}
+.field select:focus-visible,.field input:focus-visible{outline:2px solid var(--teal);outline-offset:1px}
+.field .err{display:none;font-family:var(--sans);font-size:12.5px;color:var(--err);margin-top:5px}
+.field.bad input{border-color:var(--err)}
+.field.bad .err{display:block}
+form.request button{font-family:var(--sans);font-weight:600;font-size:14.5px;background:var(--teal);color:#fff;
+  padding:11px 24px;border-radius:2px;align-self:start}
+form.request button:hover{background:#124D44}
+form.request button:disabled{background:var(--tide);color:var(--muted);cursor:not-allowed}
+.form-status{font-family:var(--sans);font-size:14px;margin-top:16px;color:var(--teal);min-height:1.4em}
+.form-status.bad{color:var(--err)}
+
+/* ---------- footer ---------- */
+footer{padding:28px 0 44px;display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;
+  font-family:var(--sans);font-size:13px;color:var(--muted)}
+
+/* ---------- lightbox ---------- */
+.lightbox{position:fixed;inset:0;background:rgba(10,14,13,.9);display:flex;align-items:center;justify-content:center;padding:4vh 4vw;z-index:20}
+.lightbox[hidden]{display:none}
+.lb-stage{max-width:1000px;width:100%}
+.lb-stage .art{width:100%;box-shadow:0 30px 80px rgba(10,18,16,.55)}
+.lb-cap{display:flex;justify-content:space-between;align-items:baseline;gap:20px;color:var(--box-text);margin-top:16px;flex-wrap:wrap}
+.lb-cap .t{font-style:italic;font-size:21px}
+.lb-cap .meta{color:var(--box-dim)}
+.lb-close{position:absolute;top:22px;right:26px;font-family:var(--sans);font-size:14px;color:var(--box-text);
+  border:1px solid #6A7671;padding:8px 15px;border-radius:2px}
+.lb-close:hover{border-color:var(--box-text)}
+
+@media (max-width:900px){
+  .grid{grid-template-columns:repeat(2,1fr)}
+  .plate.w2,.plate.w3{grid-column:span 1}.plate.w6{grid-column:span 2}
+  .about{grid-template-columns:1fr;gap:36px}
+  form.request{grid-template-columns:1fr 1fr}
+  .hero-frame{height:58vh;min-height:420px}
+  .hero-display{bottom:34px}
+  h1{font-size:clamp(44px,10vw,64px)}
+  .hero-note{position:static;width:auto;margin:-30px 24px 0;box-shadow:0 12px 30px rgba(16,26,23,.14)}
+  .works{padding:84px 0 8px}
+}
+@media (max-width:560px){
+  .grid{grid-template-columns:1fr}
+  .plate.w2,.plate.w3,.plate.w6{grid-column:span 1}
+  form.request{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .h-drift{animation:none}
+  .plate .art{transition:none}
+}
+</style>
+</head>
+<body>
+
+<header class="top wrap">
+  <div class="wordmark">Maren Holt <em>landscape photographs</em></div>
+  <nav class="sans" aria-label="Site">
+    <a href="#works">Works</a><a href="#about">About</a><a href="#prints">Prints</a>
+  </nav>
+</header>
+
+<section class="hero" aria-label="Featured photograph">
+  <div class="hero-frame" role="img" aria-label="Slack water at the Ness of Hillswick: a long exposure turns the tide into pale silk under a fog band and a low sun">
+    <div class="h-drift">
+      <div class="layer h-sky"></div>
+      <div class="layer h-sun"></div>
+      <div class="layer h-sea"></div>
+      <div class="layer h-head"></div>
+      <div class="layer h-fog"></div>
+    </div>
+    <div class="layer h-shore"></div>
+    <div class="layer grain"></div>
+    <div class="layer vig"></div>
+    <div class="layer h-scrim"></div>
+  </div>
+
+  <div class="hero-display wrap">
+    <p class="over">Plate I &mdash; <b>featured this month</b></p>
+    <h1>Slack water</h1>
+  </div>
+
+  <aside class="hero-note wrap" aria-label="Field note for the featured photograph">
+    <p>&ldquo;Four minutes at f/11 &mdash; long enough that the tide stops moving and starts breathing.&rdquo;</p>
+    <p class="meta">Ness of Hillswick, Shetland. Four minutes at f/11, 4&times;5 film.</p>
+  </aside>
+</section>
+
+<main class="wrap">
+  <section id="works" class="works">
+    <div class="sec-head">
+      <h2>Selected works</h2>
+      <div class="filters sans" role="group" aria-label="Filter works by series">
+        <button data-series="all" aria-pressed="true">All works<span class="n">7</span></button>
+        <button data-series="shoreline" aria-pressed="false">Shoreline<span class="n">3</span></button>
+        <button data-series="open" aria-pressed="false">Open water<span class="n">4</span></button>
+        <button data-series="winter" aria-pressed="false">Winter<span class="n">0</span></button>
+      </div>
+    </div>
+
+    <div class="grid" id="grid">
+      <figure class="plate w3" data-series="shoreline" tabindex="0" role="button"
+        aria-label="View plate: Kelp study">
+        <div class="art r32 p-kelp"><div class="grain"></div><div class="vig"></div></div>
+        <figcaption>
+          <div class="cap"><span class="t"><span class="no">II</span>Kelp study</span><span class="stamp">Edition of 12 &mdash; 5 remaining</span></div>
+          <p class="meta">Grut Ness, 18 May. Half a second at f/16, wind 9 m/s &mdash; the weed writes the wave.</p>
+        </figcaption>
+      </figure>
+
+      <figure class="plate w3" data-series="open" tabindex="0" role="button"
+        aria-label="View plate: Fog line, Vágar">
+        <div class="art r32 p-fog"><div class="grain"></div><div class="vig"></div></div>
+        <figcaption>
+          <div class="cap"><span class="t"><span class="no">III</span>Fog line, Vágar</span><span class="ed">Edition of 12, 8 remaining</span></div>
+          <p class="meta">Sørvágsfjørður, 2 March. Ninety seconds; the fog bank arrived on the sixth.</p>
+        </figcaption>
+      </figure>
+
+      <figure class="plate w2" data-series="open" tabindex="0" role="button"
+        aria-label="View plate: The third stack">
+        <div class="art r34 p-stack"><div class="grain"></div><div class="vig"></div>
+          <div class="stack"></div><div class="refl"></div></div>
+        <figcaption>
+          <div class="cap"><span class="t"><span class="no">IV</span>The third stack</span><span class="ed">Edition of 12, 2 remaining</span></div>
+          <p class="meta">Drongs, 9 October. Last light, 15:47. The other two are behind the camera.</p>
+        </figcaption>
+      </figure>
+
+      <figure class="plate w2" data-series="shoreline" tabindex="0" role="button"
+        aria-label="View plate: Harbour wall, 23:40">
+        <div class="art r32 p-harbour"><div class="grain"></div><div class="vig"></div></div>
+        <figcaption>
+          <div class="cap"><span class="t"><span class="no">V</span>Harbour wall, 23:40</span><span class="ed sold">Edition sold out</span></div>
+          <p class="meta">Sullom Voe, 14 January. Two lamps still lit; the fleet sailed at five.</p>
+        </figcaption>
+      </figure>
+
+      <figure class="plate w2" data-series="open" tabindex="0" role="button"
+        aria-label="View plate: Rain squall over Muckle Roe">
+        <div class="art r32 p-rain"><div class="grain"></div><div class="vig"></div></div>
+        <figcaption>
+          <div class="cap"><span class="t"><span class="no">VI</span>Rain squall, Muckle Roe</span><span class="ed">Edition of 12, 9 remaining</span></div>
+          <p class="meta">St Magnus Bay, 26 August. Shot between two squalls; the third arrived first.</p>
+        </figcaption>
+      </figure>
+
+      <figure class="plate w6" data-series="shoreline" tabindex="0" role="button"
+        aria-label="View plate: Ebb tide mirror">
+        <div class="art r169-wide p-ebb"><div class="grain"></div><div class="vig"></div></div>
+        <figcaption>
+          <div class="cap"><span class="t"><span class="no">VII</span>Ebb tide mirror</span><span class="ed">Edition of 8, 6 remaining</span></div>
+          <p class="meta">Walls, 3 June. The sand holds the sky for a few minutes; this is that minute.</p>
+        </figcaption>
+      </figure>
+    </div>
+
+    <p class="empty" id="empty" hidden>
+      The winter plates are still in the fix bath &mdash; nothing to show here yet.
+      <button type="button" id="empty-reset">Show all works</button>
+    </p>
+  </section>
+
+  <svg class="tide-line" viewBox="0 0 1200 26" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0 13 C 120 5, 260 21, 420 13 S 700 4, 860 13 S 1120 22, 1200 12"
+      fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+  </svg>
+
+  <section id="about" class="about">
+    <div class="body">
+      <p class="pull">I photograph the hour when the coast stops being a place and starts being <em>weather</em>.</p>
+      <p>Most of these pictures are made within a mile of the sea, in the last light of the day or the first light after a gale. I work slowly &mdash; one plate an evening, usually &mdash; because the coast rewards waiting and punishes hurry. The long exposures are not a style; they are simply how the water looks when you have stood with it long enough.</p>
+    </div>
+    <div>
+      <div class="editions">
+        <div class="big" aria-hidden="false">12</div>
+        <span class="cap">editions of every plate &mdash; never reprinted</span>
+      </div>
+      <div class="facts">
+        <div><span>Works from</span><b>Brae, Shetland</b></div>
+        <div><span>Cameras</span><b>4&times;5 film and digital</b></div>
+        <div><span>Represented by</span><b>Cold Harbour Editions</b></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="prints" class="prints">
+    <h2>Prints</h2>
+    <p class="lede">Plates are printed on matte cotton rag in three sizes, signed, numbered and posted with the field note that belongs to them. Nothing is charged until you have seen and approved the proof.</p>
+    <form class="request" id="print-form" novalidate>
+      <div class="field">
+        <label for="f-plate">Plate</label>
+        <select id="f-plate" name="plate">
+          <option>II &mdash; Kelp study</option>
+          <option>III &mdash; Fog line, Vágar</option>
+          <option>IV &mdash; The third stack</option>
+          <option disabled>V &mdash; Harbour wall, 23:40 (edition sold out)</option>
+          <option>VI &mdash; Rain squall, Muckle Roe</option>
+          <option>VII &mdash; Ebb tide mirror</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-size">Size</label>
+        <select id="f-size" name="size">
+          <option>30 &times; 40 cm</option>
+          <option>50 &times; 70 cm</option>
+          <option>70 &times; 100 cm</option>
+        </select>
+      </div>
+      <div class="field" id="email-field">
+        <label for="f-email">Your email</label>
+        <input id="f-email" name="email" type="email" autocomplete="email" placeholder="you@example.com">
+        <p class="err" id="email-err">We need a working email to send the proof.</p>
+      </div>
+      <button type="submit">Request a print</button>
+    </form>
+    <p class="form-status" id="form-status" role="status" aria-live="polite"></p>
+  </section>
+</main>
+
+<footer class="wrap">
+  <span>Maren Holt, Brae, Shetland</span>
+  <span>studio@marenholt.example</span>
+  <span>All photographs are the photographer's own, 2018&ndash;2026</span>
+</footer>
+
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Photograph viewer" hidden>
+  <button class="lb-close" id="lb-close" type="button">Close</button>
+  <div class="lb-stage">
+    <div id="lb-art"></div>
+    <div class="lb-cap">
+      <span class="t" id="lb-title"></span>
+      <span class="meta sans" id="lb-meta"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  /* ---- series filter ---- */
+  var tabs=[].slice.call(document.querySelectorAll('.filters button'));
+  var plates=[].slice.call(document.querySelectorAll('.plate'));
+  var empty=document.getElementById('empty');
+  function show(series){
+    tabs.forEach(function(t){t.setAttribute('aria-pressed',String(t.dataset.series===series));});
+    var n=0;
+    plates.forEach(function(p){
+      var hit=series==='all'||p.dataset.series===series;
+      p.hidden=!hit; if(hit)n++;
+    });
+    empty.hidden=n>0;
+  }
+  tabs.forEach(function(t){t.addEventListener('click',function(){show(t.dataset.series);});});
+  document.getElementById('empty-reset').addEventListener('click',function(){show('all');});
+
+  /* ---- lightbox ---- */
+  var lb=document.getElementById('lightbox'),stage=document.getElementById('lb-art'),
+      tEl=document.getElementById('lb-title'),mEl=document.getElementById('lb-meta'),
+      lastFocus=null;
+  function openLb(plate){
+    lastFocus=plate;
+    stage.innerHTML='';
+    var art=plate.querySelector('.art').cloneNode(true);
+    art.classList.remove('r32','r169','r34','r169-wide');
+    art.style.aspectRatio=getComputedStyle(plate.querySelector('.art')).aspectRatio;
+    stage.appendChild(art);
+    tEl.textContent=plate.querySelector('.t').textContent.trim();
+    mEl.textContent=plate.querySelector('.meta').textContent.trim();
+    lb.hidden=false;
+    document.body.style.overflow='hidden';
+    document.getElementById('lb-close').focus();
+  }
+  function closeLb(){
+    lb.hidden=true;document.body.style.overflow='';
+    if(lastFocus)lastFocus.focus();
+  }
+  plates.forEach(function(p){
+    p.addEventListener('click',function(){openLb(p);});
+    p.addEventListener('keydown',function(e){
+      if(e.key==='Enter'||e.key===' '){e.preventDefault();openLb(p);}
+    });
+  });
+  document.getElementById('lb-close').addEventListener('click',closeLb);
+  lb.addEventListener('click',function(e){if(e.target===lb)closeLb();});
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape'&&!lb.hidden)closeLb();
+  });
+
+  /* ---- print request form ---- */
+  var form=document.getElementById('print-form'),email=document.getElementById('f-email'),
+      field=document.getElementById('email-field'),status=document.getElementById('form-status'),
+      btn=form.querySelector('button[type=submit]');
+  form.addEventListener('submit',function(e){
+    e.preventDefault();
+    var v=email.value.trim();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){
+      field.classList.add('bad');
+      status.textContent='';status.classList.remove('bad');
+      email.focus();
+      return;
+    }
+    field.classList.remove('bad');
+    var plate=document.getElementById('f-plate');
+    if(plate.options[plate.selectedIndex].disabled){
+      status.textContent='That edition is sold out \u2014 choose another plate and we will take it from there.';
+      status.classList.add('bad');
+      return;
+    }
+    btn.disabled=true;
+    status.classList.remove('bad');
+    status.textContent='Request received. We will write to '+v+' within two days with a proof to approve.';
+    form.reset();
+  });
+  email.addEventListener('input',function(){field.classList.remove('bad');});
+})();
+</script>
+</body>
+</html>

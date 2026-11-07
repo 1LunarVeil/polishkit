@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>jfmt — JSON formatting from the command line</title>
+<style>
+  :root{
+    --bg:#0d1117;
+    --panel:#161b22;
+    --border:#2b3240;
+    --text:#e6edf3;
+    --dim:#8b949e;
+    --muted:#6e7681;
+    --green:#3fb950;
+    --blue:#58a6ff;
+    --orange:#d29922;
+    --red:#f85149;
+    --mono:ui-monospace,Consolas,"Cascadia Mono",Menlo,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:var(--mono);
+    font-size:14px;line-height:1.6;
+  }
+  .shell{max-width:980px;margin:0 auto;padding:0 24px}
+
+  /* nav */
+  header nav{
+    display:flex;align-items:center;gap:24px;
+    padding:16px 0;border-bottom:1px solid var(--border);
+  }
+  .logo{font-weight:700;color:var(--green);font-size:16px}
+  .logo b{color:var(--text)}
+  nav .links{margin-left:auto;display:flex;gap:22px}
+  nav a{color:var(--dim);text-decoration:none;font-size:13px}
+  nav a:hover{color:var(--text)}
+  nav a.ver{color:var(--muted);font-size:12px}
+
+  /* hero */
+  .hero{padding:64px 0 48px;text-align:center}
+  .hero h1{font-size:34px;font-weight:700;letter-spacing:-.01em}
+  .hero h1 code{color:var(--green);background:none}
+  .hero .tag{color:var(--dim);font-size:15px;margin:14px auto 0;max-width:560px}
+  .install{
+    display:inline-flex;align-items:center;gap:0;margin-top:30px;
+    background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden;
+  }
+  .install code{padding:10px 14px;color:var(--text);font-size:13px}
+  .install code .dollar{color:var(--muted);margin-right:8px;user-select:none}
+  .copy{
+    background:var(--panel);border:0;border-left:1px solid var(--border);color:var(--dim);
+    font:inherit;font-size:12px;padding:10px 14px;cursor:pointer;
+  }
+  .copy:hover{color:var(--text);background:#1c2330}
+  .install-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .install-row .install code{color:var(--dim)}
+
+  /* terminal */
+  .term{
+    margin:44px auto 0;max-width:760px;text-align:left;
+    background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden;
+    box-shadow:0 16px 48px rgba(0,0,0,.45);
+  }
+  .term-bar{
+    display:flex;align-items:center;gap:8px;
+    padding:9px 14px;border-bottom:1px solid var(--border);background:#11151c;
+  }
+  .term-bar .dot{width:11px;height:11px;border-radius:50%;background:#2e3440}
+  .term-bar .dot.r{background:#f4525f}.term-bar .dot.y{background:#e0b13f}.term-bar .dot.g{background:#4fc460}
+  .term-bar .title{margin-left:8px;color:var(--muted);font-size:12px}
+  .term-body{
+    padding:16px 18px;font-size:13px;min-height:250px;white-space:pre-wrap;word-break:break-all;
+  }
+  .c-cmd{color:var(--text)}
+  .c-prompt{color:var(--green);user-select:none}
+  .c-out{color:var(--dim)}
+  .c-key{color:var(--blue)}
+  .c-str{color:#a5d6ff}
+  .c-num{color:#d2a8ff}
+  .c-err{color:var(--red)}
+  .caret{
+    display:inline-block;width:8px;height:16px;background:var(--green);
+    vertical-align:text-bottom;animation:blink 1s steps(1) infinite;
+  }
+  @keyframes blink{50%{opacity:0}}
+
+  /* sections */
+  section{padding:56px 0}
+  .sec-title{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.14em;margin-bottom:26px}
+  .sec-title::before{content:"## ";color:var(--green)}
+
+  /* features */
+  .features{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .feat{
+    background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:18px 20px;
+  }
+  .feat h3{font-size:14px;color:var(--text);margin-bottom:8px}
+  .feat h3::before{content:"$ ";color:var(--green)}
+  .feat p{font-size:12.5px;color:var(--dim);line-height:1.55}
+
+  /* before / after */
+  .ba{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .codecard{background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .codecard .cap{padding:8px 14px;border-bottom:1px solid var(--border);font-size:12px;color:var(--dim)}
+  .codecard .cap b{color:var(--text)}
+  .codecard pre{padding:14px 16px;font-size:12.5px;color:var(--dim);overflow:auto}
+  .codecard pre .p{color:var(--orange)}
+  .codecard.after pre{color:var(--text)}
+  .codecard.after .cap b{color:var(--green)}
+
+  /* flags table */
+  .flags{width:100%;border-collapse:collapse;font-size:13px}
+  .flags td{padding:9px 14px;border-bottom:1px solid var(--border);color:var(--dim);vertical-align:top}
+  .flags tr:last-child td{border-bottom:0}
+  .flags td:first-child{color:var(--blue);white-space:nowrap;width:180px}
+  .flags td:last-child{color:var(--dim)}
+
+  /* cta + footer */
+  .cta{text-align:center;padding:64px 0 72px;border-top:1px solid var(--border)}
+  .cta h2{font-size:22px;margin-bottom:10px}
+  .cta p{color:var(--dim);font-size:13px;margin-bottom:26px}
+  footer{
+    padding:22px 0 30px;border-top:1px solid var(--border);
+    color:var(--muted);font-size:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;
+  }
+  footer a{color:var(--dim);text-decoration:none}
+  footer a:hover{color:var(--text)}
+
+  a:focus-visible,button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+
+  @media (max-width:760px){
+    .features{grid-template-columns:1fr 1fr}
+    .ba{grid-template-columns:1fr}
+    .hero h1{font-size:26px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="shell">
+    <nav aria-label="Main">
+      <span class="logo">j<b>fmt</b></span>
+      <div class="links">
+        <a href="#features">Features</a>
+        <a href="#example">Example</a>
+        <a href="#flags">Flags</a>
+        <a href="#" aria-label="Source repository">GitHub</a>
+        <a class="ver">v2.4.1</a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<div class="shell">
+
+  <section class="hero">
+    <h1><code>jfmt</code> — make JSON legible, fast</h1>
+    <p class="tag">A single-binary CLI that formats, validates and colorizes JSON straight from the pipe. No config file, no flags required, no excuses.</p>
+    <div class="install-row">
+      <div class="install">
+        <code><span class="dollar">$</span>npm install -g jfmt</code>
+        <button class="copy" data-copy="npm install -g jfmt">copy</button>
+      </div>
+      <div class="install">
+        <code><span class="dollar">$</span>brew install jfmt</code>
+        <button class="copy" data-copy="brew install jfmt">copy</button>
+      </div>
+    </div>
+
+    <div class="term" aria-label="Terminal demo">
+      <div class="term-bar">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="title">zsh — demo</span>
+      </div>
+      <div class="term-body" id="term"></div>
+    </div>
+  </section>
+
+  <section id="features">
+    <h2 class="sec-title">Why jfmt</h2>
+    <div class="features">
+      <div class="feat"><h3>--pipe-native</h3><p>Reads stdin, writes stdout. Bolt it onto any pipeline without changing a single upstream tool.</p></div>
+      <div class="feat"><h3>--errors-that-help</h3><p>Bad JSON in, useful message out — line, column and a caret pointing at the offending byte.</p></div>
+      <div class="feat"><h3>--color</h3><p>Syntax highlighting that respects NO_COLOR and degrades cleanly when output isn't a TTY.</p></div>
+      <div class="feat"><h3>--sort-keys</h3><p>Deterministic output for diffs and golden tests. Stable ordering, always.</p></div>
+      <div class="feat"><h3>--check</h3><p>Exit code 1 on malformed input. Ideal for pre-commit hooks and CI lint steps.</p></div>
+      <div class="feat"><h3>--0-config</h3><p>No dotfile, no plugin system. One binary, sensible defaults, overridable when needed.</p></div>
+    </div>
+  </section>
+
+  <section id="example">
+    <h2 class="sec-title">Before / after</h2>
+    <div class="ba">
+      <div class="codecard">
+        <div class="cap"><b>in</b> — deploy.json, as received</div>
+        <pre>{"service":"billing","replicas":3,"env":{"region":"eu-west-1","log_level":"warn"},"ports":[8080,9090],"canary":false}</pre>
+      </div>
+      <div class="codecard after">
+        <div class="cap"><b>out</b> — jfmt &lt; deploy.json</div>
+        <pre>{
+  <span class="p">"service"</span>: <span class="p">"billing"</span>,
+  <span class="p">"replicas"</span>: <span class="p">3</span>,
+  <span class="p">"env"</span>: {
+    <span class="p">"region"</span>: <span class="p">"eu-west-1"</span>,
+    <span class="p">"log_level"</span>: <span class="p">"warn"</span>
+  },
+  <span class="p">"ports"</span>: [<span class="p">8080</span>, <span class="p">9090</span>],
+  <span class="p">"canary"</span>: <span class="p">false</span>
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <section id="flags">
+    <h2 class="sec-title">The flags you'll actually use</h2>
+    <table class="flags">
+      <tr><td>jfmt</td><td>Format stdin to stdout, 2-space indent, colors when the output is a terminal.</td></tr>
+      <tr><td>--indent 4 | tab</td><td>Choose your indentation. TABs are fine here, we don't judge.</td></tr>
+      <tr><td>--compact</td><td>One line, no spaces — for logs and wire formats.</td></tr>
+      <tr><td>--sort-keys</td><td>Recursively sort object keys for stable diffs.</td></tr>
+      <tr><td>--check</td><td>Validate only. Exit 0 if clean, 1 with a precise error position if not.</td></tr>
+      <tr><td>--no-color</td><td>Force plain output. Also honored via NO_COLOR=1.</td></tr>
+      <tr><td>--version</td><td>Print the version and exit. It's fast too.</td></tr>
+    </table>
+  </section>
+
+  <div class="cta">
+    <h2>Stop squinting at minified JSON.</h2>
+    <p>Runs anywhere a pipe does. MIT licensed, zero dependencies.</p>
+    <div class="install">
+      <code><span class="dollar">$</span>npm install -g jfmt</code>
+      <button class="copy" data-copy="npm install -g jfmt">copy</button>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="shell" style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:0">
+    <span>jfmt &mdash; JSON formatting from the command line</span>
+    <span><a href="#">docs</a> &nbsp;&middot;&nbsp; <a href="#">changelog</a> &nbsp;&middot;&nbsp; MIT</span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- copy buttons ---------- */
+  document.querySelectorAll(".copy").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var text = btn.dataset.copy;
+      function done(){
+        var old = btn.textContent;
+        btn.textContent = "copied";
+        setTimeout(function(){ btn.textContent = old; }, 1200);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done, done);
+      } else {
+        var ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed"; ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand("copy"); } catch(e){}
+        document.body.removeChild(ta);
+        done();
+      }
+    });
+  });
+
+  /* ---------- typewriter terminal demo ---------- */
+  var term = document.getElementById("term");
+  var script = [
+    {type:"cmd", text:"cat deploy.json | jfmt"},
+    {type:"out", text:'{\n  "service": "billing",\n  "replicas": 3,\n  "env": {\n    "region": "eu-west-1",\n    "log_level": "warn"\n  },\n  "ports": [8080, 9090],\n  "canary": false\n}'},
+    {type:"cmd", text:"echo '{\"a\":1,,}' | jfmt --check"},
+    {type:"err", text:'jfmt: parse error at line 1, column 11\n   1 | {"a":1,,}\n             ^ unexpected token \',\' — expected a property name or \'}\'\nexit status 1'},
+    {type:"cmd", text:"cat config.json | jfmt --sort-keys | head -4"},
+    {type:"out", text:'{\n  "author": "ops",\n  "canary": false,\n  "env": {'}
+  ];
+
+  var el = document.createElement("div");
+  term.appendChild(el);
+  var si = 0, ci = 0, line = null;
+
+  function newLine(cls){
+    line = document.createElement("div");
+    line.className = cls || "c-cmd";
+    term.appendChild(line);
+    return line;
+  }
+  function caretSpan(){
+    var s = document.createElement("span");
+    s.className = "caret";
+    return s;
+  }
+
+  function tick(){
+    if (si >= script.length){
+      // finished: leave final prompt
+      var end = newLine("c-cmd");
+      var p = document.createElement("span");
+      p.className = "c-prompt";
+      p.textContent = "$ ";
+      end.appendChild(p);
+      end.appendChild(caretSpan());
+      return;
+    }
+    var item = script[si];
+    if (ci === 0){
+      if (item.type === "cmd"){
+        newLine("c-cmd");
+        var pr = document.createElement("span");
+        pr.className = "c-prompt";
+        pr.textContent = "$ ";
+        line.appendChild(pr);
+        line.appendChild(caretSpan());
+      } else {
+        newLine(item.type === "err" ? "c-err" : "c-out");
+      }
+    }
+    var speed;
+    if (item.type === "cmd"){
+      ci++;
+      // render text + caret
+      var shown = item.text.slice(0, ci);
+      line.textContent = "";
+      var pr = document.createElement("span");
+      pr.className = "c-prompt";
+      pr.textContent = "$ ";
+      line.appendChild(pr);
+      line.appendChild(document.createTextNode(shown));
+      line.appendChild(caretSpan());
+      speed = 55 + Math.random()*60;
+      if (ci >= item.text.length){
+        line.lastChild.remove(); // drop caret
+        si++; ci = 0;
+        speed = 350;
+      }
+    } else {
+      // output appears in chunks, not per char
+      var chunk = 6;
+      ci += chunk;
+      var shown2 = item.text.slice(0, ci);
+      line.className = item.type === "err" ? "c-err" : "c-out";
+      if (item.type === "out"){
+        // minimal key highlighting: color lines
+        line.textContent = shown2;
+      } else {
+        line.textContent = shown2;
+      }
+      speed = 12;
+      if (ci >= item.text.length){
+        si++; ci = 0;
+        speed = 500;
+      }
+    }
+    term.scrollTop = term.scrollHeight;
+    setTimeout(tick, speed);
+  }
+  setTimeout(tick, 400);
+})();
+</script>
+</body>
+</html>

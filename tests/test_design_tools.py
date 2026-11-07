@@ -1,4 +1,4 @@
-"""Tests for the frontend-aesthetics scripts.
+"""Tests for the polishkit scripts.
 
 Run from the plugin root: python -B -m unittest discover -s tests -v
 (-B keeps __pycache__ out of the plugin tree.)
@@ -13,7 +13,7 @@ from pathlib import Path
 sys.dont_write_bytecode = True
 
 TESTS = Path(__file__).resolve().parent
-SCRIPTS = TESTS.parent / "skills" / "frontend-aesthetics" / "scripts"
+SCRIPTS = TESTS.parent / "skills" / "polishkit" / "scripts"
 FIXTURES = TESTS / "fixtures"
 sys.path.insert(0, str(SCRIPTS))
 

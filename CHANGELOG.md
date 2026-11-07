@@ -2,6 +2,25 @@
 
 All notable changes to this project are recorded here. The format follows Keep a Changelog, and versions follow Semantic Versioning.
 
+## [2.0.0] - 2026-11-08
+
+First release under the new name — **PolishKit** (formerly `frontend-aesthetics`; the 0.1.0–0.1.3 announcements below were published under the old name). The 0.1.x line built the machinery; 2.0 internalizes twenty sources of design practice into the skill itself, adds the expression layer that benchmark evidence showed was missing, and ships that evidence.
+
+### Renamed
+
+- **frontend-aesthetics → PolishKit.** Plugin name, skill directory (`skills/polishkit/`), commands and manifests move together; the plugin identity changes, so uninstall the old entry and install PolishKit. Historical 0.1.x entries below are kept verbatim under the old name.
+
+### Added
+
+- **The expression layer** (`references/expression.md`): type drama (display ≥ 3× body, weights at both ends of the family), compositional tension (one deliberate asymmetry, one full-bleed or overlap), focal engineering (one focal point earned by two levers; on instrument screens the focal point IS the data — nothing overlaps a primary figure), texture on hero-scale fields, softened skeleton. Born from benchmark evidence: the 0.1.x machinery raised floors but squeezed beauty — pages were compliant and inert.
+- **Subject-infused palettes**: `directions.md` hex values are a verified floor, not the design — the accent takes its hue from the brief's world. `anti-slop.md`: refusing a recipe is not refusing its ingredients.
+- **States never in the default render** and a mandatory render-look-polish pass before finishing (SKILL.md §6).
+- `page_audit.py` v2: TARGET-SIZE (WCAG 2.5.8), ARIA-NAME (4.1.2/1.1.1) and HEADING-ORDER checks through the existing measurable/uncertain taxonomy.
+- `token_lint.py` v2: SEMANTIC-LEAK and primitive/semantic layer classification (USWDS/Carbon models).
+- Three new references: `cjk-typography.md` (clreq), `charts.md` (D3/Tufte/Okabe-Ito), `native-feel.md` (Fluent + HIG). critique.md gains a tenth pillar (platform conventions) and expression criteria.
+- **Benchmark evidence** (`benchmark/`): 5 briefs × three conditions (bare model / +frontend-design / +PolishKit), measured with the plugin's own tools. Rendered-page contrast failures: 48 (bare) → 101 (frontend-design alone — ambitious, floorless) → **0** (+PolishKit); scanner findings 54 / 88 / **2**; all five treatment pages render settled with full state coverage. The bare condition's own output converges on the exact AI-slop recipe the stance warns about. Protocol, tables and honest limitations in `benchmark/RESULTS.md`.
+- `references/sources.md`: entries for the twenty internalized sources (standards, judgment, typography, motion, data visualization, empirical research).
+
 ## [0.1.3] - 2026-11-07
 
 The documented limitations became tools. Everything here is a repair or a supplement to existing capabilities, agreed with the maintainer as one release; it is not a redesign.

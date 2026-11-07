@@ -15,7 +15,7 @@ from pathlib import Path
 sys.dont_write_bytecode = True
 
 TESTS = Path(__file__).resolve().parent
-SCRIPTS = TESTS.parent / "skills" / "frontend-aesthetics" / "scripts"
+SCRIPTS = TESTS.parent / "skills" / "polishkit" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 sys.path.insert(0, str(TESTS))
 

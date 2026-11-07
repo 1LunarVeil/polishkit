@@ -1,4 +1,4 @@
-# Frontend Aesthetics
+# PolishKit
 
 An agent skill for making visual decisions that are specific to a product, and for checking them with something other than an opinion. It is built to run alongside the official `frontend-design` skill: that skill sets the stance, and this one supplies the decision rules, the precedent data and the checks.
 
@@ -48,10 +48,10 @@ Stated plainly, because the alternative is users discovering it later.
 This plugin paraphrases and synthesizes others' work, and says so.
 
 - **Anthropic's `frontend-design`** sets the stance this skill builds on, and its advice to take screenshots is the origin of the visual loop.
-- **ui-ux-pro-max-skill** (Next Level Builder, MIT) supplies the eight CSV datasets, vendored unchanged and attributed in `THIRD_PARTY_NOTICES.md` and `skills/frontend-aesthetics/data/PROVENANCE.md`.
+- **ui-ux-pro-max-skill** (Next Level Builder, MIT) supplies the eight CSV datasets, vendored unchanged and attributed in `THIRD_PARTY_NOTICES.md` and `skills/polishkit/data/PROVENANCE.md`.
 - **claude-dev-kit** (pillip, MIT) is the precedent for capture scripts and pixel-diff acceptance; the implementations here are independent.
 - **buildwithclaude**, the **"4 design skills"** article, the **AI UX Playground** catalogue and the **Learning AI** chapter contributed framing and workflow ideas, rewritten rather than copied.
-- Per-item detail, including what was rejected and why, is in `skills/frontend-aesthetics/references/sources.md`.
+- Per-item detail, including what was rejected and why, is in `skills/polishkit/references/sources.md`.
 
 `frontend-design` is what this plugin is meant to be used with. It does not replace it.
 
@@ -69,16 +69,16 @@ The eight CSV datasets are vendored from ui-ux-pro-max-skill, so the data overla
 Copy the skill folder so that `SKILL.md` sits directly inside a folder named after the skill:
 
 ```
-git clone https://github.com/1LunarVeil/frontend-aesthetics
-cp -r frontend-aesthetics/skills/frontend-aesthetics ~/.claude/skills/
+git clone https://github.com/1LunarVeil/polishkit
+cp -r polishkit/skills/polishkit ~/.claude/skills/
 ```
 
 | Agent | Project scope | User scope |
 |---|---|---|
-| Claude Code | `.claude/skills/frontend-aesthetics/` | `~/.claude/skills/frontend-aesthetics/` |
-| Cursor | `.cursor/skills/frontend-aesthetics/` or `.agents/skills/...` | `~/.cursor/skills/...` or `~/.agents/skills/...` |
-| OpenAI Codex | `.codex/skills/frontend-aesthetics/` | `~/.codex/skills/frontend-aesthetics/` |
-| VS Code Copilot | `.github/skills/frontend-aesthetics/` | `~/.copilot/skills/frontend-aesthetics/` |
+| Claude Code | `.claude/skills/polishkit/` | `~/.claude/skills/polishkit/` |
+| Cursor | `.cursor/skills/polishkit/` or `.agents/skills/...` | `~/.cursor/skills/...` or `~/.agents/skills/...` |
+| OpenAI Codex | `.codex/skills/polishkit/` | `~/.codex/skills/polishkit/` |
+| VS Code Copilot | `.github/skills/polishkit/` | `~/.copilot/skills/polishkit/` |
 
 The folder name must match the `name` in the frontmatter. The most common install failure is one extra directory level, so that `SKILL.md` ends up nested one level too deep.
 
@@ -87,25 +87,25 @@ Agents that share folders also see each other's installs: Claude Code and Copilo
 With the `skills` CLI, install from this repository instead of copying:
 
 ```
-npx skills add 1LunarVeil/frontend-aesthetics --skill frontend-aesthetics
+npx skills add 1LunarVeil/polishkit --skill polishkit
 ```
 
 ### Claude Code plugin
 
 ```
-/plugin marketplace add 1LunarVeil/frontend-aesthetics
-/plugin install frontend-aesthetics@frontend-aesthetics
+/plugin marketplace add 1LunarVeil/polishkit
+/plugin install polishkit@polishkit
 ```
 
 This also installs the two slash commands. Restart the session after installing.
 
 ### ZCode plugin
 
-In Plugin Marketplace, add this repository's directory, or the local path to a clone, as a marketplace source, then install **Frontend Aesthetics**. The manifest is in `.zcode-plugin/plugin.json`.
+In Plugin Marketplace, add this repository's directory, or the local path to a clone, as a marketplace source, then install **PolishKit**. The manifest is in `.zcode-plugin/plugin.json`.
 
 ### No install: paste and go
 
-If you only need the rules for one task, give the agent `skills/frontend-aesthetics/SKILL.md` plus the reference file the task needs. The scripts are optional but recommended.
+If you only need the rules for one task, give the agent `skills/polishkit/SKILL.md` plus the reference file the task needs. The scripts are optional but recommended.
 
 ## Use
 
@@ -127,14 +127,14 @@ Expected shape of a response: a short brief, a direction with a reason, a token 
 Run from the repository root:
 
 ```
-python skills/frontend-aesthetics/scripts/wcag.py "#1f2937" "#ffffff" "#556070" "#f6f7f9"
-python skills/frontend-aesthetics/scripts/design_lookup.py "saas dashboard" --ux --motion
-python skills/frontend-aesthetics/scripts/slop_scan.py path/to/frontend/src
-python skills/frontend-aesthetics/scripts/visual_capture.py http://127.0.0.1:5173 --out shots --matrix
-python skills/frontend-aesthetics/scripts/image_diff.py shots/wide-1440x900-light@1.png shots2/wide-1440x900-light@1.png
+python skills/polishkit/scripts/wcag.py "#1f2937" "#ffffff" "#556070" "#f6f7f9"
+python skills/polishkit/scripts/design_lookup.py "saas dashboard" --ux --motion
+python skills/polishkit/scripts/slop_scan.py path/to/frontend/src
+python skills/polishkit/scripts/visual_capture.py http://127.0.0.1:5173 --out shots --matrix
+python skills/polishkit/scripts/image_diff.py shots/wide-1440x900-light@1.png shots2/wide-1440x900-light@1.png
 ```
 
-If you installed the skill into an agent, run the same scripts from the installed skill folder, for example `~/.claude/skills/frontend-aesthetics/scripts/`.
+If you installed the skill into an agent, run the same scripts from the installed skill folder, for example `~/.claude/skills/polishkit/scripts/`.
 
 - `wcag.py FG BG ...` prints the contrast ratio for each pair, with verdicts for AA text (4.5:1), large text and UI (3:1) and AAA text (7:1). It accepts `#hex`, `rgb()` and `oklch()`. Out-of-gamut OKLCH values are clipped to sRGB, the same way a browser clips them. `--apca` adds a draft APCA Lc value, marked as supplementary; the WCAG verdicts stay the gate.
 - `design_lookup.py "<keywords>"` returns matching product types, styles, a contrast-checked palette, type pairings and reasoning rules from the vendored data. Chinese keywords work through `data/zh-keywords.csv`; failed palette pairs come with suggested adjusted values marked "not applied". Use `--ux`, `--motion` and `--charts` for extra sections.
@@ -161,7 +161,7 @@ Why the tool waits for identical frames: on a real app, a fixed 4-second wait ca
 ## What is inside
 
 ```
-skills/frontend-aesthetics/
+skills/polishkit/
   SKILL.md                  workflow, floors, taste rules, the choice test
   references/
     principles.md           decision order and the brief template
@@ -205,6 +205,19 @@ The suite covers the contrast math against published reference values, the draft
 - The scripts are Python 3.9 or newer, standard library only, and print UTF-8 on all platforms.
 - No script calls the network. The capture tool navigates only the URL you pass, after validating its scheme and address.
 - Nothing writes outside the capture output directory, so the tools are safe to run against an untrusted repository.
+
+## Benchmark
+
+`benchmark/` holds a 5-brief, three-condition pilot measured with the plugin's own tools (page_audit, slop_scan, visual_capture): **bare model** (no design guidance) vs **frontend-design** alone vs **frontend-design + PolishKit**.
+
+| Metric | bare | frontend-design | + PolishKit |
+|---|---|---|---|
+| Rendered-page contrast failures | 48 | 101 | **0** |
+| Scanner findings | 54 (27 important) | 88 (45 important) | **2 (review)** |
+| Pages with zero state markers | 1 | 2 | **0** |
+| Renders that never settle | 1 | 3 | **0** |
+
+The bare condition's own output converges on the exact AI-slop recipe the stance warns about (cream + terracotta + serif, unbidden). Full tables, protocol and honest limitations: `benchmark/RESULTS.md`. The maintainer's verdict: floors held, aesthetics at parity with a distinct, bolder style.
 
 ## License
 

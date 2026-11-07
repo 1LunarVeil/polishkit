@@ -16,7 +16,7 @@ from unittest import mock
 sys.dont_write_bytecode = True
 
 TESTS = Path(__file__).resolve().parent
-SCRIPTS = TESTS.parent / "skills" / "frontend-aesthetics" / "scripts"
+SCRIPTS = TESTS.parent / "skills" / "polishkit" / "scripts"
 FIXTURES = TESTS / "fixtures"
 sys.path.insert(0, str(SCRIPTS))
 
@@ -192,6 +192,90 @@ class OffScaleTests(unittest.TestCase):
         )
 
 
+class SemanticLeakTests(unittest.TestCase):
+    def test_primitive_use_with_matching_semantic_is_flagged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            write(tmp, "tokens.css", (
+                ":root {\n"
+                "  --color-blue-6: #1a56db;\n"
+                "  --space-2: 8px;\n"
+                "  --color-action: #1a56db;\n"
+                "  --space-gutter: 8px;\n"
+                "}\n"))
+            write(tmp, "app.css", (
+                ".button { background: var(--color-blue-6); padding: var(--space-2); }\n"
+                ".other { background: var(--color-blue-6); }\n"))
+            findings, _ = token_lint.scan([tmp])
+        leaks = [f for f in findings if f.rule == "SEMANTIC-LEAK"]
+        self.assertEqual(len(leaks), 3)  # one per var() use, not per file
+        self.assertEqual({f.severity for f in leaks}, {"review"})
+        messages = " ".join(f.message for f in leaks)
+        self.assertIn("use var(--color-action)", messages)
+        self.assertIn("use var(--space-gutter)", messages)
+        self.assertIn("primitive token --color-blue-6", messages)
+
+    def test_aliasing_inside_token_definitions_is_exempt(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            write(tmp, "tokens.css", (
+                ":root {\n"
+                "  --color-blue-6: #1a56db;\n"
+                "  --color-action: var(--color-blue-6);\n"  # the mapping layer itself
+                "}\n"))
+            write(tmp, "app.css", ".button { background: var(--color-action); }\n")
+            findings, _ = token_lint.scan([tmp])
+        self.assertEqual([f for f in findings if f.rule == "SEMANTIC-LEAK"], [])
+
+    def test_no_semantic_match_is_silent(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            write(tmp, "tokens.css", (
+                ":root {\n"
+                "  --color-blue-6: #1a56db;\n"
+                "  --color-action: #dc2626;\n"  # different value: no suggestion
+                "}\n"))
+            write(tmp, "app.css", ".button { background: var(--color-blue-6); }\n")
+            findings, _ = token_lint.scan([tmp])
+        self.assertEqual([f for f in findings if f.rule == "SEMANTIC-LEAK"], [])
+
+    def test_hex_shorthand_and_case_match_the_same_value(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            write(tmp, "tokens.css", (
+                ":root {\n"
+                "  --gray-8: #FFF;\n"
+                "  --color-bg: #ffffff;\n"
+                "}\n"))
+            write(tmp, "app.css", ".a { color: var(--gray-8); }\n")
+            findings, _ = token_lint.scan([tmp])
+        leaks = [f for f in findings if f.rule == "SEMANTIC-LEAK"]
+        self.assertEqual(len(leaks), 1)
+        self.assertIn("use var(--color-bg)", leaks[0].message)
+
+    def test_no_primitives_at_all_is_silent(self):
+        findings = findings_for(".a { background: var(--color-bg); }\n", name="app.css")
+        self.assertEqual([f for f in findings if f.rule == "SEMANTIC-LEAK"], [])
+
+
+class TokenLayerTests(unittest.TestCase):
+    def test_naming_convention_classifies_layers(self):
+        cases = {
+            "--color-blue-6": "primitive",      # USWDS family+grade
+            "--gray-70": "primitive",
+            "--space-2": "primitive",
+            "--indigo-warm-60v": "primitive",   # USWDS vivid suffix
+            "--font-size-md": "primitive",      # t-shirt size step
+            "--color-action": "semantic",       # role word wins
+            "--text-fg": "semantic",
+            "--layer-01": "semantic",           # Carbon context suffix stays semantic
+            "--background-hover": "semantic",   # Carbon state variant
+            "--muted": "semantic",
+            "--space-gutter": "semantic",       # layout role word
+            "--unknown-thing": None,
+            "color.blue.6": "primitive",        # JSON dotted names classify too
+            "color.action": "semantic",
+        }
+        for name, expected in cases.items():
+            self.assertEqual(token_lint.token_layer(name), expected, name)
+
+
 class JsonTokenTests(unittest.TestCase):
     def test_json_tokens_drive_contrast(self):
         data = '{\n  "color": {\n    "bg": "#ffffff",\n    "text": "#9ca3af",\n    "radius-md": "8px"\n  }\n}\n'
@@ -276,6 +360,9 @@ class FixtureTests(unittest.TestCase):
         self.assertIn("--radius-pill is 10px", " ".join(f.message for f in off))
 
         self.assertEqual([f for f in findings if f.rule == "MISSING-ROLES"], [])
+        # v2 no-regression: the fixture defines a primitive (--radius-sm) used
+        # in app.css, but no semantic token shares its 4px value, so no leak.
+        self.assertEqual([f for f in findings if f.rule == "SEMANTIC-LEAK"], [])
 
         unused = [f for f in findings if f.rule == "UNUSED-TOKEN"]
         self.assertEqual(len(unused), 1)

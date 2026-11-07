@@ -1,7 +1,7 @@
 {
-  "name": "frontend-aesthetics",
+  "name": "polishkit",
   "description": "Visual decision rules, product precedents, WCAG contrast checks, an AI-slop scanner and a render-capture-diff loop that complement the frontend-design skill.",
-  "version": "0.1.3",
+  "version": "2.0.0",
   "author": {
     "name": "1LunarVeil"
   },

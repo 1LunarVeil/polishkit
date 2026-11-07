@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Book a stay — Alder &amp; Fern, Ullswater</title>
+<style>
+  :root{
+    --linen:#f4efe6; --card:#fbf8f1; --ink:#2a2721; --dim:#6f695e; --faint:#a09a8c;
+    --line:#e3dccd; --line2:#d5cdba;
+    --green:#2c4033; --green-deep:#22332a; --brass:#a9823f; --brass-soft:#f3ead7;
+    --err:#9c3b2a; --err-soft:#f6e9e5;
+    --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--linen);color:var(--ink);
+    font:14.5px/1.6 "Segoe UI",-apple-system,"Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  :focus-visible{outline:2px solid var(--brass);outline-offset:2px;border-radius:4px}
+  .serif{font-family:Georgia,"Times New Roman",serif}
+  button{font:inherit;cursor:pointer;color:inherit}
+  .num{font-variant-numeric:tabular-nums}
+
+  /* ── header + hero ── */
+  .band{background:var(--green);color:#efe9da}
+  .band .in{max-width:1060px;margin:0 auto;padding:16px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .wordmark{font-family:Georgia,serif;font-size:21px;letter-spacing:.01em}
+  .wordmark .amp{color:var(--brass);font-style:italic}
+  .band .contact{margin-left:auto;font-size:12.5px;color:#c9c2af;display:flex;gap:18px;flex-wrap:wrap}
+  .band .contact b{color:#efe9da;font-weight:600}
+  .hero{max-width:1060px;margin:0 auto;padding:34px 22px 0}
+  .hero h1{font-family:Georgia,serif;font-weight:500;font-size:clamp(28px,4vw,40px);line-height:1.15;max-width:20ch}
+  .hero p{margin-top:8px;color:#c9c2af;max-width:56ch;font-size:14.5px}
+  .scene{height:150px;border-radius:10px 10px 0 0;position:relative;overflow:hidden;
+    background:
+      radial-gradient(42% 60% at 74% 30%, rgba(240,200,130,.55), transparent 70%),
+      linear-gradient(180deg,#d9c08a 0%,#b3a271 34%,#7d8560 52%,#4f5d43 68%,#33402e 100%)}
+  .scene::before{content:"";position:absolute;left:0;right:0;bottom:0;height:38%;background:#2a3527;
+    clip-path:polygon(0 60%,10% 42%,22% 56%,36% 34%,50% 52%,64% 30%,78% 48%,90% 38%,100% 52%,100% 100%,0 100%)}
+  .scene::after{content:"";position:absolute;inset:0;background-image:var(--grain);opacity:.14;mix-blend-mode:overlay}
+
+  /* ── shell ── */
+  .shell{max-width:1060px;margin:0 auto;background:var(--card);border:1px solid var(--line);
+    border-top:none;border-radius:0 0 10px 10px;padding:26px 28px 34px}
+
+  /* ── steps ── */
+  .stepline{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+  ol.steps{list-style:none;display:flex;align-items:center;flex:1;min-width:280px}
+  ol.steps li{display:flex;align-items:center;flex:1}
+  ol.steps li:last-child{flex:0}
+  ol.steps .dot{flex:1;height:1px;background:var(--line2);margin:0 8px}
+  ol.steps li:first-child .dot{display:none}
+  .stp{display:flex;align-items:center;gap:8px;background:none;border:none;padding:4px 2px;
+    color:var(--faint);font-size:12.5px}
+  .stp .c{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--line2);
+    display:grid;place-items:center;font-size:11.5px;font-weight:600;color:var(--faint);flex:none}
+  .stp.now{color:var(--ink);font-weight:600}
+  .stp.now .c{border-color:var(--brass);color:var(--brass);box-shadow:0 0 0 3px var(--brass-soft)}
+  .stp.done{color:var(--dim)}
+  .stp.done .c{background:var(--green);border-color:var(--green);color:#efe9da}
+  .stp.done .c i{width:9px;height:5px;border-left:1.5px solid #efe9da;border-bottom:1.5px solid #efe9da;
+    transform:rotate(-45deg) translate(0,-1px)}
+  .stp:disabled{cursor:default}
+  .mini-sum{margin-left:auto;font-size:12.5px;color:var(--dim);font-variant-numeric:tabular-nums}
+  .mini-sum b{color:var(--ink)}
+  .minidot{color:var(--faint);margin:0 6px}
+
+  /* ── panels ── */
+  .pane{display:none;padding-top:18px}
+  .pane.on{display:block;animation:rise .3s ease}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  h2.pane-t{font-family:Georgia,serif;font-weight:500;font-size:22px;margin-bottom:4px}
+  .pane-s{color:var(--dim);font-size:13.5px;margin-bottom:20px;max-width:60ch}
+
+  /* ── calendar ── */
+  .calgrid{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+  .cal{border:1px solid var(--line);border-radius:9px;background:#fff;padding:14px}
+  .cal-h{display:flex;align-items:center;margin-bottom:10px}
+  .cal-h h3{font-family:Georgia,serif;font-weight:500;font-size:15.5px;flex:1}
+  .cal-nav{width:28px;height:28px;border:1px solid var(--line2);border-radius:6px;background:#fff;
+    display:grid;place-items:center}
+  .cal-nav:disabled{opacity:.35;cursor:not-allowed}
+  .dow,.days{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+  .dow span{text-align:center;font-size:10.5px;color:var(--faint);font-weight:600;padding:4px 0}
+  .day{aspect-ratio:1;border:none;background:none;border-radius:7px;font-size:12.5px;position:relative;
+    font-variant-numeric:tabular-nums}
+  .day:hover:not(:disabled){background:var(--brass-soft)}
+  .day:disabled{color:var(--faint);opacity:.5;cursor:not-allowed}
+  .day.we{font-weight:600}
+  .day.sel{background:var(--green);color:#efe9da;font-weight:600}
+  .day.inr{background:var(--brass-soft);border-radius:0}
+  .day.sel.inr{background:var(--green);border-radius:7px}
+  .day.today::after{content:"";position:absolute;left:50%;bottom:4px;width:4px;height:4px;margin-left:-2px;
+    border-radius:50%;background:var(--brass)}
+  .day.sel.today::after{background:#efe9da}
+  .readout{margin-top:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    border:1px solid var(--line);border-radius:9px;background:#fff;padding:12px 16px}
+  .readout .dts{font-family:Georgia,serif;font-size:16px}
+  .readout .dts small{color:var(--dim);font-family:inherit;font-size:13px;margin-left:8px}
+  .steppers{margin-left:auto;display:flex;gap:22px}
+  .stp-ctl{display:flex;align-items:center;gap:10px}
+  .stp-ctl span{font-size:12.5px;color:var(--dim)}
+  .stp-ctl b{min-width:14px;text-align:center;font-size:14px}
+  .pm{width:26px;height:26px;border:1px solid var(--line2);border-radius:6px;background:#fff;display:grid;place-items:center;font-size:15px;line-height:1}
+  .pm:disabled{opacity:.35;cursor:not-allowed}
+  .pane-actions{display:flex;align-items:center;gap:14px;margin-top:22px}
+  .hint-warn{color:var(--err);font-size:12.5px}
+  .cta{margin-left:auto;background:var(--green);color:#efe9da;border:none;border-radius:8px;
+    padding:11px 22px;font-size:14px;font-weight:600}
+  .cta:hover:not(:disabled){background:var(--green-deep)}
+  .cta:disabled{opacity:.45;cursor:not-allowed}
+  .back{background:none;border:none;color:var(--dim);font-size:13px;text-decoration:underline;
+    text-underline-offset:3px;margin-left:auto}
+  .back:first-child{margin-left:0}
+  .back:hover{color:var(--ink)}
+
+  /* ── rooms ── */
+  .rooms{display:flex;flex-direction:column;gap:12px}
+  .room{display:flex;gap:16px;border:1.5px solid var(--line);border-radius:10px;background:#fff;
+    padding:14px;cursor:pointer;position:relative;transition:border-color .15s}
+  .room:hover{border-color:var(--line2)}
+  .room.sel{border-color:var(--green);box-shadow:0 0 0 3px rgba(44,64,51,.12)}
+  .room.sold{opacity:.55;cursor:not-allowed}
+  .swatch{width:120px;border-radius:8px;flex:none;position:relative;overflow:hidden}
+  .swatch::after{content:"";position:absolute;inset:0;background-image:var(--grain);opacity:.13;mix-blend-mode:overlay}
+  .sw-fern{background:radial-gradient(60% 50% at 70% 24%,rgba(235,225,190,.5),transparent 70%),
+    linear-gradient(150deg,#8a9a76 0%,#5c704f 55%,#3c4c3a 100%)}
+  .sw-alder{background:radial-gradient(50% 44% at 68% 60%,rgba(238,190,120,.75),transparent 70%),
+    linear-gradient(150deg,#96683f 0%,#6e4429 55%,#452b1a 100%)}
+  .sw-loft{background:radial-gradient(60% 46% at 60% 30%,rgba(240,226,196,.5),transparent 70%),
+    linear-gradient(150deg,#b39a6d 0%,#8f7448 55%,#6e5636 100%)}
+  .r-main{flex:1;min-width:0}
+  .r-name{font-family:Georgia,serif;font-size:17px}
+  .r-desc{color:var(--dim);font-size:13px;margin-top:3px;max-width:48ch}
+  .r-tags{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap}
+  .tag{font-size:10.5px;font-weight:600;border-radius:5px;padding:2px 8px;background:var(--brass-soft);color:#7c5f2b}
+  .tag.sold{background:var(--err-soft);color:var(--err)}
+  .tag.left{background:#e8ecdf;color:#4c6350}
+  .r-price{text-align:right;flex:none;display:flex;flex-direction:column;justify-content:center}
+  .r-price .p{font-family:Georgia,serif;font-size:21px}
+  .r-price .u{color:var(--faint);font-size:11.5px}
+  .radio-dot{width:18px;height:18px;border:1.5px solid var(--line2);border-radius:50%;flex:none;margin-top:3px;position:relative}
+  .room.sel .radio-dot{border-color:var(--green)}
+  .room.sel .radio-dot::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--green)}
+
+  /* ── extras ── */
+  .extras{display:flex;flex-direction:column;gap:10px;max-width:640px}
+  .x{display:flex;align-items:center;gap:14px;border:1.5px solid var(--line);border-radius:10px;
+    background:#fff;padding:13px 16px;cursor:pointer}
+  .x:hover{border-color:var(--line2)}
+  .x.on{border-color:var(--brass);background:#fdfaf2}
+  .x .box{width:18px;height:18px;border:1.5px solid var(--line2);border-radius:5px;flex:none;position:relative}
+  .x.on .box{background:var(--brass);border-color:var(--brass)}
+  .x.on .box::after{content:"";position:absolute;left:4px;top:2px;width:7px;height:4px;
+    border-left:1.5px solid #fff;border-bottom:1.5px solid #fff;transform:rotate(-45deg)}
+  .x .x-main{flex:1}
+  .x .x-t{font-weight:600;font-size:14px}
+  .x .x-s{color:var(--dim);font-size:12.5px}
+  .x .x-p{font-family:Georgia,serif;font-size:16px;white-space:nowrap}
+  .x .x-p small{font-family:inherit;color:var(--faint);font-size:11.5px;display:block;text-align:right}
+  .total-strip{margin-top:22px;border-top:1px solid var(--line);padding-top:16px;
+    display:flex;align-items:baseline;gap:12px;max-width:640px}
+  .total-strip .tt{font-size:13px;color:var(--dim)}
+  .total-strip .tv{font-family:Georgia,serif;font-size:26px}
+  .total-strip .tv small{font-size:13px;color:var(--dim);font-family:"Segoe UI",sans-serif}
+
+  /* ── review ── */
+  .review{display:grid;grid-template-columns:1fr 1.1fr;gap:30px}
+  .bill{border:1px solid var(--line);border-radius:10px;background:#fff;padding:18px 20px;align-self:start}
+  .bill h3{font-family:Georgia,serif;font-weight:500;font-size:16px;margin-bottom:12px}
+  .bill dl{display:grid;grid-template-columns:1fr auto;gap:8px 14px;font-size:13.5px}
+  .bill dt{color:var(--dim)}
+  .bill dd{text-align:right;font-variant-numeric:tabular-nums}
+  .bill .grand{border-top:1px solid var(--line2);margin-top:10px;padding-top:12px}
+  .bill .grand dt{color:var(--ink);font-weight:600}
+  .bill .grand dd{font-family:Georgia,serif;font-size:20px}
+  .policy{margin-top:14px;border-top:1px dashed var(--line2);padding-top:12px;font-size:12.5px;color:var(--dim)}
+  .policy p{display:flex;gap:8px;margin-top:6px}
+  .policy i{width:7px;height:7px;border-radius:50%;background:var(--brass);flex:none;margin-top:6px}
+  .f-grid{display:grid;gap:14px;align-content:start}
+  .f-grid label{font-size:13px;font-weight:600;display:block;margin-bottom:5px}
+  .f-grid label small{color:var(--faint);font-weight:400}
+  .f-grid input,.f-grid textarea{width:100%;border:1px solid var(--line2);border-radius:8px;background:#fff;
+    padding:9px 12px;font:inherit;font-size:14px}
+  .f-grid input:focus,.f-grid textarea:focus{outline:none;border-color:var(--brass)}
+  .f-grid input.bad{border-color:var(--err);background:var(--err-soft)}
+  .err-t{color:var(--err);font-size:12px;margin-top:4px;display:none}
+  .err-t.show{display:block}
+  .pay-note{display:flex;gap:9px;align-items:flex-start;background:var(--brass-soft);border-radius:8px;
+    padding:10px 12px;font-size:12.5px;color:#6b5527}
+  .pay-note .lock{width:9px;height:7px;border:1.5px solid #7c5f2b;border-radius:2px;margin-top:4px;flex:none;position:relative}
+  .pay-note .lock::before{content:"";position:absolute;left:1.5px;top:-5px;width:4px;height:4px;
+    border:1.5px solid #7c5f2b;border-bottom:none;border-radius:4px 4px 0 0}
+
+  /* ── confirmation ── */
+  .confirm{display:none;text-align:center;padding:30px 10px 10px}
+  .confirm.on{display:block;animation:rise .35s ease}
+  .confirm .seal{width:54px;height:54px;border-radius:50%;background:var(--green);margin:0 auto 18px;position:relative}
+  .confirm .seal::after{content:"";position:absolute;left:17px;top:22px;width:20px;height:10px;
+    border-left:2.5px solid #efe9da;border-bottom:2.5px solid #efe9da;transform:rotate(-45deg)}
+  .confirm h2{font-family:Georgia,serif;font-weight:500;font-size:30px;margin-bottom:8px}
+  .confirm .ref{font-size:13px;color:var(--dim)}
+  .confirm .ref b{font-family:Georgia,serif;color:var(--ink)}
+  .confirm .sub{color:var(--dim);max-width:52ch;margin:12px auto 0;font-size:14px}
+  .confirm .sum-line{margin:20px auto 0;display:inline-block;border:1px solid var(--line);border-radius:9px;
+    background:#fff;padding:12px 20px;font-size:13.5px;font-variant-numeric:tabular-nums}
+  .confirm .acts{margin-top:24px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .btn2{border:1px solid var(--line2);background:#fff;border-radius:8px;padding:9px 18px;font-size:13.5px}
+  .btn2:hover{border-color:var(--ink)}
+  .btn2.pri{background:var(--green);border-color:var(--green);color:#efe9da;font-weight:600}
+  .btn2.pri:hover{background:var(--green-deep)}
+
+  footer{max-width:1060px;margin:26px auto 40px;padding:0 22px;color:var(--dim);font-size:12.5px;
+    display:flex;gap:18px;flex-wrap:wrap;justify-content:space-between}
+  footer b{color:var(--ink)}
+
+  @media (max-width:820px){
+    .calgrid{grid-template-columns:1fr}
+    .review{grid-template-columns:1fr}
+    .steppers{margin-left:0}
+    .room{flex-wrap:wrap}
+    .swatch{width:100%;height:70px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    .pane.on,.confirm.on{animation:none}
+  }
+</style>
+</head>
+<body>
+
+<div class="band">
+  <div class="in">
+    <p class="wordmark">Alder <span class="amp">&amp;</span> Fern</p>
+    <div class="contact">
+      <span>Twelve rooms on the quiet shore of Ullswater</span>
+      <b>017687 20114</b>
+      <span>No prepayment · pay at checkout</span>
+    </div>
+  </div>
+</div>
+
+<div class="hero">
+  <h1>Plan a weekend that actually feels like one.</h1>
+  <p>Two nights is the sweet spot — arrive Friday afternoon, leave Sunday after a long breakfast. Dogs stay free, and the fire is already lit.</p>
+</div>
+<div style="max-width:1060px;margin:22px auto 0;padding:0 22px">
+  <div class="scene" role="img" aria-label="Morning light over the fells above Ullswater"></div>
+</div>
+
+<div style="max-width:1060px;margin:0 auto;padding:0 22px">
+  <div class="shell">
+
+    <div class="stepline">
+      <ol class="steps" id="stepsBar" aria-label="Booking steps">
+        <li><button class="stp now" data-step="1" aria-current="step"><span class="c">1</span>Dates &amp; guests</button><span class="dot" aria-hidden="true"></span></li>
+        <li><button class="stp" data-step="2" disabled><span class="c">2</span>Room</button><span class="dot" aria-hidden="true"></span></li>
+        <li><button class="stp" data-step="3" disabled><span class="c">3</span>Extras</button><span class="dot" aria-hidden="true"></span></li>
+        <li><button class="stp" data-step="4" disabled><span class="c">4</span>Review</button></li>
+      </ol>
+      <span class="mini-sum" id="miniSum" aria-live="polite"></span>
+    </div>
+
+    <!-- ══ STEP 1 ══ -->
+    <section class="pane on" id="pane1" aria-label="Dates and guests">
+      <h2 class="pane-t">When are you coming?</h2>
+      <p class="pane-s">Check-in from 3 pm, check-out by 11 am (Sunday late checkout available in step 3). The calendar starts from today, 7 November.</p>
+
+      <div class="calgrid">
+        <div class="cal" id="calA">
+          <div class="cal-h"><h3 id="calATitle">November 2026</h3>
+            <button class="cal-nav" id="prevM" aria-label="Previous month" disabled>‹</button>
+          </div>
+          <div class="dow" aria-hidden="true"><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span></div>
+          <div class="days" id="calADays"></div>
+        </div>
+        <div class="cal" id="calB">
+          <div class="cal-h"><h3 id="calBTitle">December 2026</h3>
+            <button class="cal-nav" id="nextM" aria-label="Next month">›</button>
+          </div>
+          <div class="dow" aria-hidden="true"><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span></div>
+          <div class="days" id="calBDays"></div>
+        </div>
+      </div>
+
+      <div class="readout">
+        <p class="dts" id="dateOut">Pick your arrival date<small>then your departure</small></p>
+        <div class="steppers">
+          <div class="stp-ctl">
+            <span id="adL">Adults</span>
+            <button class="pm" id="adMinus" aria-label="Fewer adults">−</button>
+            <b class="num" id="adN" aria-labelledby="adL">2</b>
+            <button class="pm" id="adPlus" aria-label="More adults">+</button>
+          </div>
+          <div class="stp-ctl">
+            <span id="dgL">Dogs</span>
+            <button class="pm" id="dgMinus" aria-label="Fewer dogs">−</button>
+            <b class="num" id="dgN" aria-labelledby="dgL">0</b>
+            <button class="pm" id="dgPlus" aria-label="More dogs">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="pane-actions">
+        <span class="hint-warn" id="s1hint" role="status">Select an arrival and departure date to continue.</span>
+        <button class="cta" id="toRooms" disabled>Continue to rooms</button>
+      </div>
+    </section>
+
+    <!-- ══ STEP 2 ══ -->
+    <section class="pane" id="pane2" aria-label="Choose a room">
+      <h2 class="pane-t">Choose your room</h2>
+      <p class="pane-s">Rates shown per night for two sharing, breakfast not included. Every room has a view of the water or the fell.</p>
+
+      <div class="rooms" role="radiogroup" aria-label="Room type">
+        <div class="room" role="radio" aria-checked="false" tabindex="0" data-room="fern">
+          <div class="swatch sw-fern" aria-hidden="true"></div>
+          <div class="r-main">
+            <p class="r-name">Fern Room</p>
+            <p class="r-desc">Queen bed, garden side, walk-in shower. The quiet one — good for light sleepers.</p>
+            <div class="r-tags"><span class="tag left">1 left</span><span class="tag">Garden view</span></div>
+          </div>
+          <div class="r-price"><p class="p num">£148</p><p class="u">per night</p></div>
+          <span class="radio-dot" aria-hidden="true"></span>
+        </div>
+
+        <div class="room" role="radio" aria-checked="false" tabindex="0" data-room="alder">
+          <div class="swatch sw-alder" aria-hidden="true"></div>
+          <div class="r-main">
+            <p class="r-name">Alder Suite</p>
+            <p class="r-desc">King bed, wood-burner, and a window seat that looks straight down the lake. Our honeymoon room, though nobody checks.</p>
+            <div class="r-tags"><span class="tag left">2 left</span><span class="tag">Fireplace</span><span class="tag">Lake view</span></div>
+          </div>
+          <div class="r-price"><p class="p num">£212</p><p class="u">per night</p></div>
+          <span class="radio-dot" aria-hidden="true"></span>
+        </div>
+
+        <div class="room sold" role="radio" aria-checked="false" aria-disabled="true" data-room="loft">
+          <div class="swatch sw-loft" aria-hidden="true"></div>
+          <div class="r-main">
+            <p class="r-name">The Loft</p>
+            <p class="r-desc">Twin beds under the eaves — for friends travelling together or teenagers who sleep through anything.</p>
+            <div class="r-tags"><span class="tag sold">Sold out for your dates</span></div>
+          </div>
+          <div class="r-price"><p class="p num">£126</p><p class="u">per night</p></div>
+          <span class="radio-dot" aria-hidden="true"></span>
+        </div>
+      </div>
+
+      <div class="pane-actions">
+        <button class="back" data-goto="1">Back to dates</button>
+        <button class="cta" id="toExtras" disabled>Continue to extras</button>
+      </div>
+    </section>
+
+    <!-- ══ STEP 3 ══ -->
+    <section class="pane" id="pane3" aria-label="Add extras">
+      <h2 class="pane-t">Add the easy luxuries</h2>
+      <p class="pane-s">Nothing here is compulsory. The breakfast is the only thing past guests tell us they regret skipping.</p>
+
+      <div class="extras">
+        <div class="x on" role="checkbox" aria-checked="true" tabindex="0" data-x="breakfast">
+          <span class="box" aria-hidden="true"></span>
+          <span class="x-main"><span class="x-t">Breakfast in the conservatory</span>
+          <span class="x-s" id="bkSub">Full Cumbrian or smoked fish, sourdough, proper coffee.</span></span>
+          <span class="x-p num">£14<small id="bkCalc">per guest, per night</small></span>
+        </div>
+        <div class="x" role="checkbox" aria-checked="false" tabindex="0" data-x="firewood">
+          <span class="box" aria-hidden="true"></span>
+          <span class="x-main"><span class="x-t">Firewood bundle</span>
+          <span class="x-s">A crate of kiln-dried ash, kindling and matches, delivered to your room.</span></span>
+          <span class="x-p num">£9<small>per bundle</small></span>
+        </div>
+        <div class="x" role="checkbox" aria-checked="false" tabindex="0" data-x="late">
+          <span class="box" aria-hidden="true"></span>
+          <span class="x-main"><span class="x-t">Sunday late checkout</span>
+          <span class="x-s">Keep the room until 1 pm. The lake is best at midday anyway.</span></span>
+          <span class="x-p num">£25<small>per stay</small></span>
+        </div>
+        <div class="x" role="checkbox" aria-checked="false" tabindex="0" data-x="sauna">
+          <span class="box" aria-hidden="true"></span>
+          <span class="x-main"><span class="x-t">Wood-fired sauna</span>
+          <span class="x-s">45 minutes, private, down by the shore. Towels and a thermos included.</span></span>
+          <span class="x-p num">£35<small>per session</small></span>
+        </div>
+      </div>
+
+      <div class="total-strip">
+        <span class="tt">Stay total</span>
+        <span class="tv num" id="tot3" aria-live="polite">£0</span>
+        <span style="color:var(--faint);font-size:12.5px">for <span id="n3">2</span> nights · itemised on the next step</span>
+      </div>
+
+      <div class="pane-actions">
+        <button class="back" data-goto="2">Back to rooms</button>
+        <button class="cta" id="toReview">Review booking</button>
+      </div>
+    </section>
+
+    <!-- ══ STEP 4 ══ -->
+    <section class="pane" id="pane4" aria-label="Review and confirm">
+      <h2 class="pane-t">Review &amp; confirm</h2>
+      <p class="pane-s">Check the details, tell us who's coming, and that's it — you pay when you arrive.</p>
+
+      <div class="review">
+        <div class="bill">
+          <h3>Your stay</h3>
+          <dl id="billLines"></dl>
+          <dl class="grand"><dt>Total due at checkout</dt><dd class="num" id="tot4">£0</dd></dl>
+          <div class="policy">
+            <p><i aria-hidden="true"></i>Free cancellation until 48 hours before arrival — one call or email, no forms.</p>
+            <p><i aria-hidden="true"></i>No prepayment. Card details are only taken at checkout, on site.</p>
+            <p><i aria-hidden="true"></i>Family run since 1987. If anything isn't right, ask for Ruth.</p>
+          </div>
+        </div>
+
+        <form class="f-grid" id="bookForm" novalidate>
+          <div>
+            <label for="fName">Full name</label>
+            <input id="fName" name="name" type="text" autocomplete="name" placeholder="e.g. Eleanor Marsh">
+            <p class="err-t" id="eName" role="alert">Please tell us the name the booking is for.</p>
+          </div>
+          <div>
+            <label for="fEmail">Email <small>— confirmation goes here</small></label>
+            <input id="fEmail" name="email" type="email" autocomplete="email" placeholder="you@example.com">
+            <p class="err-t" id="eEmail" role="alert">That email doesn't look right — check for typos.</p>
+          </div>
+          <div>
+            <label for="fPhone">Phone <small>— optional, only if we need to reach you on the day</small></label>
+            <input id="fPhone" name="phone" type="tel" autocomplete="tel" placeholder="07…" >
+          </div>
+          <div>
+            <label for="fNotes">Anything we should know? <small>— allergies, arrivals after 9 pm, a birthday…</small></label>
+            <textarea id="fNotes" rows="3" placeholder="It all goes straight to the kitchen and Ruth's notebook."></textarea>
+          </div>
+          <div class="pay-note"><span class="lock" aria-hidden="true"></span><span>We won't take any payment now. You'll pay at checkout when you leave.</span></div>
+          <div class="pane-actions" style="margin-top:4px">
+            <button type="button" class="back" data-goto="3">Back to extras</button>
+            <button type="submit" class="cta" style="margin-left:0" id="confirmBtn">Confirm booking</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ══ CONFIRMATION ══ -->
+    <section class="confirm" id="confirmPane" aria-label="Booking confirmed">
+      <div class="seal" aria-hidden="true"></div>
+      <h2>You're booked, <span id="cName">Eleanor</span>.</h2>
+      <p class="ref">Reference <b id="cRef">AF-2318-KE</b> · keep this for changes or cancellations</p>
+      <p class="sum-line" id="cSum"></p>
+      <p class="sub">A confirmation is on its way to <b id="cEmail"></b>. Arrive any time after 3 pm — the kettle will be on, and Ruth will show you round. Dogs report to the desk for biscuits.</p>
+      <div class="acts">
+        <button class="btn2 pri" id="againBtn">Book another stay</button>
+        <a class="btn2" href="mailto:stay@alderandfern.co.uk">Email the inn</a>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<footer>
+  <span><b>Alder &amp; Fern</b> · Grange Lane, Glenridding, Ullswater, Cumbria CA11 0PA</span>
+  <span>stay@alderandfern.co.uk · 017687 20114</span>
+  <span>Family run since 1987</span>
+</footer>
+
+<script>
+(function(){
+  'use strict';
+  var $ = function(s){ return document.querySelector(s); };
+
+  var TODAY = new Date(2026, 10, 7);           /* 7 Nov 2026 */
+  var MAX_STAY = 14;
+  var S = { ci:null, co:null, adults:2, dogs:0, room:null, view:0,
+            extras:{ breakfast:true, firewood:false, late:false, sauna:false } };
+  var ROOMS = {
+    fern:{ name:'Fern Room', rate:148 },
+    alder:{ name:'Alder Suite', rate:212 },
+    loft:{ name:'The Loft', rate:126 }
+  };
+  var MONTHS = ['November 2026','December 2026','January 2027'];
+
+  function fmt(d){
+    return d.toLocaleDateString('en-GB',{ weekday:'short', day:'numeric', month:'short' });
+  }
+  function same(a,b){ return a && b && a.getTime() === b.getTime(); }
+  function nights(){ return (S.ci && S.co) ? Math.round((S.co - S.ci) / 86400000) : 0; }
+
+  /* ── calendar ── */
+  function renderCal(hostId, titleId, offset){
+    var base = new Date(2026, 10 + offset, 1);
+    document.getElementById(titleId).textContent = MONTHS[offset];
+    var host = document.getElementById(hostId);
+    host.innerHTML = '';
+    var lead = (base.getDay() + 6) % 7;                     /* Monday-first */
+    var dim = new Date(2026, 11 + offset, 0).getDate();
+    for(var i = 0; i < lead; i++){
+      var sp = document.createElement('span');
+      sp.className = 'day'; sp.style.visibility = 'hidden'; sp.setAttribute('aria-hidden','true');
+      host.appendChild(sp);
+    }
+    var _loop = function(d){
+      var date = new Date(2026, 10 + offset, d);
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'day';
+      b.textContent = d;
+      var wd = date.getDay();
+      if(wd === 0 || wd === 6) b.classList.add('we');
+      if(date.getTime() === TODAY.getTime()) b.classList.add('today');
+      if(date < TODAY){ b.disabled = true; }
+      else{
+        var t = date.getTime();
+        if(same(date, S.ci) || same(date, S.co)) b.classList.add('sel');
+        else if(S.ci && S.co && t > S.ci.getTime() && t < S.co.getTime()) b.classList.add('inr');
+        if(S.ci && !S.co && (t < S.ci.getTime() || t - S.ci.getTime() > MAX_STAY * 86400000)) b.disabled = true;
+      }
+      b.setAttribute('aria-label', fmt(date) +
+        (same(date,S.ci) ? ', check-in' : same(date,S.co) ? ', check-out' : ''));
+      b.setAttribute('aria-pressed', same(date,S.ci) || same(date,S.co) ? 'true' : 'false');
+      b.addEventListener('click', function(){ pick(date); });
+      host.appendChild(b);
+    };
+    for(var d = 1; d <= dim; d++) _loop(d);
+  }
+  function pick(date){
+    if(!S.ci || (S.ci && S.co)){
+      S.ci = date; S.co = null;
+    } else if(date.getTime() > S.ci.getTime()){
+      S.co = date;
+    } else {
+      S.ci = date;
+    }
+    drawCals(); updateS1();
+  }
+  function drawCals(){ renderCal('calADays','calATitle',S.view); renderCal('calBDays','calBTitle',S.view+1); }
+  $('#prevM').addEventListener('click', function(){ if(S.view > 0){ S.view--; drawCals(); navState(); } });
+  $('#nextM').addEventListener('click', function(){ if(S.view < 1){ S.view++; drawCals(); navState(); } });
+  function navState(){
+    $('#prevM').disabled = S.view === 0;
+    $('#nextM').disabled = S.view === 1;   /* window: Nov|Dec or Dec|Jan */
+  }
+
+  /* ── step 1 state ── */
+  function updateS1(){
+    var n = nights();
+    var out = $('#dateOut');
+    if(S.ci && S.co){
+      out.innerHTML = fmt(S.ci) + ' → ' + fmt(S.co) + '<small>' + n + ' night' + (n>1?'s':'') + '</small>';
+      $('#s1hint').textContent = S.adults === 1 ? 'A table for one — the conservatory suits you.' : '';
+    } else if(S.ci){
+      out.innerHTML = fmt(S.ci) + '<small>now pick your departure</small>';
+      $('#s1hint').textContent = 'Stay up to ' + MAX_STAY + ' nights.';
+    } else {
+      out.innerHTML = 'Pick your arrival date<small>then your departure</small>';
+      $('#s1hint').textContent = 'Select an arrival and departure date to continue.';
+    }
+    $('#toRooms').disabled = !(S.ci && S.co);
+    updateMini(); updateBkCalc();
+  }
+  function stepper(minusId, plusId, numId, get, set, min, max){
+    function upd(){
+      document.getElementById(numId).textContent = get();
+      document.getElementById(minusId).disabled = get() <= min;
+      document.getElementById(plusId).disabled = get() >= max;
+      updateS1();
+    }
+    document.getElementById(minusId).addEventListener('click', function(){ set(get()-1); upd(); });
+    document.getElementById(plusId).addEventListener('click', function(){ set(get()+1); upd(); });
+    upd();
+  }
+  stepper('adMinus','adPlus','adN', function(){return S.adults}, function(v){S.adults=v}, 1, 4);
+  stepper('dgMinus','dgPlus','dgN', function(){return S.dogs}, function(v){S.dogs=v}, 0, 2);
+
+  /* ── totals ── */
+  function billLines(){
+    var n = nights(), lines = [];
+    if(!n) return lines;
+    var r = ROOMS[S.room];
+    lines.push({ l: r.name + ' · ' + n + ' night' + (n>1?'s':''), r:'£' + (r.rate*n) });
+    if(S.extras.breakfast)
+      lines.push({ l:'Breakfast · ' + S.adults + ' guest' + (S.adults>1?'s':'') + ' × ' + n + ' night' + (n>1?'s':''), r:'£' + (14*S.adults*n) });
+    if(S.extras.firewood) lines.push({ l:'Firewood bundle', r:'£9' });
+    if(S.extras.late)     lines.push({ l:'Sunday late checkout', r:'£25' });
+    if(S.extras.sauna)    lines.push({ l:'Wood-fired sauna · 45 min', r:'£35' });
+    if(S.dogs)            lines.push({ l:S.dogs + ' dog' + (S.dogs>1?'s':'') + ' (they stay free)', r:'£0' });
+    return lines;
+  }
+  function total(){
+    var t = 0; billLines().forEach(function(x){ t += parseInt(x.r.replace('£',''),10); });
+    return t;
+  }
+  function updateMini(){
+    var n = nights();
+    if(!n){ $('#miniSum').innerHTML = ''; return; }
+    var parts = fmt(S.ci) + ' – ' + fmt(S.co) + ' · ' + n + ' night' + (n>1?'s':'');
+    if(S.room) parts += '<span class="minidot">·</span>' + ROOMS[S.room].name;
+    if(S.room) parts += '<span class="minidot">·</span><b>£' + total() + '</b>';
+    $('#miniSum').innerHTML = parts;
+  }
+  function updateBkCalc(){
+    var n = nights();
+    $('#bkCalc').textContent = S.extras.breakfast && n
+      ? '£' + (14*S.adults*n) + ' for your stay'
+      : 'per guest, per night';
+  }
+
+  /* ── steps ── */
+  var DONE = [false,false,false,false];
+  function go(step){
+    for(var i=1;i<=4;i++){
+      document.getElementById('pane'+i).classList.toggle('on', i===step);
+      var btn = document.querySelector('.stp[data-step="'+i+'"]');
+      btn.classList.toggle('now', i===step);
+      if(i===step) btn.setAttribute('aria-current','step'); else btn.removeAttribute('aria-current');
+      btn.disabled = !(i===1 || DONE.slice(0,i-1).every(Boolean));
+      if(i < 4) btn.querySelector('.c').innerHTML = DONE[i-1] ? '<i></i>' : String(i);
+      btn.classList.toggle('done', DONE[i-1] && i !== step);
+    }
+    document.querySelector('.shell').scrollIntoView({behavior:'smooth', block:'start'});
+  }
+  $('#toRooms').addEventListener('click', function(){ DONE[0]=true; go(2); });
+  $('#toExtras').addEventListener('click', function(){ DONE[1]=true; go(3); });
+  $('#toReview').addEventListener('click', function(){
+    DONE[2]=true; renderBill(); go(4);
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('.back'), function(b){
+    b.addEventListener('click', function(){ go(parseInt(b.dataset.goto,10)); });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('.stp'), function(b){
+    b.addEventListener('click', function(){ if(!b.disabled) go(parseInt(b.dataset.step,10)); });
+  });
+
+  /* ── rooms ── */
+  Array.prototype.forEach.call(document.querySelectorAll('.room'), function(r){
+    function sel(){
+      if(r.classList.contains('sold')) return;
+      Array.prototype.forEach.call(document.querySelectorAll('.room'), function(x){
+        x.classList.remove('sel'); x.setAttribute('aria-checked','false');
+      });
+      r.classList.add('sel'); r.setAttribute('aria-checked','true');
+      S.room = r.dataset.room;
+      $('#toExtras').disabled = false;
+      updateMini();
+    }
+    r.addEventListener('click', sel);
+    r.addEventListener('keydown', function(e){
+      if(e.key==='Enter'||e.key===' '){ e.preventDefault(); sel(); }
+    });
+  });
+
+  /* ── extras ── */
+  Array.prototype.forEach.call(document.querySelectorAll('.x'), function(x){
+    function toggle(){
+      var k = x.dataset.x;
+      S.extras[k] = !S.extras[k];
+      x.classList.toggle('on', S.extras[k]);
+      x.setAttribute('aria-checked', String(S.extras[k]));
+      if(k==='breakfast') updateBkCalc();
+      updateMini(); if(DONE[2]) renderBill();
+      var n = nights();
+      $('#tot3').textContent = '£' + (n ? total() : 0);
+    }
+    x.addEventListener('click', toggle);
+    x.addEventListener('keydown', function(e){
+      if(e.key===' '||e.key==='Enter'){ e.preventDefault(); toggle(); }
+    });
+  });
+
+  function renderBill(){
+    var host = $('#billLines'); host.innerHTML = '';
+    var n = nights();
+    var head = document.createElement('div');
+    head.style.cssText = 'grid-column:1/-1;color:var(--faint);font-size:12px;margin-bottom:2px';
+    head.textContent = fmt(S.ci) + ' → ' + fmt(S.co) + ' · ' + n + ' night' + (n>1?'s':'') + ' · ' + S.adults + ' adult' + (S.adults>1?'s':'') + (S.dogs ? ' · ' + S.dogs + ' dog' + (S.dogs>1?'s':'') : '');
+    host.appendChild(head);
+    billLines().forEach(function(x){
+      var d1 = document.createElement('dt'); d1.textContent = x.l;
+      var d2 = document.createElement('dd'); d2.textContent = x.r;
+      host.appendChild(d1); host.appendChild(d2);
+    });
+    $('#tot4').textContent = '£' + total();
+    $('#n3').textContent = n;
+    $('#tot3').textContent = '£' + total();
+  }
+
+  /* ── form + confirm ── */
+  $('#bookForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    var name = $('#fName'), email = $('#fEmail'), ok = true;
+    var badName = !name.value.trim();
+    var badEmail = !/.+@.+\..+/.test(email.value.trim());
+    name.classList.toggle('bad', badName);
+    $('#eName').classList.toggle('show', badName);
+    email.classList.toggle('bad', badEmail);
+    $('#eEmail').classList.toggle('show', badEmail);
+    ok = !badName && !badEmail;
+    if(!ok) return;
+    var n = nights();
+    $('#cName').textContent = name.value.trim().split(/\s+/)[0];
+    $('#cEmail').textContent = email.value.trim();
+    $('#cRef').textContent = 'AF-' + (2300 + Math.floor(Math.random()*700)) + '-' +
+      String.fromCharCode(65+Math.floor(Math.random()*26)) + String.fromCharCode(65+Math.floor(Math.random()*26));
+    $('#cSum').innerHTML = fmt(S.ci) + ' → ' + fmt(S.co) + ' · ' + n + ' night' + (n>1?'s':'') +
+      ' · ' + ROOMS[S.room].name + ' · ' + S.adults + ' guest' + (S.adults>1?'s':'') +
+      ' · <b>£' + total() + '</b> due at checkout';
+    document.getElementById('stepsBar').style.display = 'none';
+    $('#miniSum').style.display = 'none';
+    for(var i=1;i<=4;i++) document.getElementById('pane'+i).classList.remove('on');
+    document.getElementById('confirmPane').classList.add('on');
+  });
+  $('#againBtn').addEventListener('click', function(){
+    S.ci = null; S.co = null; S.room = null; S.adults = 2; S.dogs = 0;
+    S.extras = { breakfast:true, firewood:false, late:false, sauna:false };
+    DONE = [false,false,false,false];
+    $('#fName').value=''; $('#fEmail').value=''; $('#fPhone').value=''; $('#fNotes').value='';
+    Array.prototype.forEach.call(document.querySelectorAll('.room'), function(x){
+      x.classList.remove('sel'); x.setAttribute('aria-checked','false'); });
+    Array.prototype.forEach.call(document.querySelectorAll('.x'), function(x){
+      var on = x.dataset.x === 'breakfast';
+      x.classList.toggle('on', on); x.setAttribute('aria-checked', String(on));
+    });
+    document.getElementById('confirmPane').classList.remove('on');
+    document.getElementById('stepsBar').style.display = '';
+    $('#miniSum').style.display = '';
+    drawCals(); updateS1();
+    $('#toExtras').disabled = true;
+    go(1);
+  });
+
+  /* init */
+  drawCals(); navState(); updateS1();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elena Marsh — Landscape Photographer</title>
+<style>
+  :root{
+    --paper:#f7f5f1;
+    --ink:#22201c;
+    --dim:#6d6a63;
+    --line:#dedad2;
+    --accent:#7a5c3d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--paper);color:var(--ink);
+    font-family:Georgia,"Times New Roman",serif;
+    font-size:16px;line-height:1.65;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:0 32px}
+
+  /* ---------- header ---------- */
+  header{padding:44px 0 0}
+  .masthead{
+    display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:12px;
+    border-bottom:1px solid var(--line);padding-bottom:20px;
+  }
+  .masthead h1{font-size:20px;font-weight:normal;letter-spacing:.04em}
+  .masthead h1 span{color:var(--dim)}
+  nav{font-size:13px;letter-spacing:.12em;text-transform:uppercase}
+  nav a{color:var(--dim);text-decoration:none;margin-left:24px}
+  nav a:hover{color:var(--ink)}
+
+  /* ---------- hero ---------- */
+  .hero{padding:64px 0 56px}
+  .hero p.statement{
+    font-size:30px;line-height:1.4;font-weight:normal;max-width:640px;
+    font-style:italic;color:var(--ink);
+  }
+  .hero p.note{margin-top:18px;color:var(--dim);font-size:14px;max-width:520px}
+  .hero figure{margin-top:48px}
+  .hero svg{display:block;width:100%;height:auto;border-radius:2px}
+  figcaption{
+    font-size:12px;letter-spacing:.08em;color:var(--dim);margin-top:10px;
+    text-transform:uppercase;
+  }
+  figcaption b{color:var(--ink);font-weight:normal}
+
+  /* ---------- works ---------- */
+  .works{padding:24px 0 40px}
+  .section-title{
+    font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);
+    margin-bottom:28px;
+  }
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:40px 36px}
+  .work{cursor:pointer}
+  .work figure{position:relative;overflow:hidden;border-radius:2px}
+  .work svg{display:block;width:100%;height:auto;transition:transform .5s ease}
+  .work:hover svg{transform:scale(1.025)}
+  .work .veil{
+    position:absolute;inset:auto 0 0 0;padding:14px 16px;
+    background:linear-gradient(to top, rgba(20,18,14,.72), rgba(20,18,14,0));
+    color:#f2efe9;font-size:14px;opacity:0;transition:opacity .35s ease;
+  }
+  .work:hover .veil,.work:focus-visible .veil{opacity:1}
+  .work .veil span{display:block;font-size:11px;letter-spacing:.1em;opacity:.75;text-transform:uppercase;margin-top:2px}
+  .work figcaption.below{margin-top:10px}
+  .work figcaption.below span{display:block;letter-spacing:.08em;color:var(--dim)}
+
+  /* ---------- about ---------- */
+  .about{border-top:1px solid var(--line);padding:56px 0 48px;display:grid;grid-template-columns:1fr 1.4fr;gap:48px}
+  .about h2{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);font-weight:normal}
+  .about p{margin-bottom:16px;color:#3a372f}
+  .about p:last-child{margin-bottom:0}
+
+  /* ---------- contact / footer ---------- */
+  .contact{border-top:1px solid var(--line);padding:56px 0 72px;text-align:center}
+  .contact p.big{font-size:24px;font-style:italic;margin-bottom:14px}
+  .contact a.mail{
+    color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent);
+    font-size:16px;letter-spacing:.02em;
+  }
+  footer{padding:24px 0 40px;font-size:12px;color:var(--dim);display:flex;justify-content:space-between}
+
+  /* ---------- lightbox ---------- */
+  .lightbox{
+    position:fixed;inset:0;background:rgba(15,13,10,.92);
+    display:none;align-items:center;justify-content:center;flex-direction:column;
+    padding:40px;z-index:10;
+  }
+  .lightbox.open{display:flex}
+  .lightbox svg{max-width:min(86vw,1000px);height:auto;border-radius:2px}
+  .lightbox p{color:#e8e4db;margin-top:16px;font-size:14px}
+  .lightbox button{
+    position:absolute;top:20px;right:28px;background:none;border:1px solid rgba(232,228,219,.4);
+    color:#e8e4db;font:inherit;font-size:14px;padding:6px 14px;border-radius:2px;cursor:pointer;
+  }
+  .lightbox button:hover{background:rgba(232,228,219,.12)}
+
+  a:focus-visible,button:focus-visible,.work:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+
+  @media (max-width:760px){
+    .grid{grid-template-columns:1fr}
+    .about{grid-template-columns:1fr}
+    .hero p.statement{font-size:24px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="masthead">
+      <h1>Elena Marsh <span>— landscape photographer</span></h1>
+      <nav aria-label="Site">
+        <a href="#works">Work</a>
+        <a href="#about">About</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <p class="statement">I photograph the hour when light decides what a place is.</p>
+    <p class="note">Fifteen years of walking coastlines, fells and river valleys across the North Atlantic — waiting for weather, mostly.</p>
+    <figure>
+      <svg viewBox="0 0 1200 620" role="img" aria-label="Dusk over a mountain ridge, dark peaks under a fading orange sky">
+        <defs>
+          <linearGradient id="sky1" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#2b2733"/>
+            <stop offset=".45" stop-color="#5a4455"/>
+            <stop offset=".72" stop-color="#c2704e"/>
+            <stop offset="1" stop-color="#e8a25f"/>
+          </linearGradient>
+        </defs>
+        <rect width="1200" height="620" fill="url(#sky1)"/>
+        <circle cx="820" cy="430" r="58" fill="#f2c98c" opacity=".9"/>
+        <polygon points="0,470 180,340 320,440 470,360 640,470 820,410 1000,470 1200,420 1200,620 0,620" fill="#3a3341"/>
+        <polygon points="0,530 220,450 420,540 640,470 900,560 1100,500 1200,540 1200,620 0,620" fill="#2a2530"/>
+        <polygon points="0,580 300,540 600,590 900,545 1200,585 1200,620 0,620" fill="#191620"/>
+        <rect y="455" width="1200" height="30" fill="#c2704e" opacity=".18"/>
+      </svg>
+      <figcaption><b>Sgurr Ridge, Last Light</b> — Isle of Skye, 2024</figcaption>
+    </figure>
+  </section>
+
+  <section class="works" id="works">
+    <h2 class="section-title">Selected work</h2>
+    <div class="grid">
+
+      <div class="work" tabindex="0" role="button" aria-label="Open Dawn, Loch Fannich">
+        <figure>
+          <svg viewBox="0 0 600 420" role="img" aria-label="Pale dawn light over a still loch with layered hills">
+            <defs><linearGradient id="sky2" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#dfe3e6"/><stop offset=".6" stop-color="#eef0eb"/><stop offset="1" stop-color="#f6f1e4"/>
+            </linearGradient></defs>
+            <rect width="600" height="420" fill="url(#sky2)"/>
+            <polygon points="0,240 150,190 300,235 450,200 600,245 600,420 0,420" fill="#b9b4a4"/>
+            <polygon points="0,280 200,245 420,290 600,255 600,420 0,420" fill="#9a9787" opacity=".85"/>
+            <rect y="300" width="600" height="120" fill="#c7c4b3"/>
+            <rect y="298" width="600" height="6" fill="#eef0eb" opacity=".7"/>
+          </svg>
+          <div class="veil">Dawn, Loch Fannich<span>Ross-shire · 2023</span></div>
+        </figure>
+        <figcaption class="below">Dawn, Loch Fannich<span>Ross-shire · 2023</span></figcaption>
+      </div>
+
+      <div class="work" tabindex="0" role="button" aria-label="Open Dune Field, West Coast">
+        <figure>
+          <svg viewBox="0 0 600 420" role="img" aria-label="Wind-rippled sand dunes in warm afternoon light">
+            <defs><linearGradient id="sky3" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#d9d2c4"/><stop offset="1" stop-color="#efe7d6"/>
+            </linearGradient></defs>
+            <rect width="600" height="420" fill="url(#sky3)"/>
+            <path d="M0,300 Q150,220 300,290 T600,260 L600,420 L0,420 Z" fill="#c8a878"/>
+            <path d="M0,340 Q220,280 380,350 T600,330 L600,420 L0,420 Z" fill="#b28e5e"/>
+            <path d="M0,385 Q300,340 600,380 L600,420 L0,420 Z" fill="#8f6e44"/>
+            <path d="M60,310 Q150,268 240,300" stroke="#e7d3ae" stroke-width="2" fill="none" opacity=".7"/>
+            <path d="M330,330 Q420,292 510,322" stroke="#e7d3ae" stroke-width="2" fill="none" opacity=".6"/>
+          </svg>
+          <div class="veil">Dune Field, West Coast<span>Outer Hebrides · 2022</span></div>
+        </figure>
+        <figcaption class="below">Dune Field, West Coast<span>Outer Hebrides · 2022</span></figcaption>
+      </div>
+
+      <div class="work" tabindex="0" role="button" aria-label="Open Forest Inversion">
+        <figure>
+          <svg viewBox="0 0 600 420" role="img" aria-label="Conifer ridgeline disappearing into fog">
+            <rect width="600" height="420" fill="#e3e5e1"/>
+            <polygon points="0,180 90,150 180,185 270,155 360,190 460,160 560,190 600,170 600,420 0,420" fill="#4d5a4e"/>
+            <polygon points="0,240 120,215 240,250 380,220 500,255 600,235 600,420 0,420" fill="#37443a"/>
+            <rect y="200" width="600" height="70" fill="#e3e5e1" opacity=".85"/>
+            <rect y="250" width="600" height="55" fill="#e3e5e1" opacity=".6"/>
+            <g fill="#2c3830">
+              <polygon points="60,262 70,238 80,262"/><polygon points="140,268 150,242 160,268"/>
+              <polygon points="250,266 260,240 270,266"/><polygon points="360,270 370,246 380,270"/>
+              <polygon points="470,264 480,240 490,264"/><polygon points="540,270 550,248 560,270"/>
+            </g>
+          </svg>
+          <div class="veil">Forest Inversion<span>Cairngorms · 2024</span></div>
+        </figure>
+        <figcaption class="below">Forest Inversion<span>Cairngorms · 2024</span></figcaption>
+      </div>
+
+      <div class="work" tabindex="0" role="button" aria-label="Open Fjord, North Face">
+        <figure>
+          <svg viewBox="0 0 600 420" role="img" aria-label="Sheer dark cliffs on either side of a narrow fjord">
+            <defs><linearGradient id="sky5" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#cfd8dd"/><stop offset="1" stop-color="#eef2f2"/>
+            </linearGradient></defs>
+            <rect width="600" height="420" fill="url(#sky5)"/>
+            <polygon points="0,0 240,60 210,420 0,420" fill="#525b63"/>
+            <polygon points="600,0 380,55 400,420 600,420" fill="#3e464d"/>
+            <polygon points="0,420 210,330 400,345 600,420" fill="#2c343a" opacity=".0"/>
+            <path d="M210,340 Q300,300 400,350 L400,420 L210,420 Z" fill="#94a3ab"/>
+            <path d="M240,70 Q250,200 235,340" stroke="#6a757d" stroke-width="10" fill="none" opacity=".5"/>
+          </svg>
+          <div class="veil">Fjord, North Face<span>Western Norway · 2021</span></div>
+        </figure>
+        <figcaption class="below">Fjord, North Face<span>Western Norway · 2021</span></figcaption>
+      </div>
+
+      <div class="work" tabindex="0" role="button" aria-label="Open Salt Marsh, Spring Tide">
+        <figure>
+          <svg viewBox="0 0 600 420" role="img" aria-label="Winding tidal channel through a green salt marsh">
+            <rect width="600" height="420" fill="#dfe0d2"/>
+            <rect y="80" width="600" height="340" fill="#9aa383"/>
+            <path d="M300,420 C280,360 340,330 310,280 C285,240 330,220 315,180 C305,150 330,130 320,80 L360,80 C365,140 340,160 355,200 C372,250 330,270 355,320 C375,360 360,390 370,420 Z" fill="#b9c3c6"/>
+            <path d="M0,420 Q200,392 600,410 L600,420 Z" fill="#87916f"/>
+            <ellipse cx="150" cy="120" rx="90" ry="14" fill="#c4c9b1" opacity=".7"/>
+            <ellipse cx="470" cy="160" rx="70" ry="12" fill="#c4c9b1" opacity=".5"/>
+          </svg>
+          <div class="veil">Salt Marsh, Spring Tide<span>Norfolk · 2023</span></div>
+        </figure>
+        <figcaption class="below">Salt Marsh, Spring Tide<span>Norfolk · 2023</span></figcaption>
+      </div>
+
+      <div class="work" tabindex="0" role="button" aria-label="Open Alpine Winter, Blue Hour">
+        <figure>
+          <svg viewBox="0 0 600 420" role="img" aria-label="Snow-covered peaks in deep blue twilight">
+            <defs><linearGradient id="sky6" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#1d2a3d"/><stop offset=".7" stop-color="#31445e"/><stop offset="1" stop-color="#4c607c"/>
+            </linearGradient></defs>
+            <rect width="600" height="420" fill="url(#sky6)"/>
+            <polygon points="0,300 140,160 260,270 380,150 520,280 600,220 600,420 0,420" fill="#8fa2b8"/>
+            <polygon points="140,160 180,205 150,215 120,195" fill="#e8eef5"/>
+            <polygon points="380,150 420,200 385,212 355,190" fill="#e8eef5"/>
+            <polygon points="0,360 240,320 480,365 600,340 600,420 0,420" fill="#5c7291"/>
+            <rect y="355" width="600" height="10" fill="#d5e0ec" opacity=".35"/>
+          </svg>
+          <div class="veil">Alpine Winter, Blue Hour<span>Valais · 2020</span></div>
+        </figure>
+        <figcaption class="below">Alpine Winter, Blue Hour<span>Valais · 2020</span></figcaption>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="about" id="about">
+    <h2>About</h2>
+    <div>
+      <p>Elena Marsh is a landscape photographer based in Ullapool, on the northwest coast of Scotland. Her work follows the Atlantic seaboard from the Outer Hebrides to the Norwegian fjords, with long-running projects on tidal landscapes and winter light.</p>
+      <p>Prints are made by hand on cotton rag in editions of fifteen. Commissions and editorial assignments are accepted seasonally — winter preferred.</p>
+    </div>
+  </section>
+
+  <section class="contact" id="contact">
+    <p class="big">For print sales, commissions or just to talk about weather —</p>
+    <a class="mail" href="mailto:studio@elenamarsh.example">studio@elenamarsh.example</a>
+  </section>
+
+  <footer>
+    <span>&copy; 2025 Elena Marsh. All photographs made on film or large-format digital.</span>
+    <span>Ullapool, Scotland</span>
+  </footer>
+</div>
+
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Enlarged photograph">
+  <button id="lbClose" aria-label="Close">Close</button>
+  <div id="lbArt"></div>
+  <p id="lbCaption"></p>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var lb = document.getElementById("lightbox");
+  var art = document.getElementById("lbArt");
+  var cap = document.getElementById("lbCaption");
+
+  function open(work){
+    art.innerHTML = work.querySelector("svg").outerHTML;
+    var fc = work.querySelector(".veil").textContent.split("\n");
+    cap.textContent = work.querySelector(".veil").textContent.replace(/\s+/g," ").trim();
+    lb.classList.add("open");
+    document.getElementById("lbClose").focus();
+    document.body.style.overflow = "hidden";
+  }
+  function close(){
+    lb.classList.remove("open");
+    document.body.style.overflow = "";
+  }
+
+  document.querySelectorAll(".work").forEach(function(w){
+    w.addEventListener("click", function(){ open(w); });
+    w.addEventListener("keydown", function(e){
+      if (e.key === "Enter" || e.key === " "){ e.preventDefault(); open(w); }
+    });
+  });
+  document.getElementById("lbClose").addEventListener("click", close);
+  lb.addEventListener("click", function(e){ if (e.target === lb) close(); });
+  document.addEventListener("keydown", function(e){ if (e.key === "Escape") close(); });
+})();
+</script>
+</body>
+</html>
