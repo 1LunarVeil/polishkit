@@ -45,7 +45,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          python skills/frontend-aesthetics/scripts/slop_scan.py tests/fixtures/tells/index.html
+          python skills/polishkit/scripts/slop_scan.py tests/fixtures/tells/index.html
           status=$?
           if [ "$status" -ne 1 ]; then
             echo "expected exit status 1 for the tells fixture, got $status"
@@ -53,24 +53,24 @@ jobs:
           fi
 
       - name: Scanner stays quiet on clean code
-        run: python skills/frontend-aesthetics/scripts/slop_scan.py tests/fixtures/clean/app.css
+        run: python skills/polishkit/scripts/slop_scan.py tests/fixtures/clean/app.css
 
       - name: Reference contrast values
         shell: bash
         run: |
-          python skills/frontend-aesthetics/scripts/wcag.py "#000000" "#ffffff" | tee /tmp/wcag.txt
+          python skills/polishkit/scripts/wcag.py "#000000" "#ffffff" | tee /tmp/wcag.txt
           grep -q "21.00:1" /tmp/wcag.txt
 
       - name: Lookup resolves a product type
         shell: bash
         run: |
-          python skills/frontend-aesthetics/scripts/design_lookup.py "portfolio" | grep -q "# Detail: Portfolio/Personal"
+          python skills/polishkit/scripts/design_lookup.py "portfolio" | grep -q "# Detail: Portfolio/Personal"
 
       - name: Image diff finds the exact changed region
         shell: bash
         run: |
           python tests/make_fixtures.py
-          python skills/frontend-aesthetics/scripts/image_diff.py \
+          python skills/polishkit/scripts/image_diff.py \
             tests/fixtures/png/flat.png tests/fixtures/png/box.png | tee /tmp/diff.txt
           grep -q "changed 480 px (18.75%), region x=10 y=8 30x16" /tmp/diff.txt
 
@@ -78,7 +78,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          python skills/frontend-aesthetics/scripts/visual_capture.py \
+          python skills/polishkit/scripts/visual_capture.py \
             "file:///etc/passwd" --out "$RUNNER_TEMP/shots"
           status=$?
           if [ "$status" -ne 3 ]; then
