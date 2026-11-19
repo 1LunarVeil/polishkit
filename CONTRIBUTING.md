@@ -14,6 +14,16 @@
 - Rule text copied from another skill or article without a source and without a rewrite, unless the license allows it and the notice is added.
 - Machine-specific paths, personal names or private URLs in any file, including fixtures and tests. Tests must not depend on a path only you have.
 
+## Versioning
+
+The maintainer's rule, which this project follows:
+
+- **A leap or a milestone is worth a 0.1.0-scale bump.** A new capability that changes what the tool can do, or a structural change that alters how the project is built, earns `+0.1.0`.
+- **An incremental improvement is worth `+0.0.1`.**
+- **Fixing a known defect is not an improvement.** It does not justify a bump on its own; it corrects the project. Ship it, record it under `### Fixed`, and let the version follow the last real step.
+
+This matters because the version number is a claim about capability. A release whose only content is repairs should not read as progress.
+
 ## Workflow
 
 1. Create a branch. Do not commit to the default branch.
@@ -22,12 +32,17 @@
 
    ```
    python -B -m unittest discover -s tests -v
+   python tools/build_dist.py --check
+   python tools/build_dist.py --mirror-check
    python skills/polishkit/scripts/slop_scan.py tests/fixtures/tells/index.html
    ```
 
+   `--check` proves the install staging tree matches this one byte for byte. `--mirror-check` proves the publish mirror does, including `tests/` and `benchmark/`, which are published but never installed and therefore invisible to the first check.
+
 4. For a scanner rule, prove both directions: the fixture with the defect must trigger the rule, and a near-miss fixture without it must not. Add both to `tests/`.
 5. For a new contrast value, add the pair to the test or show the `wcag.py` output in the pull request.
-6. Update `CHANGELOG.md` under an Unreleased heading, and bump the version in both manifests when releasing.
+6. For a new rendered check, prove it against a page that has the defect and a page that does not. A check that never fires and a check that fires on healthy pages are both defects, and neither shows up in a unit test.
+7. Update `CHANGELOG.md` under an Unreleased heading, and bump the version in both manifests when releasing.
 
 ## Style
 

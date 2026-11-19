@@ -2,6 +2,36 @@
 
 All notable changes to this project are recorded here. The format follows Keep a Changelog, and versions follow Semantic Versioning.
 
+## [2.2.0] - 2026-11-19
+
+WCAG 1.4.12 becomes measurable. The plugin shipped the rule as prose and called it a manual check; the clause is testable, so it is now a tool.
+
+### Added
+
+- **`scripts/text_spacing.py`** — applies WCAG 1.4.12's four user overrides (line height 1.5×, paragraph gap 2×, letter spacing 0.12×, word spacing 0.16×) and diffs the DOM geometry between the authored page and the overridden one. It reports, as measurable FAILs:
+  - **CLIP** — an element whose text is now larger than a box that hides it, including the common case where the clipping box is an *ancestor* (a 48px `overflow:hidden` card around a paragraph that reports a comfortable client box of its own);
+  - **FIXED** — a `max-height` box whose content now needs more than one extra line;
+  - **TRUNCATION** — a single-line ellipsis that now loses at least one more em of text than it did authored;
+  - **OVERLAP** — sibling text runs that occupy the same pixels only after the override, with parent/child pairs excluded by ancestor path and a 24 px² floor so line-box brushes do not count.
+
+  It also reports the authored spacing values (informative: SC 1.4.12 does not require a page to ship them, only to survive them), lists content hidden by a transform, mask or clip-path as `uncertain:not-measured`, and states when the collector was capped. Exit 1 on a measurable failure, 2 with a browser problem (`{"verified": false}`), 3 on a rejected URL.
+- `tests/test_text_spacing.py`: 40 browser-free tests over the override stylesheet, the clipping and overlap geometry, and the classify decisions.
+- `/polish-audit` runs it alongside the other two rendered audits.
+
+### Fixed
+
+- **`text_spacing.py` pairing key was a document coordinate.** The override moves every element down, so every key changed, nothing paired with anything, and the first version reported a clean page for content it never compared. The key is now the element's child-index path from `<body>`, which a reflow does not move.
+- **`text_spacing.py` missed every ancestor-clipped card.** Clipping was tested on the text element only, so a paragraph inside a fixed-height `overflow:hidden` card passed. The nearest clipping ancestor is now collected and tested too.
+- **`text_spacing.py` reported pre-existing truncation as a 1.4.12 failure.** A four-pixel growth threshold counted table cells that were already truncating before the override — a different defect, under a different clause. The floor is now one em of extra required width, which is roughly one lost character cell.
+- **`text_spacing.py` never reached its truncation check.** The "already clipped before the override" guard ran first, and a single-line ellipsis is by definition already clipping. TRUNCATION is now tested before that guard.
+
+### Verification
+
+- 291 tests pass (251 + 40).
+- Smoke pages: a probe page with a clipped card, a `max-height` block and a `nowrap` label reports 3 FAIL; a clean page reports 0 FAIL; both run from the dev tree and from the installed staging tree.
+- Real pages, unmodified: B1 (145 text elements) reports 11 FAIL including two spans that genuinely collide only after the override and five model names that lose a line of their GPU description; B3 (150 elements) reports 1; B5 (73 elements) reports 0. Each was checked against the raw before/after geometry before being trusted.
+- Two false-positive classes were found this way and removed: nested elements counted as overlapping their own container, and cells already truncated at rest.
+
 ## [2.1.1] - 2026-11-19
 
 Corrects two defects in the audit itself and the two page defects it reported. No new capability: a tool that returns different answers for an unchanged page is not evidence, so these landed before the release could be called done.

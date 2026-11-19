@@ -96,6 +96,46 @@ Deliberately not covered: `prefers-forced-colors` (Windows High Contrast turns
 most rings into system colours the author does not control), `prefers-reduced-motion`,
 and 1.3.1 structure. None is implied by a clean audit result.
 
+## Text spacing audit (2.2)
+
+**1.4.12 Text Spacing (AA)** — https://www.w3.org/WAI/WCAG22/Understanding/text-spacing.html,
+read 2026-11-19. The criterion is a survival test, not a design instruction:
+
+- "Line height (line spacing) to at least 1.5 times the font size"
+- "Spacing following paragraphs to at least 2 times the font size"
+- "Letter spacing (tracking) to at least 0.12 times the font size"
+- "Word spacing to at least 0.16 times the font size"
+
+applied "by setting all of the following and by changing no other style
+property", with "no loss of content or functionality". The Understanding
+document adds plainly: "Content is not required to use these text spacing
+values." So `text_spacing.py` never reports a page for shipping tighter
+spacing; it injects the four values and reports what broke. The first rule of
+`override_css()` is that nothing but those four properties appears in the
+stylesheet — a test asserts the property set exactly, because adding `width`
+or `display` would invalidate the comparison.
+
+Three measurements in that tool are engineering decisions:
+
+- **The pairing key is the child-index path from `<body>`, not a coordinate.**
+  A coordinate key changes the moment the override reflows the page, so the
+  first version compared nothing and called every page clean.
+- **Clipping is tested on the element *and* its nearest clipping ancestor.** A
+  paragraph inside a 48px `overflow:hidden` card reports a comfortable client
+  box of its own; only the card's `scrollHeight` (96) against its
+  `clientHeight` (64) shows the loss. A Range-based "text needs X, box offers Y"
+  test was also written and then removed: Range height excludes the lead the
+  line box adds, so it disagreed with what the browser clipped.
+- **Truncation needs one em of extra required width, measured before and
+  after.** A four-pixel threshold counted cells that already truncated at rest,
+  which is a different defect under a different clause, and it buried the cells
+  the override actually broke.
+
+**Not covered by this tool**, and stated rather than implied: 1.4.4 Resize Text
+(200% zoom) and 1.4.10 Reflow (320 CSS px) need a real zoom or a real narrow
+viewport rather than a style override, and both remain manual checks.
+`prefers-reduced-motion` also stays manual.
+
 ## Deliberately not used
 
 - Icon, font-catalogue and CDN metadata, and any stack-specific code (React, Next.js, Tailwind, Figma plugin APIs). They do not match a vanilla or desktop WebView UI.

@@ -28,6 +28,7 @@ Concretely, it changes four things about how an agent works on UI:
 | Audit the token file and raw-value leaks | `scripts/token_lint.py`: definition-site contrast, `RAW-LEAK`, missing semantic roles, unused tokens, off-scale values |
 | Audit every visible text pair in the rendered page | `scripts/page_audit.py`: measurable verdicts separated from uncertain ones (gradients, images, occlusion) |
 | Audit the keyboard path and the focus ring as rendered | `scripts/keyboard_audit.py`: real Tab presses, traps, `tabindex="-1"` controls, overlay-obscured focus, hover-only contrast failures, and the indicator's pixel contrast against the control it surrounds (2.1.1, 2.1.2, 2.4.7, 2.4.11, 1.4.11; 2.4.13 as AAA evidence) |
+| Prove the layout survives a user's text-spacing overrides | `scripts/text_spacing.py`: applies WCAG 1.4.12's four values and reports clipped cards, `max-height` boxes, single-line labels losing text and text runs that only collide after the override |
 | Read contrast through a draft lens; test hue-dependent meaning | `wcag.py --apca` (draft APCA Lc, supplementary) and `scripts/color_sim.py` (Machado 2009 CVD simulation with a pair-collapse check) |
 | Prove what a change actually did to the screen | `scripts/image_diff.py`, zero-dependency PNG decode, changed region and ratio, plus a baseline directory report |
 | Review an existing UI and get prioritized findings | `references/critique.md` (ten pillars) and `/design-review` |
@@ -145,6 +146,7 @@ If you installed the skill into an agent, run the same scripts from the installe
 - `visual_capture.py URL --out DIR` shoots the page at one size, or a standard matrix with `--matrix` (1440x900, 1440x900 at 150%, 1100x720, 390x844). Over CDP, `--dark` really emulates `prefers-color-scheme`, and `--full-page`, `--element`, `--hover`, `--focus` capture the states plain screenshots cannot; any CDP failure falls back to the legacy engine and the JSON says which engine ran. It shoots repeatedly until two consecutive frames are identical, so a half-rendered shell is not mistaken for a design. Exit 2 means no browser was found; exit 3 means the URL was rejected (only http/https, no leading `-`, and no private addresses without `--allow-private`).
 - `page_audit.py URL` walks the rendered page and audits every visible text pair: measurable pass/fail, and an explicit `uncertain` class for gradients, images, blend modes and occlusion instead of a guessed verdict.
 - `keyboard_audit.py URL` presses Tab for real, stop by stop, and screenshots each stop focused and unfocused. It reports controls the keyboard cannot reach (2.1.1, including `tabindex="-1"` on something interactive), traps (2.1.2; a modal dialog's cycle is a review, not a failure), a missing or unperceivable focus ring measured against the control it surrounds (2.4.7 / 1.4.11), focus hidden under author content (2.4.11), and text contrast that only fails on focus or hover (1.4.3). 2.4.13's area and same-pixel readings are printed as AAA evidence and never gate the exit status. `--measure N` bounds how many stops are photographed and the report names the ones walked but not measured; exit 1 means a measurable keyboard or focus FAIL.
+- `text_spacing.py URL` applies WCAG 1.4.12's four user overrides and compares the two states: line height 1.5×, paragraph gap 2×, letter spacing 0.12×, word spacing 0.16×. It reports clipped boxes (including the usual case where the clipping box is an ancestor), `max-height` blocks that now need more room, single-line labels that lose another em of text, and sibling text runs that collide only after the override. A page need not ship those values; it must survive them. Exit 1 on a measurable failure.
 - `color_sim.py COLOR ...` simulates protanopia, deuteranopia and tritanopia (Machado 2009); `--check FG BG` reports whether a pair's contrast collapses under simulation.
 - `image_diff.py A.png B.png` decodes PNG with the standard library and reports the changed pixel count, ratio and bounding box; two directories run a baseline report. `--stats` summarises one or two images instead.
 
@@ -178,7 +180,8 @@ skills/polishkit/
     visual-review.md        render, capture, read, re-diff
     sources.md              where each rule came from, and what was rejected
   scripts/                  wcag, design_lookup, slop_scan, token_lint, visual_capture,
-                            image_diff, page_audit, keyboard_audit, color_sim, cdp
+                            image_diff, page_audit, keyboard_audit, text_spacing,
+                            color_sim, cdp
   data/                     eight MIT-licensed CSV files from ui-ux-pro-max
 commands/                   optional slash commands
 tests/                      standard-library unit tests and fixtures

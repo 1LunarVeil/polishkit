@@ -26,6 +26,7 @@
 | 按多种尺寸与缩放抓真实渲染 | `scripts/visual_capture.py`，等画面稳定，报告 console 错误与空白帧 |
 | 审计渲染页面里每一对可见文字 | `scripts/page_audit.py`：可测的给判定，渐变/图片/遮挡显式归入 `uncertain` |
 | 审计键盘路径与焦点环的实际渲染 | `scripts/keyboard_audit.py`：真实 Tab 走查、键盘陷阱、`tabindex="-1"` 控件、遮挡焦点、仅在 hover 失效的对比度，以及焦点环对它**所环绕控件**的像素对比度（2.1.1、2.1.2、2.4.7、2.4.11、1.4.11；2.4.13 作 AAA 参考） |
+| 证明布局能撑住用户的文本间距覆盖 | `scripts/text_spacing.py`：注入 WCAG 1.4.12 的四项值，报告被裁切的卡片、`max-height` 盒子、丢掉文字的省略号标签，以及只在覆盖后才重叠的文字块 |
 | 证明一次改动到底改到了哪 | `scripts/image_diff.py`，零依赖解 PNG，输出变化区域与比例 |
 | 评审既有界面并给出分级结论 | `references/critique.md`（十个维度）与 `/design-review` |
 | 跑完全部机械检查并给出合并结论 | `/polish-audit`：源码检查 + 两项渲染审计，阻断/重要/待复核/不确定/未检查分列 |
@@ -138,6 +139,7 @@ python skills/polishkit/scripts/image_diff.py shots/wide-1440x900-light@1.png sh
 - `visual_capture.py URL --out DIR` 抓单张，或加 `--matrix` 抓标准矩阵（1440×900、1440×900@150%、1100×720、390×844）。CDP 引擎下 `--dark` 真实模拟 `prefers-color-scheme`，`--full-page`、`--element`、`--hover`、`--focus` 抓普通截图够不到的状态；任何 CDP 失败自动降级旧引擎，JSON 里如实标注本次用的引擎。它会反复抓直到连续两帧完全相同，避免把半渲染的空壳当成设计。退出码 2 表示找不到浏览器，3 表示 URL 被拒绝（仅 http/https、不以 `-` 开头、私网地址需显式加 `--allow-private`）。
 - `page_audit.py URL` 遍历渲染页面，审计每一对可见文字：可测的给 pass/fail，渐变、图片、混合模式、遮挡这类算不准的显式归入 `uncertain`，绝不冒充判定。
 - `keyboard_audit.py URL` 真实按下 Tab 逐站走查，每站各抓一张聚焦态与一张未聚焦态截图。报告：键盘无法到达的控件（2.1.1，含交互元素上的 `tabindex="-1"`）、键盘陷阱（2.1.2；模态对话框内部的循环算 review 不算失败）、缺失或不可感知的焦点环——对比度是对**它所环绕的控件**量的（2.4.7 / 1.4.11）、被作者内容盖住的焦点（2.4.11）、以及只在聚焦或 hover 态才失效的文字对比度（1.4.3）。2.4.13 的面积与同像素读数作为 AAA 证据打印，永不参与退出码。`--measure N` 限制拍多少站，报告会点名"走过但未拍"的站；退出码 1 表示有可测的键盘或焦点失败。
+- `text_spacing.py URL` 注入 WCAG 1.4.12 的四项用户覆盖并比对两态：行高 1.5×、段间距 2×、字间距 0.12×、词间距 0.16×。报告被裁切的盒子（含"裁切容器其实是祖先"这一常见情形）、覆盖后需要更多空间的 `max-height` 块、再丢掉一个字宽的省略号标签，以及只在覆盖后才交叠的兄弟文字块。页面不必自带这些值，但必须撑得住。有可测失败时退出码 1。
 - `color_sim.py COLOR ...` 模拟红色盲、绿色盲、蓝黄色盲（Machado 2009）；`--check FG BG` 报告配色对的对比度在模拟后是否崩塌。
 - `image_diff.py A.png B.png` 用标准库解 PNG，输出变化像素数、比例和包围盒；传入两个目录则跑基线报告；加 `--stats` 只看单张统计。
 
@@ -171,7 +173,8 @@ skills/polishkit/
     visual-review.md        渲染、截图、读图、再对比
     sources.md              每条规则的来源，以及刻意未采用的内容
   scripts/                  wcag、design_lookup、slop_scan、token_lint、visual_capture、
-                            image_diff、page_audit、keyboard_audit、color_sim、cdp
+                            image_diff、page_audit、keyboard_audit、text_spacing、
+                            color_sim、cdp
   data/                     ui-ux-pro-max 的八个 MIT CSV 文件（另有自有的 zh-keywords.csv）
 commands/                   可选的斜杠命令
 tests/                      仅用标准库的单元测试与夹具

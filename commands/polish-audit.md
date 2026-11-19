@@ -28,13 +28,15 @@ plainly what it cannot. Do not present its result as an aesthetic judgement.
    python scripts/visual_capture.py <URL> --out shots --matrix --dark
    python scripts/page_audit.py <URL>
    python scripts/keyboard_audit.py <URL>
+   python scripts/text_spacing.py <URL>
    ```
 
    `page_audit` covers 1.4.3 contrast pairs, 2.5.8 target size and the
    4.1.2/1.1.1 name subset. `keyboard_audit` covers 2.1.1 reach, 2.1.2 traps,
    2.4.7 / 1.4.11 focus visibility and indicator contrast, 2.4.11 obscured
-   focus, and 1.4.3 in the focused and hovered states. Look at the captured
-   images too; a passing audit is not a visual review.
+   focus, and 1.4.3 in the focused and hovered states. `text_spacing` covers
+   1.4.12. Look at the captured images too; a passing audit is not a visual
+   review.
 
 4. Report, in this order:
 

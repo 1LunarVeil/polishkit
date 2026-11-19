@@ -1,6 +1,6 @@
 ---
 name: polishkit
-description: Visual decisions and visual verification for web and desktop UI (direction, palette, type, layout, density, motion, states). Ships product precedents (Chinese and English keywords), WCAG and draft-APCA contrast checks, a token-file linter, a rendered-page contrast audit, color-vision simulation, a scanner for generic "AI slop" tells, a CDP render-capture-diff loop that proves what a change did to the screen (dark theme and interaction states included), and a keyboard audit that measures the Tab order, keyboard traps and the focus ring's real pixel contrast. Use alongside frontend-design when building, restyling or reviewing a UI, choosing colors or fonts, or critiquing visual quality.
+description: Visual decisions and visual verification for web and desktop UI (direction, palette, type, layout, density, motion, states). Ships product precedents (Chinese and English keywords), WCAG and draft-APCA contrast checks, a token-file linter, a rendered-page contrast audit, color-vision simulation, a scanner for generic "AI slop" tells, a CDP render-capture-diff loop that proves what a change did to the screen (dark theme and interaction states included), a keyboard audit that measures the Tab order, keyboard traps and the focus ring's real pixel contrast, and a text-spacing audit that applies WCAG 1.4.12's user overrides and reports the content they break. Use alongside frontend-design when building, restyling or reviewing a UI, choosing colors or fonts, or critiquing visual quality.
 ---
 
 # PolishKit
@@ -58,6 +58,7 @@ Before calling it done, render the hero and the signature once and look (`python
 - `python scripts/token_lint.py <paths>` audits the token file and raw-value leaks.
 - Contrast for every text and UI pair you actually shipped (`wcag.py`; `--apca` adds a draft supplementary reading). When the page can be served, `python scripts/page_audit.py <url>` audits every visible pair in the render and separates measurable verdicts from uncertain ones.
 - `python scripts/keyboard_audit.py <url>` when the page can be served: it dispatches real Tab presses and screenshots each stop focused and unfocused, so keyboard reach, traps, a missing or invisible focus ring (measured against the control it surrounds, not the page), focus obscured by overlays, and contrast that only fails on hover are measured rather than asserted. Exit 1 means a measurable keyboard or focus failure. Read `--measure` in its output: stops past the budget were walked but not photographed, and the report says so.
+- `python scripts/text_spacing.py <url>` applies WCAG 1.4.12's four user overrides — 1.5× line height, 2× paragraph gap, 0.12× letter spacing, 0.16× word spacing — and reports what breaks between the authored page and the overridden one: clipped cards, fixed-height boxes, single-line labels that now truncate a line earlier, and text runs that only collide after the override. The page is not required to ship those values; it is required to survive them.
 - A reduced-motion pass, and the break test with worst-case data.
 - Console errors are failures. So is a capture reported as `blank`; treat one reported as unsettled as suspect.
 
@@ -106,5 +107,5 @@ Every default (font, palette, radius, shadow, layout, icon set) must be chosen f
 - `references/critique.md`: review procedure, ten pillars, severity, output format.
 - `references/visual-review.md`: how to render, capture, read and re-diff the UI.
 - `references/sources.md`: where each rule came from and what was deliberately not used.
-- `scripts/wcag.py`, `scripts/design_lookup.py`, `scripts/slop_scan.py`, `scripts/token_lint.py`, `scripts/visual_capture.py`, `scripts/image_diff.py`, `scripts/color_sim.py`, `scripts/cdp.py`, `scripts/page_audit.py`, `scripts/keyboard_audit.py`: read-only, no third-party packages, no network (the capture and audit tools talk to a loopback browser you already have). Use `py -3` if `python` is not on PATH.
+- `scripts/wcag.py`, `scripts/design_lookup.py`, `scripts/slop_scan.py`, `scripts/token_lint.py`, `scripts/visual_capture.py`, `scripts/image_diff.py`, `scripts/color_sim.py`, `scripts/cdp.py`, `scripts/page_audit.py`, `scripts/keyboard_audit.py`, `scripts/text_spacing.py`: read-only, no third-party packages, no network (the capture and audit tools talk to a loopback browser you already have). Use `py -3` if `python` is not on PATH.
 - `data/`: MIT-licensed CSV data vendored from ui-ux-pro-max (see `data/PROVENANCE.md`).
