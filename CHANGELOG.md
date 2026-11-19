@@ -2,6 +2,29 @@
 
 All notable changes to this project are recorded here. The format follows Keep a Changelog, and versions follow Semantic Versioning.
 
+## [2.1.1] - 2026-11-19
+
+Corrects two defects in the audit itself and the two page defects it reported. No new capability: a tool that returns different answers for an unchanged page is not evidence, so these landed before the release could be called done.
+
+### Fixed
+
+- **`keyboard_audit.py` reported different verdicts for an unchanged page.** A focus style carrying `transition: box-shadow` meant the first frame after focus was mid-animation; one real button passed on one run and failed at 1.02:1 on the next. Every measured frame now waits for two consecutive identical crops, the rule the capture tool already used. Without this the audit's output was not reproducible.
+- **`keyboard_audit.py` called `time.sleep` without importing `time`**, so it exited 2 on every real page while all 244 tests passed — every test drove the pure helpers and nothing drove the screenshot loop. `SettleTests` now covers that path, including an assertion that `time` is imported.
+- **B3 chart focus ring** used `--accent`, the same colour the focused bar is filled with, rendering at 1.01:1. It now uses `--ink` with a 2px offset, which places the ring on the panel surface at 16.38:1.
+- **B5 copy button focus ring** landed on the container's ink border and the button's own hard ink shadow, at 1.01:1 on two of four sides. It now draws an inset ring on the button's amber fill at 11.46:1. Removing the shadow on focus was tried and rejected: it changed 1000+ unrelated pixels and made the audit's own measurements fluctuate.
+- Both READMEs said "nine pillars" where `critique.md` has ten.
+
+### Verification
+
+- 251 tests pass (244 + 7 covering the settling path).
+- Five treatment pages re-audited: B1, B2, B3, B4, B5 all report 0 FAIL. B3 and B5 were re-run 2–3 times each with identical verdicts.
+- Full-project static security scan: `findingCount: 0`, sealed `sha256:808567aa…`, evidence boundary `static_only_no_runtime_execution`.
+- The publish mirror was re-audited end to end: its `benchmark/runs/treatment/` B3 and B5 pages also report 0 FAIL.
+
+### Added
+
+- `tools/build_dist.py --mirror-check`: compares the publish mirror against the dev tree for the shipped files plus `tests/` and `benchmark/`, which are published but never installed. Neither the old manifest check nor the new staging check could see a test file edited in one tree only — that is how the mirror once ran 244 tests while dev ran 251. Verified against three drift classes: an empty mirror, a mirror with shipped files but no `tests/`, and a single edited byte.
+
 ## [2.1.0] - 2026-11-19
 
 The interaction-level audit. 2.0 taught keyboard and focus rules the plugin never verified; this release measures them, closing the largest self-contradiction in the skill.
@@ -32,7 +55,12 @@ The interaction-level audit. 2.0 taught keyboard and focus rules the plugin neve
 
 Run against the five 2.0 treatment pages, the new audit found a defect class `page_audit.py` cannot see. B3's chart bars carry `focus-visible` rings drawn in `--accent` (#963D0D) while the focused bar is filled with that same colour. Two bars lose the ring almost everywhere — "Sun 1 Nov" reads 1.01:1 on its top edge with only 1 of 3 comparable sides above the floor, and "Sat 7" 1.64:1 with 1 of 4 — so the ring is effectively invisible on the element it marks. Two more (`Thu 5`, `Fri 6`) have the same ring colour but keep three readable sides because the bar fills the plot area on only one edge; those pass, and the pass is correct under 1.4.11, whose test is whether the state can be picked out rather than whether every edge is perfect. An earlier per-side-minimum rule flagged all six as failures; checking the measured sides against the clause text is what corrected it. B2 and B4 report the expected background-image uncertainties on texture-heavy pages with no measurable failure; B1 and B5 are clean. B5 is the instructive near-miss: a 3px black ring on a button with a black hard shadow merges into that shadow at 1.02:1 on one edge while the other three sit at ~17.7:1.
 
-These page defects are recorded rather than silently fixed: they are benchmark artefacts from 2.0, and the fix is a page edit, not a tool change.
+The B3 and B5 pages are fixed in this release. B3's chart ring moved to `--ink` with a 2px offset, which puts it on the panel surface at 16.38:1 instead of on the bar. B5's copy button takes an inset ring at −5px, landing on its own amber fill at 11.46:1; moving the shadow aside was tried first and rejected, because removing it changed 1000+ unrelated pixels and made the audit's own measurements fluctuate. Both pages now measure 0 FAIL.
+
+### Fixed
+
+- **`keyboard_audit.py` reported different verdicts for an unchanged page.** A focus style carrying `transition: box-shadow` meant the first frame after focus was mid-animation; B5's copy button passed on one run and failed at 1.02:1 on the next. Every measured frame now waits for two consecutive identical crops, the same rule the capture tool uses. Without this the audit was not evidence.
+- **`keyboard_audit.py` shipped calling `time.sleep` without importing `time`.** It exited 2 on every real page while the whole suite passed, because every test drove the pure helpers and nothing drove the screenshot loop. Fixed, and `SettleTests` now covers the settle path including the import.
 
 ## [2.0.0] - 2026-11-08
 

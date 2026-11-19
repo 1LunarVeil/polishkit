@@ -102,7 +102,11 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:none}
 .chart-wrap{position:relative;padding:10px 18px 4px}
 #chart{display:block;width:100%;height:auto}
 #chart rect.col{cursor:pointer}
-#chart rect.col:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+/* The ring must not use the series colour: a focused crust bar is filled
+   #963D0D, so an accent ring renders at 1.01:1 against the very element it
+   marks. Ink clears the panel surface at 16.38:1, and the 2px offset puts the
+   ring on that surface instead of on the bar. */
+#chart rect.col:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 #tip{position:absolute;pointer-events:none;background:var(--ink);color:#F7F3EA;padding:7px 11px;border-radius:3px;
   font-size:12.5px;line-height:1.45;display:none;max-width:220px;box-shadow:0 4px 14px rgba(36,29,20,.25);z-index:5}
 .chart-note{color:var(--muted);font-size:12.5px;padding:2px 18px 14px}

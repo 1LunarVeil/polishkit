@@ -516,6 +516,76 @@ class ReportTests(unittest.TestCase):
         self.assertIn("URL rejected", json.loads(output)["reason"])
 
 
+class SettleTests(unittest.TestCase):
+    """The frame-settling path: the bug it prevents, and the bug it had.
+
+    REGRESSION for a NameError: `_settled_shot` shipped calling time.sleep
+    without `import time`. It was never exercised, because every test drove the
+    pure measurement helpers and nothing drove the screenshot loop — the whole
+    suite passed while the tool exited 2 on every real page.
+    """
+
+    def test_the_module_imports_time(self):
+        self.assertTrue(hasattr(keyboard_audit, "time"))
+        self.assertTrue(callable(keyboard_audit.time.sleep))
+
+    def test_agreeing_frames_report_agreement(self):
+        frame = flat((10, 20, 30))
+        self.assertTrue(keyboard_audit._frames_agree(frame, frame))
+
+    def test_frames_within_tolerance_agree(self):
+        self.assertTrue(keyboard_audit._frames_agree(
+            flat((10, 20, 30)), flat((12, 22, 32))))
+
+    def test_frames_beyond_tolerance_disagree(self):
+        self.assertFalse(keyboard_audit._frames_agree(
+            flat((10, 20, 30)), flat((60, 20, 30))))
+
+    def test_unreadable_frames_prove_nothing(self):
+        self.assertIsNone(keyboard_audit._frames_agree(b"nope", b"nope"))
+
+    def test_settle_returns_the_first_agreeing_pair(self):
+        # Two identical frames arrive after one transient one: the transient
+        # frame must not be the one measured.
+        transient = flat((200, 0, 0))
+        settled = flat((10, 10, 10))
+        frames = [transient, settled, settled]
+
+        class FakeSession:
+            def __init__(self):
+                self.calls = 0
+
+            def send(self, method, params, session=None):
+                import base64
+                frame = frames[min(self.calls, len(frames) - 1)]
+                self.calls += 1
+                return {"data": base64.b64encode(frame).decode()}
+
+        with mock.patch.object(keyboard_audit.time, "sleep", lambda _s: None):
+            result = keyboard_audit._settled_shot(FakeSession(), "sid", {"x": 0})
+        self.assertEqual(result, settled)
+
+    def test_settle_gives_up_and_returns_the_last_frame(self):
+        # A page that never settles must still produce a frame; the caller
+        # reports the measurement, it does not hang.
+        frames = [flat((value, 0, 0)) for value in (10, 90, 170, 250)]
+
+        class FakeSession:
+            def __init__(self):
+                self.calls = 0
+
+            def send(self, method, params, session=None):
+                import base64
+                frame = frames[min(self.calls, len(frames) - 1)]
+                self.calls += 1
+                return {"data": base64.b64encode(frame).decode()}
+
+        with mock.patch.object(keyboard_audit.time, "sleep", lambda _s: None):
+            result = keyboard_audit._settled_shot(FakeSession(), "sid", {"x": 0},
+                                                  attempts=4)
+        self.assertIsNotNone(result)
+
+
 class MeasurementTests(unittest.TestCase):
     """Pixel arithmetic against hand-built PNGs: no browser, no files."""
 

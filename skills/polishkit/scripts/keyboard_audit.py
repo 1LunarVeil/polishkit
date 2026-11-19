@@ -70,6 +70,7 @@ import base64
 import json
 import shutil
 import sys
+import time
 
 sys.dont_write_bytecode = True
 import cdp  # noqa: E402  (sibling module; no third-party dependencies)
@@ -82,6 +83,8 @@ MEASURE_STOPS = 12
 LOAD_TIMEOUT = 10.0
 CLIP_MARGIN = 18        # CSS px of surrounding surface kept around each element
 DIFF_TOLERANCE = 2      # per-channel: absorbs compositor noise, not a real ring
+SETTLE_ATTEMPTS = 4     # frames shot per state before accepting the last one
+SETTLE_INTERVAL = 0.12  # seconds between settle attempts
 FOCUS_FLOOR = wcag.AA_LARGE_OR_UI  # 3:1 for focus indicators (1.4.11)
 INDICATOR_THICKNESS = 2  # 2.4.13's reference perimeter thickness, in CSS px
 ACTIVATION_LIMIT = 8
@@ -953,23 +956,7 @@ def measure_indicator(focused_png, blurred_png, rect, margin=CLIP_MARGIN):
 
 def crops_identical(first_png, second_png):
     """True when two crops agree within DIFF_TOLERANCE; None when unreadable."""
-    try:
-        width_a, height_a, pixels_a = image_diff.decode_png_bytes(first_png)
-        width_b, height_b, pixels_b = image_diff.decode_png_bytes(second_png)
-    except Exception:  # noqa: BLE001 - an unreadable crop is simply not evidence
-        return None
-    if (width_a, height_a) != (width_b, height_b):
-        return None
-    channels = _channels(pixels_a, width_a, height_a)
-    if channels != _channels(pixels_b, width_b, height_b):
-        return None
-    for index in range(width_a * height_a):
-        first = _pixel(pixels_a, index, channels)
-        second = _pixel(pixels_b, index, channels)
-        if max(abs(first[0] - second[0]), abs(first[1] - second[1]),
-               abs(first[2] - second[2])) > DIFF_TOLERANCE:
-            return False
-    return True
+    return _frames_agree(first_png, second_png)
 
 
 # --- browser path (raises on any failure; main() reports "claims nothing") --
@@ -1010,6 +997,49 @@ def _shot(session, session_id, clip):
         "format": "png", "clip": clip, "captureBeyondViewport": True,
     }, session=session_id)["data"]
     return base64.b64decode(data)
+
+
+def _frames_agree(first_png, second_png):
+    """True when two crops match within DIFF_TOLERANCE; None when unreadable."""
+    try:
+        width_a, height_a, pixels_a = image_diff.decode_png_bytes(first_png)
+        width_b, height_b, pixels_b = image_diff.decode_png_bytes(second_png)
+    except Exception:  # noqa: BLE001 - an unreadable crop proves nothing either way
+        return None
+    if (width_a, height_a) != (width_b, height_b):
+        return None
+    channels = _channels(pixels_a, width_a, height_a)
+    if channels != _channels(pixels_b, width_b, height_b):
+        return None
+    for index in range(width_a * height_a):
+        first = _pixel(pixels_a, index, channels)
+        second = _pixel(pixels_b, index, channels)
+        if max(abs(first[0] - second[0]), abs(first[1] - second[1]),
+               abs(first[2] - second[2])) > DIFF_TOLERANCE:
+            return False
+    return True
+
+
+def _settled_shot(session, session_id, clip, attempts=SETTLE_ATTEMPTS,
+                  interval=SETTLE_INTERVAL):
+    """Shoot until two consecutive frames agree, then use that frame.
+
+    A focus style can animate — `transition: box-shadow` on a `.copy` button was
+    enough — and then the first frame after focus is mid-transition. Measured
+    for real: the same page produced a passing indicator on one run and 1.02:1
+    on the next, because the frame landed at different points in the animation.
+    An audit that reports different verdicts for an unchanged page is not
+    evidence, so every measured frame waits for the same two-frame agreement the
+    capture tool uses.
+    """
+    previous = None
+    for _ in range(max(2, attempts)):
+        current = _shot(session, session_id, clip)
+        if previous is not None and _frames_agree(previous, current):
+            return current
+        previous = current
+        time.sleep(interval)
+    return previous
 
 
 def _unreachable(session, session_id, visited_ids):
@@ -1053,7 +1083,7 @@ def _measure_stop(session, session_id, stop):
         return stop
 
     clip = make_clip(rect)
-    focused_frame = _shot(session, session_id, clip)
+    focused_frame = _settled_shot(session, session_id, clip)
     _evaluate(session, session_id, "document.activeElement && document.activeElement.blur()")
     restored = _evaluate(
         session, session_id,
@@ -1067,7 +1097,7 @@ def _measure_stop(session, session_id, stop):
         }
         return stop
 
-    blurred_frame = _shot(session, session_id, clip)
+    blurred_frame = _settled_shot(session, session_id, clip)
     indicator = measure_indicator(focused_frame, blurred_frame, rect)
 
     hovered_frame, hover_pair = _hover(session, session_id, stop, clip)
@@ -1099,7 +1129,7 @@ def _hover(session, session_id, stop, clip):
         "x": (rect.get("x") or 0) + (rect.get("width") or 0) / 2,
         "y": (rect.get("y") or 0) + (rect.get("height") or 0) / 2,
     }, session=session_id)
-    frame = _shot(session, session_id, clip)
+    frame = _settled_shot(session, session_id, clip)
     pair = _json_eval(
         session, session_id,
         "(function(){var el=__pk.of(" + str(stop.get("id") or 0) + ");"

@@ -65,6 +65,14 @@ h1{
   box-shadow:4px 4px 0 var(--ink);transition:transform var(--step),box-shadow var(--step),background-color var(--step);
 }
 .copy:hover{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}
+/* This button sits flush against a 2px ink container border and carries a hard
+   ink shadow, so an offset ink ring lands on black on two of four sides
+   (1.01:1). An inset ring sits on the button's own amber fill, where ink
+   measures 11.46:1 — and it reads as a pressed-in control, which suits the
+   brutalist frame. The shadow is left alone on purpose: removing it on focus
+   changed 1000+ unrelated pixels and made the audit's measurements fluctuate.
+   Measured with keyboard_audit.py. */
+.copy:focus-visible{outline:3px solid var(--ink);outline-offset:-5px}
 .copy:disabled{background:var(--inset);cursor:default;transform:none;box-shadow:4px 4px 0 var(--ink)}
 .alt-install{margin-top:14px;font-size:13px;color:var(--muted)}
 .alt-install button{background:none;border:0;font-family:var(--mono);font-size:13px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;padding:0 3px;color:var(--ink)}

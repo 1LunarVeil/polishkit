@@ -1,7 +1,7 @@
 {
   "name": "polishkit",
   "description": "Visual decision rules, product precedents, WCAG contrast checks, an AI-slop scanner, a render-capture-diff loop and a keyboard/focus audit that complement the frontend-design skill.",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "author": {
     "name": "1LunarVeil"
   },
