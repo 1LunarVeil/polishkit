@@ -59,7 +59,6 @@ Read-only: prints a report and writes nothing. stdlib only; CDP on loopback.
 
 import argparse
 import json
-import shutil
 import sys
 
 sys.dont_write_bytecode = True
@@ -716,45 +715,8 @@ def audit_url(url, limit=MAX_ROWS):
     Raises on any failure (no browser, CDP trouble, collector error) so main()
     can print {"verified": false} and claim nothing about the page.
     """
-    browser = visual_capture.find_browser()
-    if not browser:
-        raise cdp.BrowserError(
-            "no Chromium-family browser found at an absolute path; page audit disabled")
-    process = profile = connection = session = target_id = None
-    try:
-        process, profile, ws_url = visual_capture._start_cdp_browser(browser)  # noqa: SLF001 - documented sibling reuse
-        connection = cdp.Connection(ws_url)
-        session = cdp.Session(connection)
-        target_id = session.send("Target.createTarget", {"url": "about:blank"})["targetId"]
-        session_id = session.send(
-            "Target.attachToTarget", {"targetId": target_id, "flatten": True}
-        )["sessionId"]
-        for domain in ("Page", "Runtime"):
-            session.send(domain + ".enable", session=session_id)
-        session.send("Page.navigate", {"url": url}, session=session_id)
-        if cdp.wait_for_event(
-            session, "Page.loadEventFired", LOAD_TIMEOUT,
-            match=lambda message: message.get("sessionId") == session_id,
-        ) is None:
-            raise cdp.BrowserError(f"page did not fire load within {LOAD_TIMEOUT:g}s")
-        return _evaluate_collector(session, session_id, limit)
-    finally:
-        if session is not None and target_id is not None:
-            try:
-                session.send("Target.closeTarget", {"targetId": target_id}, timeout=3)
-            except Exception:
-                pass
-        if session is not None:
-            try:
-                session.send("Browser.close", timeout=3)
-            except Exception:
-                pass
-        if connection is not None:
-            connection.close()
-        if process is not None:
-            process.terminate()
-        if profile is not None:
-            shutil.rmtree(profile, ignore_errors=True)
+    with cdp.PageSession(url) as page:
+        return _evaluate_collector(page.session, page.session_id, limit)
 
 
 def main(argv=None):

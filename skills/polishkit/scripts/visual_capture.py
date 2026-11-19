@@ -495,9 +495,25 @@ def _capture_with_cdp(browser, url, out_dir, views, theme_dark, full_page,
                 session.send("Browser.close", timeout=3)
             except Exception:
                 pass
+            # Wait for the process to actually exit before removing its profile.
+            # TerminateProcess returns before Chrome's children let go of the
+            # files, so an immediate rmtree fails and ignore_errors hides it —
+            # that is how 195 fa-profile-* directories accumulated in Temp.
+            if connection is not None:
+                try:
+                    connection.close()
+                except Exception:
+                    pass
             process.terminate()
+            try:
+                process.wait(timeout=5)
+            except Exception:
+                pass
             if profile is not None:
                 shutil.rmtree(profile, ignore_errors=True)
+                if Path(profile).exists():
+                    time.sleep(0.3)
+                    shutil.rmtree(profile, ignore_errors=True)
 
 
 def main(argv=None):

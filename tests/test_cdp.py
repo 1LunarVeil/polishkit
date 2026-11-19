@@ -11,6 +11,7 @@ import struct
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.dont_write_bytecode = True
 
@@ -353,6 +354,113 @@ class LoopbackGuardTests(unittest.TestCase):
     def test_non_ws_scheme_is_refused(self):
         with self.assertRaises(ValueError):
             cdp.ws_url_parts("http://127.0.0.1:9222/json/version")
+
+
+class PageSessionTests(unittest.TestCase):
+    """The shared launch/teardown context the three audits depend on.
+
+    No browser here: what is pinned is that the class cleans up in every
+    failure shape, because the copy it replaced was teardown code written three
+    times by hand. A leak in it leaves a headless Chrome and a temp profile on
+    the user's machine after every audit run.
+    """
+
+    def test_construction_holds_no_resources(self):
+        page = cdp.PageSession("http://127.0.0.1:1/")
+        self.assertIsNone(page.process)
+        self.assertIsNone(page.connection)
+        self.assertIsNone(page.session)
+        self.assertIsNone(page.profile)
+
+    def test_teardown_is_safe_when_nothing_was_created(self):
+        cdp.PageSession("http://127.0.0.1:1/")._teardown()  # must not raise
+
+    def test_a_missing_browser_tears_down_and_raises(self):
+        page = cdp.PageSession("http://127.0.0.1:1/")
+        with mock.patch("visual_capture.find_browser", return_value=None):
+            with self.assertRaises(cdp.BrowserError):
+                page.__enter__()
+        self.assertIsNone(page.process)
+
+    def test_a_launch_failure_still_clears_the_profile(self):
+        # The profile directory is created before the port file appears, so a
+        # launch that never reaches the endpoint must not leave it behind.
+        page = cdp.PageSession("http://127.0.0.1:1/")
+
+        class FakeProcess:
+            terminated = False
+
+            def terminate(self):
+                FakeProcess.terminated = True
+
+            def poll(self):
+                return None
+
+        with mock.patch("visual_capture.find_browser", return_value="/fake/chrome"), \
+                mock.patch("subprocess.Popen", return_value=FakeProcess()), \
+                mock.patch.object(cdp, "read_devtools_port",
+                                  side_effect=cdp.BrowserError("no port")):
+            with self.assertRaises(cdp.BrowserError):
+                page.__enter__()
+        self.assertTrue(FakeProcess.terminated)
+
+    def test_exit_runs_teardown_and_lets_the_exception_through(self):
+        # Does not enter the real __enter__: that would launch a browser. What
+        # this pins is the contract of __exit__ — teardown runs, and the
+        # exception is not swallowed.
+        page = cdp.PageSession("http://127.0.0.1:1/")
+        calls = []
+        page._teardown = lambda: calls.append("torn down")
+        result = page.__exit__(RuntimeError, RuntimeError("collector blew up"), None)
+        self.assertEqual(calls, ["torn down"])
+        self.assertFalse(result, "__exit__ must not swallow the exception")
+
+    def test_viewport_defaults_are_explicit(self):
+        page = cdp.PageSession("http://127.0.0.1:1/", width=900, height=600)
+        self.assertEqual((page.width, page.height), (900, 600))
+        self.assertTrue(page.viewport)
+
+    def test_teardown_waits_for_the_process_before_removing_the_profile(self):
+        # REGRESSION: terminate() returns before Chrome's children release the
+        # profile, so rmtree failed and ignore_errors hid it — nine pk-cdp-*
+        # directories survived a normal session, and 195 fa-profile-* had
+        # accumulated from the older capture path.
+        page = cdp.PageSession("http://127.0.0.1:1/")
+        events = []
+
+        class FakeProcess:
+            def terminate(self):
+                events.append("terminate")
+
+            def wait(self, timeout=None):
+                events.append("wait")
+                return 0
+
+        page.process = FakeProcess()
+        page.profile = "/tmp/pk-test-profile"
+        with mock.patch.object(cdp.shutil, "rmtree",
+                               side_effect=lambda p, ignore_errors=False: events.append("rmtree")), \
+                mock.patch.object(cdp.Path, "exists", return_value=False):
+            page._teardown()
+        self.assertIn("wait", events)
+        self.assertLess(events.index("terminate"), events.index("wait"),
+                        "wait must follow terminate")
+        self.assertLess(events.index("wait"), events.index("rmtree"),
+                        "the profile must be removed only after the process exits")
+
+    def test_teardown_survives_a_process_that_refuses_to_die(self):
+        page = cdp.PageSession("http://127.0.0.1:1/")
+
+        class StubbornProcess:
+            def terminate(self):
+                pass
+
+            def wait(self, timeout=None):
+                raise Exception("still running")
+
+        page.process = StubbornProcess()
+        with mock.patch.object(cdp.shutil, "rmtree"):
+            page._teardown()  # must not raise
 
 
 if __name__ == "__main__":

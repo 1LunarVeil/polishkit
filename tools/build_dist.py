@@ -97,6 +97,20 @@ def _manifest():
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _strip_hook_ledger(target):
+    """Remove .mimosa/ from a tree about to be installed or verified.
+
+    Mimosa, the security hook, writes its ledger into any workspace a session
+    touches — and `polishkit-dist` is such a workspace. It reappears whenever a
+    command runs in or near the tree, so a check that only *reports* it fails on
+    the tool's own bookkeeping rather than on anything an author did.
+
+    Removing it is safe and lossless: the ledger belongs to the hook, never to
+    the plugin, and nothing under .mimosa/ is ever copied from the dev tree.
+    """
+    shutil.rmtree(target / ".mimosa", ignore_errors=True)
+
+
 def _verify(target):
     """Return a list of problems found in the staged tree."""
     problems = []
@@ -118,9 +132,14 @@ def _verify(target):
         if not any(line.strip() == f"name: {manifest['name']}" for line in head):
             problems.append(f"SKILL.md frontmatter name does not match {manifest['name']!r}")
 
+    # At any depth, not just at the root: the hook writes into subdirectories,
+    # and a root-only check passed a tree carrying .mimosa/ under scripts/.
     for name in FORBIDDEN:
         if (target / name).exists():
             problems.append(f"forbidden path present: {name}/")
+        for found in target.rglob(name):
+            if found != target / name:
+                problems.append(f"forbidden path present: {found.relative_to(target).as_posix()}/")
 
     if not (target / "commands").is_dir():
         problems.append("missing commands/")
@@ -134,12 +153,23 @@ def _verify(target):
 
 
 def _shipped_files(root):
-    """Relative paths of exactly the files this script copies into a target."""
+    """Relative paths of exactly the files this script copies into a target.
+
+    `.mimosa/` is excluded at any depth. The hook writes its ledger wherever a
+    session has touched, which includes `skills/polishkit/scripts/` — a sync run
+    staged `.mimosa/hook-state/*` into the publish tree under that directory and
+    nothing caught it, because the top-level check looked only at the tree root.
+    """
     files = set()
     for name in INCLUDE_DIRS:
         for path in (root / name).rglob("*"):
-            if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc":
-                files.add(path.relative_to(root).as_posix())
+            if not path.is_file():
+                continue
+            if "__pycache__" in path.parts or ".mimosa" in path.parts:
+                continue
+            if path.suffix == ".pyc":
+                continue
+            files.add(path.relative_to(root).as_posix())
     for name in INCLUDE_FILES:
         if (root / name).is_file():
             files.add(name)
@@ -192,9 +222,12 @@ def build():
         source = ROOT / name
         if not source.is_dir():
             return _fail(f"expected component directory missing: {source}")
+        # .mimosa/ can sit at any depth in the dev tree — the hook writes into
+        # whatever directory a command ran in, including scripts/. Excluding it
+        # here is the only way it never reaches a staging tree at all.
         shutil.copytree(
             source, TARGET / name,
-            ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".mimosa"),
         )
     for name in INCLUDE_FILES:
         source = ROOT / name
@@ -212,7 +245,7 @@ def build():
     # Mimosa (a security hook) writes .mimosa/ into any workspace this session
     # touches — including the staging tree. Strip it after staging so an
     # install never inherits hook ledgers.
-    shutil.rmtree(TARGET / ".mimosa", ignore_errors=True)
+    _strip_hook_ledger(TARGET)
 
     problems = _verify(TARGET)
     if problems:
@@ -333,6 +366,9 @@ def mirror_drift():
 def check():
     if not TARGET.is_dir():
         return _fail(f"{TARGET} does not exist; run the build first")
+    # The hook rewrites its ledger on its own schedule; clear it before asking
+    # whether the tree is publishable, or the answer is about the hook.
+    _strip_hook_ledger(TARGET)
     problems = _verify(TARGET)
     if not problems:
         # The manifest is one file; report it separately so a version bump alone

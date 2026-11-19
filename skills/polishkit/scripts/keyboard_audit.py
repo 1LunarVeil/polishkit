@@ -68,7 +68,6 @@ Read-only: prints a report and writes nothing. stdlib only; CDP on loopback.
 import argparse
 import base64
 import json
-import shutil
 import sys
 import time
 
@@ -1274,34 +1273,10 @@ def audit_url(url, max_steps=MAX_STEPS, measure=MEASURE_STOPS,
 
     Raises on any failure so main() can print {"verified": false}.
     """
-    browser = visual_capture.find_browser()
-    if not browser:
-        raise cdp.BrowserError(
-            "no Chromium-family browser found at an absolute path; keyboard audit disabled")
-    process = profile = connection = session = target_id = None
-    try:
-        process, profile, ws_url = visual_capture._start_cdp_browser(browser)  # noqa: SLF001 - documented sibling reuse
-        connection = cdp.Connection(ws_url)
-        session = cdp.Session(connection)
-        target_id = session.send("Target.createTarget", {"url": "about:blank"})["targetId"]
-        session_id = session.send(
-            "Target.attachToTarget", {"targetId": target_id, "flatten": True}
-        )["sessionId"]
-        for domain in ("Page", "Runtime"):
-            session.send(domain + ".enable", session=session_id)
-        session.send("Emulation.setDeviceMetricsOverride", {
-            "width": width, "height": height, "deviceScaleFactor": 1, "mobile": False,
-        }, session=session_id)
-        session.send("Page.navigate", {"url": url}, session=session_id)
-        if cdp.wait_for_event(
-            session, "Page.loadEventFired", LOAD_TIMEOUT,
-            match=lambda message: message.get("sessionId") == session_id,
-        ) is None:
-            raise cdp.BrowserError(f"page did not fire load within {LOAD_TIMEOUT:g}s")
-        _evaluate(session, session_id,
-                  "(async () => { try { if (document.fonts && document.fonts.ready) "
-                  "await document.fonts.ready; } catch (e) {} return 1; })()",
-                  await_promise=True)
+    with cdp.PageSession(url, width=width, height=height,
+                         load_timeout=LOAD_TIMEOUT) as page:
+        session, session_id = page.session, page.session_id
+        page.settle()
         _evaluate(session, session_id, PRELUDE_JS)
         # A prelude that threw would leave __pk undefined and every later read
         # would come back empty — reported as "0 tabbables, all clean". That
@@ -1336,23 +1311,6 @@ def audit_url(url, max_steps=MAX_STEPS, measure=MEASURE_STOPS,
                 f"{len(stops) - budget} stops past the first {budget} were walked "
                 f"but not measured (raise --measure to cover more)")
         return payload
-    finally:
-        if session is not None and target_id is not None:
-            try:
-                session.send("Target.closeTarget", {"targetId": target_id}, timeout=3)
-            except Exception:
-                pass
-        if session is not None:
-            try:
-                session.send("Browser.close", timeout=3)
-            except Exception:
-                pass
-        if connection is not None:
-            connection.close()
-        if process is not None:
-            process.terminate()
-        if profile is not None:
-            shutil.rmtree(profile, ignore_errors=True)
 
 
 def main(argv=None):

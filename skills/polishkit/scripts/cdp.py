@@ -546,6 +546,156 @@ def wait_for_event(session, method, timeout, match=None):
             pass
 
 
+class PageSession:
+    """One browser, one tab, loaded and ready — with a guaranteed teardown.
+
+    Three audits (page_audit, keyboard_audit, text_spacing) had grown their own
+    copy of launch → connect → create target → attach → enable → navigate →
+    wait → close. Ninety lines of it, identical in all three. A fix applied to
+    one copy and not the others is exactly the failure that shipped a
+    `NameError` on every real page while the test suite stayed green, so the
+    sequence lives here once.
+
+    Usage:
+
+        with cdp.PageSession(url, width=1280, height=800) as page:
+            page.session.send(..., session=page.session_id)
+
+    `load_timeout` raises BrowserError when the page never fires load, rather
+    than handing back a half-rendered document as if it were ready.
+    """
+
+    def __init__(self, url, width=1280, height=800, load_timeout=10.0,
+                 viewport=True):
+        self.url = url
+        self.width = width
+        self.height = height
+        self.load_timeout = load_timeout
+        self.viewport = viewport
+        self.process = None
+        self.profile = None
+        self.connection = None
+        self.session = None
+        self.target_id = None
+        self.session_id = None
+
+    def __enter__(self):
+        import tempfile  # noqa: PLC0415 - cheap, and keeps the import list tight
+
+        import visual_capture  # noqa: PLC0415 - sibling module, optional here
+
+        browser = visual_capture.find_browser()
+        if not browser:
+            raise BrowserError(
+                "no Chromium-family browser found at an absolute path; "
+                "the rendered-page audits are disabled")
+        path = Path(tempfile.mkdtemp(prefix="pk-cdp-"))
+        # Record the profile before Popen: if Popen itself raises, the
+        # directory exists and only _teardown knows to remove it.
+        self.profile = path
+        command = [
+            browser, "--headless=new", "--disable-gpu", "--no-first-run",
+            "--no-default-browser-check", "--disable-extensions",
+            f"--user-data-dir={path}", "--remote-debugging-port=0", "about:blank",
+        ]
+        try:
+            self.process = subprocess.Popen(  # noqa: S603 - absolute path, list form
+                command, shell=False, stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            )
+        except BaseException:
+            shutil.rmtree(path, ignore_errors=True)
+            self.profile = None
+            raise
+        try:
+            port, _ = read_devtools_port(path, self.process, timeout=10)
+            endpoint = discover_endpoint(port, timeout=10)
+            self.connection = Connection(endpoint["webSocketDebuggerUrl"])
+            self.session = Session(self.connection)
+            self.target_id = self.session.send(
+                "Target.createTarget", {"url": "about:blank"})["targetId"]
+            self.session_id = self.session.send(
+                "Target.attachToTarget",
+                {"targetId": self.target_id, "flatten": True})["sessionId"]
+            for domain in ("Page", "Runtime"):
+                self.session.send(domain + ".enable", session=self.session_id)
+            if self.viewport:
+                self.session.send("Emulation.setDeviceMetricsOverride", {
+                    "width": self.width, "height": self.height,
+                    "deviceScaleFactor": 1, "mobile": False,
+                }, session=self.session_id)
+            self.session.send("Page.navigate", {"url": self.url},
+                              session=self.session_id)
+            loaded = wait_for_event(
+                self.session, "Page.loadEventFired", self.load_timeout,
+                match=lambda message: message.get("sessionId") == self.session_id)
+            if loaded is None:
+                raise BrowserError(
+                    f"page did not fire load within {self.load_timeout:g}s")
+            return self
+        except BaseException:
+            self._teardown()
+            raise
+
+    def settle(self):
+        """Wait for fonts so measurements do not race the webfont swap."""
+        try:
+            self.session.send(
+                "Runtime.evaluate",
+                {"expression": "(async () => { try { if (document.fonts && "
+                               "document.fonts.ready) await document.fonts.ready; } "
+                               "catch (e) {} return 1; })()",
+                 "returnByValue": True, "awaitPromise": True},
+                session=self.session_id)
+        except Exception:  # noqa: BLE001 - a missing font API is not a failure
+            pass
+
+    def _teardown(self, wait=5.0):
+        """Close the tab, stop the browser, and remove the profile directory.
+
+        The wait is the part that matters on Windows. `TerminateProcess` returns
+        before Chrome's child processes exit, and while they still hold handles
+        on the profile `shutil.rmtree` fails — with `ignore_errors=True` that
+        failure was silent, and every audit left a profile behind. Measured:
+        nine leftover `pk-cdp-*` directories after a normal session. Waiting for
+        the process to actually exit, then retrying the removal, is what makes
+        the cleanup real rather than intended.
+        """
+        if self.session is not None and self.target_id is not None:
+            try:
+                self.session.send("Target.closeTarget",
+                                  {"targetId": self.target_id}, timeout=3)
+            except Exception:  # noqa: BLE001 - best effort during teardown
+                pass
+        if self.session is not None:
+            try:
+                self.session.send("Browser.close", timeout=3)
+            except Exception:  # noqa: BLE001
+                pass
+        if self.connection is not None:
+            try:
+                self.connection.close()
+            except Exception:  # noqa: BLE001
+                pass
+        if self.process is not None:
+            try:
+                self.process.terminate()
+                self.process.wait(timeout=wait)
+            except Exception:  # noqa: BLE001 - already gone, or refused to die
+                pass
+        if self.profile is not None:
+            shutil.rmtree(self.profile, ignore_errors=True)
+            if Path(self.profile).exists():
+                # Handles can outlive the wait on a loaded machine. One short
+                # retry is cheaper than leaking the directory.
+                time.sleep(0.3)
+                shutil.rmtree(self.profile, ignore_errors=True)
+
+    def __exit__(self, exc_type, exc, traceback):
+        self._teardown()
+        return False
+
+
 DEMO_HTML = """<!doctype html>
 <html>
 <head>

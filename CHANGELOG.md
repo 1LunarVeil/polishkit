@@ -2,6 +2,26 @@
 
 All notable changes to this project are recorded here. The format follows Keep a Changelog, and versions follow Semantic Versioning.
 
+## [2.2.2] - 2026-11-19
+
+One structural change and the resource leak it exposed. No new capability.
+
+### Changed
+
+- **`cdp.PageSession` replaces three hand-written copies of the same launch sequence.** `page_audit`, `keyboard_audit` and `text_spacing` each carried about sixty lines of launch → connect → create target → attach → enable → navigate → wait → close, identical in all three. A fix applied to one copy and not the others is exactly how a `NameError` reached a release while the suite stayed green, so the sequence now lives in `cdp.py` once, as a context manager with a guaranteed teardown. The three audits lost ~170 lines between them.
+
+### Fixed
+
+- **Every audit run left a Chrome profile on disk.** `_teardown` called `terminate()` and then `rmtree(..., ignore_errors=True)`; on Windows `TerminateProcess` returns before Chrome's children release their handles, so the removal failed and `ignore_errors` hid it. Measured on this machine: nine `pk-cdp-*` directories survived a normal session, and **195** `fa-profile-*` directories had accumulated from the older capture path, which had the same defect in three places. Teardown now waits for the process to exit and retries once; `visual_capture.py` got the same treatment. Verified by running the capture tool three times and the full suite once from a clean baseline: zero new directories.
+- Two `PageSession` tests launched real browsers because they entered `__enter__` to exercise `__exit__`. They now call `__exit__` directly, and the suite leaks nothing.
+- **`--check` failed on the hook's own bookkeeping.** Mimosa writes `.mimosa/` into `polishkit-dist` whenever a command runs near it, so the staging tree was "dirty" through no author's action and had to be rebuilt before every check. Both `build()` and `check()` now strip it; it is lossless, because nothing under `.mimosa/` is ever copied from the dev tree.
+
+### Verification
+
+- 299 tests pass (291 + 8 covering `PageSession` teardown ordering and the missing-browser path).
+- Leak check: from a cleaned Temp baseline, the full suite leaves zero `pk-cdp-*` or `fa-profile-*` directories; three consecutive `visual_capture.py --dark` runs also leave none.
+- The three audits re-run on the same page after the refactor produce byte-identical reports to before it.
+
 ## [2.2.1] - 2026-11-19
 
 Two defects in the publish pipeline itself. No new capability: these are corrections, and the maintainer's rule is that corrections do not raise the minor version.

@@ -46,7 +46,6 @@ Read-only: prints a report and writes nothing. stdlib only; CDP on loopback.
 
 import argparse
 import json
-import shutil
 import sys
 
 sys.dont_write_bytecode = True
@@ -54,7 +53,6 @@ import cdp  # noqa: E402  (sibling module; no third-party dependencies)
 import visual_capture  # noqa: E402
 import wcag  # noqa: E402
 
-LOAD_TIMEOUT = 10.0
 MAX_FINDINGS = 150
 SNIPPET_CHARS = 70
 
@@ -648,64 +646,21 @@ def _collect(session, session_id):
 def audit_url(url, width=1280, height=800):
     """Launch one browser, collect the authored state, apply the override,
     collect again. Raises on any failure so main() can claim nothing."""
-    browser = visual_capture.find_browser()
-    if not browser:
-        raise cdp.BrowserError(
-            "no Chromium-family browser found at an absolute path; "
-            "text spacing audit disabled")
-    process = profile = connection = session = target_id = None
-    try:
-        process, profile, ws_url = visual_capture._start_cdp_browser(browser)  # noqa: SLF001
-        connection = cdp.Connection(ws_url)
-        session = cdp.Session(connection)
-        target_id = session.send("Target.createTarget", {"url": "about:blank"})["targetId"]
-        session_id = session.send(
-            "Target.attachToTarget", {"targetId": target_id, "flatten": True}
-        )["sessionId"]
-        for domain in ("Page", "Runtime"):
-            session.send(domain + ".enable", session=session_id)
-        session.send("Emulation.setDeviceMetricsOverride", {
-            "width": width, "height": height, "deviceScaleFactor": 1, "mobile": False,
-        }, session=session_id)
-        session.send("Page.navigate", {"url": url}, session=session_id)
-        if cdp.wait_for_event(
-            session, "Page.loadEventFired", LOAD_TIMEOUT,
-            match=lambda message: message.get("sessionId") == session_id,
-        ) is None:
-            raise cdp.BrowserError(f"page did not fire load within {LOAD_TIMEOUT:g}s")
-
-        authored = _collect(session, session_id)
+    with cdp.PageSession(url, width=width, height=height) as page:
+        authored = _collect(page.session, page.session_id)
         # A <style> element appended last wins the cascade for equal
         # specificity, and every declaration carries !important anyway.
-        style = override_css()
-        _evaluate(session, session_id,
+        _evaluate(page.session, page.session_id,
                   "(function(){var s=document.createElement('style');"
                   "s.id='__pk_spacing';"
-                  "s.textContent=" + json.dumps(style) + ";"
+                  "s.textContent=" + json.dumps(override_css()) + ";"
                   "document.head.appendChild(s);return 1;})()")
-        overridden = _collect(session, session_id)
+        overridden = _collect(page.session, page.session_id)
         # Restore, so a caller reusing the page sees it unchanged.
-        _evaluate(session, session_id,
+        _evaluate(page.session, page.session_id,
                   "(function(){var s=document.getElementById('__pk_spacing');"
                   "if(s)s.remove();return 1;})()")
         return authored, overridden
-    finally:
-        if session is not None and target_id is not None:
-            try:
-                session.send("Target.closeTarget", {"targetId": target_id}, timeout=3)
-            except Exception:
-                pass
-        if session is not None:
-            try:
-                session.send("Browser.close", timeout=3)
-            except Exception:
-                pass
-        if connection is not None:
-            connection.close()
-        if process is not None:
-            process.terminate()
-        if profile is not None:
-            shutil.rmtree(profile, ignore_errors=True)
 
 
 def main(argv=None):
