@@ -18,11 +18,11 @@
 
 The maintainer's rule, which this project follows:
 
-- **A leap or a milestone is worth a 0.1.0-scale bump.** A new capability that changes what the tool can do, or a structural change that alters how the project is built, earns `+0.1.0`.
-- **An incremental improvement is worth `+0.0.1`.**
-- **Fixing a known defect is not an improvement.** It does not justify a bump on its own; it corrects the project. Ship it, record it under `### Fixed`, and let the version follow the last real step.
+- **A leap or a milestone is worth a +0.1.0 bump** — rarely. A new capability that fundamentally changes what the tool can do, or a structural change to how the project is built. Adding another audit of the same shape as the existing ones does not qualify: 2.1 added keyboard auditing and 2.2 added text-spacing auditing, and the maintainer judged both below this bar.
+- **An incremental improvement is worth +0.0.1** — the default for new capability. A new script, a new check, a new reference: useful, additive, not a reinvention.
+- **Fixing a known defect is not an improvement.** It does not justify a bump on its own; it corrects the project. Ship it, record it under `### Fixed`, and let the version follow the last real step. A release whose only content is repairs should not read as progress.
 
-This matters because the version number is a claim about capability. A release whose only content is repairs should not read as progress.
+This matters because the version number is a claim about capability. Reserve the tenths for the releases somebody would point at.
 
 ## Workflow
 

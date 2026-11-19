@@ -2,17 +2,31 @@
 
 Why this exists: ZCode's directory-type marketplace copies the whole plugin
 folder on install. The dev tree carries process artefacts (notes/, .mimosa/,
-tests/, benchmark/ with ~24 MB of screenshots), and every one of them reached
+tests/, benchmark/ with ~37 MB of screenshots), and every one of them reached
 a user's installed cache (40 MB). The manifest has no exclude mechanism, so
 the only clean fix is to install from a generated tree that contains runtime
 components only.
 
 Usage:
-  python tools/build_dist.py            # build/refresh ../polishkit-dist
-  python tools/build_dist.py --check    # verify only, no writes (exit 1 on drift)
+  python tools/build_dist.py                  # build/refresh ../polishkit-dist
+  python tools/build_dist.py --check          # verify staging, no writes
+  python tools/build_dist.py --mirror-check   # verify the publish mirror too
+
+Two gates, because two different trees can be wrong:
+
+  --check         staging vs dev. A manifest-only check cannot see that a
+                  reference or a script was edited after the last build, so this
+                  compares every staged file byte for byte.
+  --mirror-check  the git mirror vs dev. The mirror also publishes tests/ and
+                  benchmark/, which never enter the install payload and so are
+                  invisible to --check. A test file edited in one tree only is
+                  exactly how the mirror once ran 244 tests while dev ran 251.
 
 The target is generated: never edit it by hand. This script refuses to clear a
-target that lacks the .generated-by-build_dist marker file.
+target that lacks the marker. The marker lives beside the target, not inside it:
+a directory-type marketplace copies the whole tree, so anything inside reaches
+a user's cache — and `.generated-by-build_dist` did, in every release up to
+2.2.0.
 """
 
 import argparse
@@ -23,7 +37,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 TARGET = ROOT.parent / "polishkit-dist"
-MARKER = ".generated-by-build_dist"
+# Beside the target, never inside it. See the module docstring.
+MARKER = ROOT.parent / ".polishkit-dist.generated"
+# The old in-tree marker. Still honoured so an existing target can be rebuilt,
+# and checked for so a rebuild that leaves it behind is caught.
+LEGACY_MARKER = ".generated-by-build_dist"
 
 # Only what a plugin needs at runtime, plus the documents a user reads.
 INCLUDE_DIRS = (".zcode-plugin", ".claude-plugin", "skills", "commands")
@@ -39,27 +57,58 @@ INCLUDE_FILES = (
 # Process artefacts that must never reach an install.
 FORBIDDEN = ("notes", ".mimosa", "tests", "benchmark", "__pycache__")
 
+# Publish-side tooling. Not installed (the marketplace never copies it), but the
+# mirror needs the same copy: CONTRIBUTING tells contributors to run it there,
+# and it had been stuck at whatever version was first copied by hand.
+PUBLISH_TOOLING = ("tools",)
+
+# The publish mirror's own directories that this staging build does not manage.
+# `.github/` is mirror-only by design; benchmark/ and tests/ are published but
+# not installed. The mirror sits beside the marketplace root, not under it:
+#   D:\agent_try\plugins\polishkit  (dev)   ->  ROOT
+#   D:\agent_try\plugins\polishkit-dist (staging)
+#   D:\agent_try\GitHub\polishkit     (mirror)
+MIRROR = ROOT.parent.parent / "GitHub" / "polishkit"
+MIRROR_SHARED_DIRS = ("tests", "benchmark") + PUBLISH_TOOLING
+# Local-only benchmark history. The mirror publishes `runs/treatment/` (the
+# v3 pages, renamed on the way out); the v1/v2 archives, the v3 working copy and
+# the weakness analysis stay here on purpose — see notes/SESSION-START.md.
+MIRROR_EXCLUDED = (
+    "benchmark/WEAKNESS-ANALYSIS.md",
+    "benchmark/runs/treatment-v1-archive",
+    "benchmark/runs/treatment-v2-archive",
+    "benchmark/runs/treatment-v3",
+)
+# Paths that are renamed on the way to the mirror: the dev tree keeps the
+# iteration in its name, the published tree drops it. Left unmapped these look
+# like a mirror-only directory on every check.
+MIRROR_RENAMED = {
+    "benchmark/runs/treatment/": "benchmark/runs/treatment-v3/",
+}
+
 
 def _fail(message):
     print(f"build_dist: {message}", file=sys.stderr)
     return 1
 
 
-def _manifest(root=ROOT):
-    return json.loads((root / ".zcode-plugin" / "plugin.json").read_text(encoding="utf-8"))
+def _manifest():
+    path = ROOT / ".zcode-plugin" / "plugin.json"
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def _verify(target):
     """Return a list of problems found in the staged tree."""
     problems = []
     manifest = _manifest()
-    staged_path = target / ".zcode-plugin" / "plugin.json"
-    if not staged_path.is_file():
-        return [f"missing staged manifest: {staged_path}"]
-    staged = json.loads(staged_path.read_text(encoding="utf-8"))
-    for key in ("name", "version"):
-        if staged.get(key) != manifest.get(key):
-            problems.append(f"manifest {key} drift: {staged.get(key)!r} vs {manifest.get(key)!r}")
+    staged_manifest_path = target / ".zcode-plugin" / "plugin.json"
+    if not staged_manifest_path.is_file():
+        return [f"missing staged manifest: {staged_manifest_path}"]
+    staged = json.loads(staged_manifest_path.read_text(encoding="utf-8"))
+    if staged.get("name") != manifest.get("name"):
+        problems.append(f"manifest name drift: {staged.get('name')!r} vs {manifest.get('name')!r}")
+    if staged.get("version") != manifest.get("version"):
+        problems.append(f"manifest version drift: {staged.get('version')!r} vs {manifest.get('version')!r}")
 
     skill = target / "skills" / manifest["name"] / "SKILL.md"
     if not skill.is_file():
@@ -75,13 +124,52 @@ def _verify(target):
 
     if not (target / "commands").is_dir():
         problems.append("missing commands/")
-    if not list((target / "skills" / manifest["name"] / "scripts").glob("*.py")):
+    scripts = list((target / "skills" / manifest["name"] / "scripts").glob("*.py"))
+    if not scripts:
         problems.append("missing skill scripts")
-    if not list((target / "skills" / manifest["name"] / "data").glob("*.csv")):
+    data = list((target / "skills" / manifest["name"] / "data").glob("*.csv"))
+    if not data:
         problems.append("missing skill data CSVs")
-    stray = [p.name for p in (target / "skills").iterdir() if p.is_dir() and p.name != manifest["name"]]
-    if stray:
-        problems.append(f"stray skill directories: {', '.join(sorted(stray))}")
+    return problems
+
+
+def _shipped_files(root):
+    """Relative paths of exactly the files this script copies into a target."""
+    files = set()
+    for name in INCLUDE_DIRS:
+        for path in (root / name).rglob("*"):
+            if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc":
+                files.add(path.relative_to(root).as_posix())
+    for name in INCLUDE_FILES:
+        if (root / name).is_file():
+            files.add(name)
+    return files
+
+
+def _content_drift(target):
+    """Compare the staged tree against the dev tree, file by file.
+
+    A manifest-only check cannot see that SKILL.md, a reference or a script was
+    edited after the last build — the failure that made installs serve stale
+    content. Byte comparison is the honest test; anything else lets a stale
+    staged tree pass as clean.
+    """
+    problems = []
+    expected = _shipped_files(ROOT)
+    actual = {p.relative_to(target).as_posix() for p in target.rglob("*") if p.is_file()}
+    # The marker belongs beside the tree now. Seeing one inside means the build
+    # predates that change, and it would ship to every install.
+    if LEGACY_MARKER in actual:
+        problems.append(f"{LEGACY_MARKER} is inside the tree; it reaches user caches "
+                        f"— rebuild with the current tools/build_dist.py")
+        actual.discard(LEGACY_MARKER)
+    for missing in sorted(expected - actual):
+        problems.append(f"missing from staging: {missing}")
+    for extra in sorted(actual - expected):
+        problems.append(f"unexpected file in staging: {extra}")
+    for relative in sorted(expected & actual):
+        if (ROOT / relative).read_bytes() != (target / relative).read_bytes():
+            problems.append(f"content drift: {relative}")
     return problems
 
 
@@ -90,8 +178,12 @@ def _size(path):
 
 
 def build():
-    if TARGET.exists() and not (TARGET / MARKER).is_file():
-        return _fail(f"{TARGET} exists but has no {MARKER}; refusing to clear a tree this script did not create")
+    # An existing target may carry either the new sidecar marker or the old
+    # in-tree one; both say this script made the directory.
+    owned = MARKER.is_file() or (TARGET / LEGACY_MARKER).is_file()
+    if TARGET.exists() and not owned:
+        return _fail(f"{TARGET} exists but carries no marker; refusing to clear a "
+                     f"tree this script did not create")
     if TARGET.exists():
         shutil.rmtree(TARGET)
     TARGET.mkdir(parents=True)
@@ -110,13 +202,15 @@ def build():
             return _fail(f"expected document missing: {source}")
         shutil.copy2(source, TARGET / name)
 
-    (TARGET / MARKER).write_text(
-        "Generated by tools/build_dist.py from the dev tree. Do not edit.\n",
+    MARKER.write_text(
+        "Generated by tools/build_dist.py from the dev tree. Do not edit.\n"
+        "This file sits beside polishkit-dist, not inside it: the marketplace\n"
+        "copies the tree whole, so a marker inside would reach every install.\n",
         encoding="utf-8",
     )
 
     # Mimosa (a security hook) writes .mimosa/ into any workspace this session
-    # touches -- including the staging tree. Strip it after staging so an
+    # touches — including the staging tree. Strip it after staging so an
     # install never inherits hook ledgers.
     shutil.rmtree(TARGET / ".mimosa", ignore_errors=True)
 
@@ -135,27 +229,260 @@ def build():
     return 0
 
 
+def dev_path_for(posix):
+    """Map a mirror-relative path to where the same file lives in the dev tree.
+
+    The published benchmark drops the iteration suffix (`treatment-v3/` becomes
+    `treatment/`). Every other path is identical in both trees.
+    """
+    for mirror_prefix, dev_prefix in MIRROR_RENAMED.items():
+        if posix.startswith(mirror_prefix):
+            return dev_prefix + posix[len(mirror_prefix):]
+    return posix
+
+
+def mirror_drift():
+    """Compare the publish mirror against the dev tree for non-install files.
+
+    The install payload is checked by build(); this covers what it deliberately
+    leaves out and what the mirror alone carries:
+
+    - the shipped files, byte for byte (the same set build() stages);
+    - tests/ and benchmark/, which are published but not installed — a test
+      file edited in only one tree is how the mirror ran 244 tests while dev
+      ran 251;
+    - .github/, which exists only in the mirror, so it is reported as a count
+      and never compared (there is nothing to compare it against).
+
+    Files ignored on purpose: notes/, .mimosa/, generated fixtures, archives.
+    """
+    problems = []
+    if not MIRROR.is_dir():
+        return [f"mirror not found at {MIRROR}"]
+
+    shipped = _shipped_files(ROOT)
+    for relative in sorted(shipped):
+        mine = ROOT / relative
+        theirs = MIRROR / relative
+        if not theirs.is_file():
+            problems.append(f"mirror missing {relative}")
+        elif mine.read_bytes() != theirs.read_bytes():
+            problems.append(f"mirror differs: {relative}")
+
+    skip_parts = {".mimosa", "__pycache__", ".git", "png"}
+    seen = set(shipped)
+    for name in MIRROR_SHARED_DIRS:
+        source = ROOT / name
+        for path in source.rglob("*"):
+            if not path.is_file():
+                continue
+            relative = path.relative_to(ROOT)
+            if any(part in skip_parts for part in relative.parts):
+                continue
+            if path.suffix in (".pyc", ".png"):
+                continue
+            posix = relative.as_posix()
+            if posix in seen:
+                continue  # already compared above; report each file once
+            seen.add(posix)
+            if any(posix == excluded or posix.startswith(excluded + "/")
+                   for excluded in MIRROR_EXCLUDED):
+                continue
+            theirs = MIRROR / relative
+            if not theirs.is_file():
+                problems.append(f"mirror missing {posix}")
+            elif path.read_bytes() != theirs.read_bytes():
+                problems.append(f"mirror differs: {posix}")
+
+    # Files that exist only in the mirror are the other half of the comparison.
+    # Without this, adding a helper straight to the publish tree passed every
+    # gate — the dev tree had nothing to compare it against and said "clean".
+    #
+    # `.mimosa/` is the exception to the skip list here: it is a hook ledger,
+    # never published, so finding one in the mirror is a leak to report rather
+    # than a file to ignore. A sync bug wrote one into benchmark/runs/treatment
+    # and every gate called the tree clean.
+    for name in MIRROR_SHARED_DIRS:
+        source = MIRROR / name
+        for path in source.rglob("*"):
+            if not path.is_file():
+                continue
+            relative = path.relative_to(MIRROR)
+            posix = relative.as_posix()
+            if ".mimosa" in relative.parts:
+                problems.append(f"hook ledger leaked into the mirror: {posix}")
+                continue
+            if any(part in skip_parts for part in relative.parts):
+                continue
+            if path.suffix in (".pyc", ".png"):
+                continue
+            if any(posix == excluded or posix.startswith(excluded + "/")
+                   for excluded in MIRROR_EXCLUDED):
+                continue
+            counterpart = dev_path_for(posix)
+            # The dev→mirror pass above already compared every file present in
+            # both trees, shared directories included. Reporting those again
+            # here printed each drift twice. This pass exists for files that
+            # have no dev counterpart at all.
+            if (ROOT / counterpart).is_file():
+                continue
+            problems.append(f"mirror-only file (not in the dev tree): {posix}")
+    return problems
+
+
 def check():
     if not TARGET.is_dir():
         return _fail(f"{TARGET} does not exist; run the build first")
     problems = _verify(TARGET)
+    if not problems:
+        # The manifest is one file; report it separately so a version bump alone
+        # does not masquerade as a content check.
+        if (TARGET / ".zcode-plugin" / "plugin.json").read_bytes() != (ROOT / ".zcode-plugin" / "plugin.json").read_bytes():
+            problems.append("manifest bytes differ; rebuild the staged tree")
+        problems.extend(_content_drift(TARGET))
     if problems:
         for problem in problems:
             print(f"  - {problem}", file=sys.stderr)
-        return _fail("staged tree drifted from the dev tree (rebuild it)")
-    for rel in (".zcode-plugin/plugin.json", ".claude-plugin/plugin.json", "SKILL.md"):
-        source = ROOT / rel if rel != "SKILL.md" else ROOT / "skills" / _manifest()["name"] / "SKILL.md"
-        staged = TARGET / rel if rel != "SKILL.md" else TARGET / "skills" / _manifest()["name"] / "SKILL.md"
-        if source.read_bytes() != staged.read_bytes():
-            return _fail(f"{rel} bytes differ; rebuild the staged tree")
-    print(f"{TARGET} is clean and matches the dev tree")
+        return _fail(f"staged tree drifted from the dev tree ({len(problems)} item(s)); rebuild it")
+    print(f"{TARGET} is clean and matches the dev tree, byte for byte")
+    return 0
+
+
+def sync_mirror():
+    """Copy the shipped files and published test/benchmark sources to the mirror.
+
+    The mirror is the publish source of truth and is a separate git repository,
+    so it cannot be updated by rebuilding staging. Keeping the copy here means
+    one implementation decides what "in sync" means, and --mirror-check proves
+    the result. Files this script does not own (notes/, .mimosa/, the benchmark
+    archives) are never touched.
+    """
+    if not MIRROR.is_dir():
+        return _fail(f"mirror not found at {MIRROR}")
+
+    wanted = set(_shipped_files(ROOT))
+    skip_parts = {".mimosa", "__pycache__", ".git", "png"}
+    for name in MIRROR_SHARED_DIRS:
+        for path in (ROOT / name).rglob("*"):
+            if not path.is_file() or path.suffix in (".pyc", ".png"):
+                continue
+            relative = path.relative_to(ROOT)
+            if any(part in skip_parts for part in relative.parts):
+                continue
+            posix = relative.as_posix()
+            if any(posix == excluded or posix.startswith(excluded + "/")
+                   for excluded in MIRROR_EXCLUDED):
+                continue
+            wanted.add(posix)
+
+    # Pairs where the mirror uses a different directory name. The same skip
+    # list applies: a renamed source is still source, and `.mimosa/` was copied
+    # into the published benchmark tree because this branch did not filter it.
+    pairs = []
+    for mirror_prefix, dev_prefix in MIRROR_RENAMED.items():
+        for path in (ROOT / dev_prefix.rstrip("/")).rglob("*"):
+            if not path.is_file() or path.suffix in (".pyc", ".png"):
+                continue
+            relative = path.relative_to(ROOT / dev_prefix.rstrip("/"))
+            if any(part in skip_parts for part in relative.parts):
+                continue
+            pairs.append((path, MIRROR / mirror_prefix / relative))
+
+    copied = 0
+    for posix in sorted(wanted):
+        source = ROOT / posix
+        target = MIRROR / posix
+        data = source.read_bytes()
+        if target.is_file() and target.read_bytes() == data:
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(data)
+        copied += 1
+        print(f"  synced {posix}")
+    for source, target in pairs:
+        data = source.read_bytes()
+        if target.is_file() and target.read_bytes() == data:
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(data)
+        copied += 1
+        print(f"  synced {target.relative_to(MIRROR).as_posix()}")
+    print(f"{copied} file(s) written to {MIRROR}")
+    return 0 if not mirror_drift() else _fail(
+        "the mirror still differs after syncing; check MIRROR_EXCLUDED")
+
+
+def check_mirror():
+    problems = mirror_drift()
+    if problems:
+        for problem in problems:
+            print(f"  - {problem}", file=sys.stderr)
+        return _fail(f"publish mirror drifted ({len(problems)} item(s)); sync it before pushing")
+    print(f"{MIRROR} matches the dev tree for shipped files, tests/ and benchmark/")
+    return 0
+
+
+def check_catalog():
+    """Verify the marketplace catalog names this plugin's real version.
+
+    The plugin-creator spec requires the catalog entry and both manifests to
+    agree. Nothing checked it, so 2.2.0 shipped with a catalog still saying
+    2.1.0 — a user reading the marketplace saw the wrong version, and an
+    installer comparing versions would have skipped the update.
+    """
+    catalog_path = ROOT.parent / "marketplace.json"
+    if not catalog_path.is_file():
+        return _fail(f"no catalog at {catalog_path}")
+    try:
+        catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        return _fail(f"catalog is not valid JSON: {exc}")
+
+    manifest = _manifest()
+    entries = [entry for entry in catalog.get("plugins", [])
+               if entry.get("name") == manifest["name"]]
+    if not entries:
+        return _fail(f"catalog has no entry named {manifest['name']!r}")
+    if len(entries) > 1:
+        return _fail(f"catalog lists {manifest['name']!r} {len(entries)} times")
+
+    entry = entries[0]
+    problems = []
+    if entry.get("version") != manifest["version"]:
+        problems.append(f"catalog version {entry.get('version')!r} != manifest "
+                        f"{manifest['version']!r}")
+    if entry.get("description") != manifest.get("description"):
+        problems.append("catalog description differs from the manifest")
+    expected_source = f"./{TARGET.name}"
+    if entry.get("source") != expected_source:
+        problems.append(f"catalog source {entry.get('source')!r} != {expected_source!r}")
+    if problems:
+        for problem in problems:
+            print(f"  - {problem}", file=sys.stderr)
+        return _fail("catalog is out of step with the manifest")
+    print(f"catalog entry for {manifest['name']} matches the manifest "
+          f"({manifest['version']}, {expected_source})")
     return 0
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Build or verify the install staging tree.")
-    parser.add_argument("--check", action="store_true", help="verify only; do not write")
+    parser.add_argument("--check", action="store_true", help="verify the staging tree; do not write")
+    parser.add_argument("--mirror-check", action="store_true",
+                        help="verify the publish mirror also matches this tree "
+                             "(shipped files, tests/, benchmark/)")
+    parser.add_argument("--sync-mirror", action="store_true",
+                        help="copy shipped files, tests/ and benchmark/ into the "
+                             "publish mirror, then verify")
+    parser.add_argument("--catalog-check", action="store_true",
+                        help="verify the marketplace catalog names this version")
     args = parser.parse_args(argv)
+    if args.catalog_check:
+        return check_catalog()
+    if args.sync_mirror:
+        return sync_mirror()
+    if args.mirror_check:
+        return check_mirror()
     return check() if args.check else build()
 
 

@@ -2,6 +2,31 @@
 
 All notable changes to this project are recorded here. The format follows Keep a Changelog, and versions follow Semantic Versioning.
 
+## [2.2.1] - 2026-11-19
+
+Two defects in the publish pipeline itself. No new capability: these are corrections, and the maintainer's rule is that corrections do not raise the minor version.
+
+### Fixed
+
+- **`.generated-by-build_dist` shipped inside the installed tree.** The marker that lets `build_dist.py` recognise a directory it created lived inside `polishkit-dist`, and a directory-type marketplace copies the whole tree — so every install since 2.0.0 carried an internal build artefact. Found by inspecting the real 2.2.0 cache, not by any test. The marker now sits beside the tree as `polishkit-dist.generated`; `--check` reports an in-tree marker as a defect instead of discarding it silently.
+- **The marketplace catalog said 2.1.0 while the plugin was 2.2.0.** The plugin-creator spec requires the catalog entry and the manifests to agree, and nothing checked it. A user reading the marketplace saw the wrong version, and an installer comparing versions would have skipped the update. The catalog now matches, and `build_dist.py --catalog-check` verifies name, version, description and source path against the manifest.
+
+### Changed
+
+- `CONTRIBUTING.md` records the maintainer's correction to the versioning rule: +0.1.0 is reserved for a genuine leap, new audits of the existing shape are +0.0.1, and repairs never justify a bump.
+
+### Fixed (continued)
+
+- **`tools/build_dist.py` in the mirror was stale.** `CONTRIBUTING.md` tells contributors to run it there, but it was never in the sync set — the copy had been made by hand once and stopped moving. `MIRROR_SHARED_DIRS` now includes `tools/`.
+- **`--mirror-check` printed each drift twice.** Files present in both trees were compared by the dev→mirror pass and reported again by the mirror-only pass. Each class is now reported exactly once, verified against a scratch mirror with an edited file, a mirror-only file and a leaked hook ledger.
+
+### Verification
+
+- 291 tests pass.
+- Four gates green: staging byte comparison, mirror comparison, catalog check, and the three-audit no-browser contract.
+- The in-tree marker check was proven by copying the staging tree, writing the old marker back, and confirming the gate reports it.
+- Installed 2.2.0 cache inspected directly: identity, 11 scripts, one skill directory, no `notes/`, `.mimosa/`, `tests/` or `benchmark/`.
+
 ## [2.2.0] - 2026-11-19
 
 WCAG 1.4.12 becomes measurable. The plugin shipped the rule as prose and called it a manual check; the clause is testable, so it is now a tool.
