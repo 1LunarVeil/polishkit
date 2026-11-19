@@ -208,9 +208,12 @@ class OverlapTests(unittest.TestCase):
         self.assertLess(text_spacing.overlap_area(first, second), 24)
         self.assertFalse(text_spacing.overlaps(first, second))
 
-    def test_a_wide_one_pixel_brush_still_counts(self):
+    def test_a_wide_contact_of_several_pixels_still_counts(self):
+        # 100px wide with 3px of vertical contact = 300 px², past the floor.
+        # One pixel does not count: _rect_area treats <=1px as touching edges,
+        # not overlap, because adjacent line boxes legitimately brush.
         first = row(key="1.0", rect={"left": 0, "top": 0, "width": 100, "height": 20})
-        second = row(key="1.1", rect={"left": 0, "top": 19, "width": 100, "height": 20})
+        second = row(key="1.1", rect={"left": 0, "top": 17, "width": 100, "height": 20})
         self.assertGreaterEqual(text_spacing.overlap_area(first, second), 24)
         self.assertTrue(text_spacing.overlaps(first, second))
 
@@ -218,6 +221,34 @@ class OverlapTests(unittest.TestCase):
         first = row(key="1.0", rect={"left": 0, "top": 0, "width": 100, "height": 40})
         second = row(key="1.1", rect={"left": 10, "top": 10, "width": 100, "height": 40})
         self.assertTrue(text_spacing.overlaps(first, second))
+
+    def test_line_boxes_are_compared_instead_of_the_union(self):
+        # REGRESSION (B2): a block <h1> is as wide as its container, but its
+        # words may stop half way across. Comparing element boxes reported the
+        # heading overlapping a note to its right, when the text ended 87px
+        # before the note began. With line-box rects the two do not touch.
+        heading = row(key="1.0", tag="h1",
+                      rect={"left": 65, "top": 518, "width": 1136, "height": 153},
+                      rects=[{"left": 65, "top": 536, "width": 693, "height": 116}])
+        note = row(key="1.1", tag="p",
+                   rect={"left": 845, "top": 599, "width": 332, "height": 74},
+                   rects=[{"left": 845, "top": 601, "width": 329, "height": 68}])
+        self.assertEqual(text_spacing.overlap_area(heading, note), 0,
+                         "the heading's text ends before the note starts")
+        self.assertFalse(text_spacing.overlaps(heading, note))
+
+    def test_two_wrapped_fragments_of_one_element_are_separate(self):
+        # A wrapped inline owns one rect per line; those fragments must be
+        # compared individually, not merged into a box that covers both rows.
+        wrapped = row(key="1.0", tag="span",
+                      rect={"left": 100, "top": 0, "width": 300, "height": 40},
+                      rects=[{"left": 100, "top": 0, "width": 300, "height": 20},
+                             {"left": 100, "top": 20, "width": 60, "height": 20}])
+        below = row(key="1.1", tag="p",
+                    rect={"left": 250, "top": 20, "width": 100, "height": 20},
+                    rects=[{"left": 250, "top": 20, "width": 100, "height": 20}])
+        # Only the second fragment sits on the second row, and it ends at x=160.
+        self.assertEqual(text_spacing.overlap_area(wrapped, below), 0)
 
 
 class GrowthTests(unittest.TestCase):

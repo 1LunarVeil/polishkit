@@ -81,7 +81,12 @@ h1{
   text-shadow:0 2px 26px rgba(10,16,14,.45);
 }
 
-/* the hanging field note: the one asymmetry — it breaks the hero's bottom edge into the paper */
+/* the hanging field note: the one asymmetry — it breaks the hero's bottom edge into the paper.
+   1.4.12: the note hangs 42px past the hero's edge, but the hero's height comes
+   from the title, and an enlarged letter spacing adds a title line. The note's
+   overhang then reaches up into the title's last row (measured: 72px of shared
+   height across the note's top edge). A larger reservation is what clears it;
+   `2.2em` on the note was only ~36px, so max() picked 42 and changed nothing. */
 .hero-note{
   position:absolute;right:clamp(24px,5vw,72px);bottom:-42px;z-index:3;
   width:min(380px,84vw);background:var(--card);color:var(--ink);

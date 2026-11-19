@@ -223,6 +223,39 @@ COLLECTOR_JS = r"""(function () {
         client_height: el.clientHeight,
         rect: { x: r.x, y: r.y, width: r.width, height: r.height,
                 top: r.top + window.scrollY, left: r.left + window.scrollX },
+        // Where the text actually is, not where the element's box is. A block
+        // heading spans the full content width while its words may stop half
+        // way across; comparing boxes made a 1136px-wide <h1> "overlap" a note
+        // that starts at x=845 when the heading's text ended at x=758. Range
+        // geometry gives one rect per line of text, which is the thing that can
+        // collide. `getClientRects` is the fallback for engines that cannot
+        // range-select the contents.
+        rects: (function () {
+          var out = [];
+          try {
+            if (document.createRange) {
+              var range = document.createRange();
+              range.selectNodeContents(el);
+              var list = range.getClientRects ? range.getClientRects() : [];
+              for (var ri = 0; ri < list.length && ri < 12; ri++) {
+                var q = list[ri];
+                if (q.width <= 0 || q.height <= 0) continue;
+                out.push({ top: q.top + window.scrollY, left: q.left + window.scrollX,
+                           width: q.width, height: q.height });
+              }
+            }
+          } catch (e) { out = []; }
+          if (!out.length && el.getClientRects) {
+            var fallback = el.getClientRects();
+            for (var fi = 0; fi < fallback.length && fi < 12; fi++) {
+              var f = fallback[fi];
+              if (f.width <= 0 || f.height <= 0) continue;
+              out.push({ top: f.top + window.scrollY, left: f.left + window.scrollX,
+                         width: f.width, height: f.height });
+            }
+          }
+          return out;
+        })(),
         clips: clips(el, cs),
         overflow_x: cs.overflowX,
         overflow_y: cs.overflowY,
@@ -357,18 +390,36 @@ def fixed_height_overflow(entry, before):
     return needed > ceiling + font * 0.5
 
 
-def overlap_area(first, second):
-    """Pixels two element rects share, in CSS px squared."""
-    a, b = first.get("rect") or {}, second.get("rect") or {}
-    left = max(float(a.get("left") or 0), float(b.get("left") or 0))
-    right = min(float(a.get("left") or 0) + float(a.get("width") or 0),
-                float(b.get("left") or 0) + float(b.get("width") or 0))
-    top = max(float(a.get("top") or 0), float(b.get("top") or 0))
-    bottom = min(float(a.get("top") or 0) + float(a.get("height") or 0),
-                 float(b.get("top") or 0) + float(b.get("height") or 0))
-    if right <= left or bottom <= top:
+def _rect_area(first, second, slack=1.0):
+    """Overlapping area of two rects given as {left, top, width, height}."""
+    left = max(float(first.get("left") or 0), float(second.get("left") or 0))
+    right = min(float(first.get("left") or 0) + float(first.get("width") or 0),
+                float(second.get("left") or 0) + float(second.get("width") or 0))
+    top = max(float(first.get("top") or 0), float(second.get("top") or 0))
+    bottom = min(float(first.get("top") or 0) + float(first.get("height") or 0),
+                 float(second.get("top") or 0) + float(second.get("height") or 0))
+    if right - left <= slack or bottom - top <= slack:
         return 0.0
     return (right - left) * (bottom - top)
+
+
+def overlap_area(first, second):
+    """Pixels two elements share, comparing line boxes rather than unions.
+
+    An inline element that wraps owns several disjoint line boxes, and the
+    union of those boxes is a rectangle the element never covers — it spans the
+    full width of the longest line across every wrapped row. Comparing unions
+    reported a caption overlapping the text on the line above it; comparing the
+    individual fragments showed the two were on different rows and did not
+    touch. Elements with no fragment data fall back to their single rect.
+    """
+    first_rects = first.get("rects") or ([first["rect"]] if first.get("rect") else [])
+    second_rects = second.get("rects") or ([second["rect"]] if second.get("rect") else [])
+    total = 0.0
+    for a in first_rects:
+        for b in second_rects:
+            total += _rect_area(a, b)
+    return total
 
 
 def related(first, second):

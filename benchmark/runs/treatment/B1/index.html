@@ -84,9 +84,15 @@
   .model-row:hover{background:var(--hover)}
   .model-row.sel{background:var(--sel);box-shadow:inset 2px 0 0 var(--accent)}
   .m-main{flex:1;min-width:0}
-  .m-name{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* 1.4.12: a nowrap + ellipsis name loses a whole line's worth of text once a
+     user enlarges letter spacing (measured: 236px needed in a 201px box where
+     the authored page needed 209px). Letting the name wrap, and keeping the
+     quant tag itself unbroken, leaves every model identifier readable at any
+     spacing. The row grows, so nothing below it is pushed into a fixed box. */
+  .m-name{font-weight:600;font-size:14px;overflow-wrap:anywhere}
   .q{font-family:var(--mono);font-size:12px;color:var(--sky);border:1px solid rgba(111,181,214,.4);
-    border-radius:4px;padding:0 5px;margin-left:5px;vertical-align:1px}
+    border-radius:4px;padding:0 5px;margin-left:5px;vertical-align:1px;
+    white-space:nowrap;display:inline-block}
   .m-meta{display:flex;gap:10px;color:var(--muted);font-size:12.5px;margin-top:2px;flex-wrap:wrap}
   .m-meta .err-t{color:var(--err)}
   .prog{height:3px;background:var(--track);border-radius:2px;margin-top:8px;overflow:hidden}
@@ -164,14 +170,26 @@
   .v-label{writing-mode:vertical-rl;color:var(--muted);font-family:var(--mono);font-size:12px;
     letter-spacing:.42em;padding-top:6px;user-select:none}
   .v-hero .g-cap{color:var(--muted);font-size:13px;font-weight:600;display:flex;gap:8px;align-items:flex-start}
-  .v-hero .g-cap .g-cap-t{min-width:0}
+  /* 1.4.12: this was an inline <span>, so an enlarged letter spacing wrapped
+     its <b> onto a second line box that could overlap the inline .num beside
+     it. As a block its line boxes stack; the inner .num then needs the parent
+     line height, because 12.5px text at its own line-height lands its box
+     against the previous line's baseline and the two rects intersect. */
+  .v-hero .g-cap .g-cap-t{min-width:0;display:block;line-height:1.5}
+  .v-hero .g-cap .g-cap-t .num{line-height:inherit}
   .v-hero .g-cap .num{color:var(--text)}
   .giant{position:relative;margin-top:6px}
   .giant .fig{
     font-family:var(--sans);font-weight:300;font-size:88px;line-height:1;letter-spacing:-.02em;
     color:var(--bright);font-variant-numeric:tabular-nums;
   }
-  .giant .unit{font-family:var(--mono);font-size:20px;font-weight:400;color:var(--muted);letter-spacing:0;margin-left:6px}
+  .giant .unit{font-family:var(--mono);font-size:20px;font-weight:400;color:var(--muted);letter-spacing:0;margin-left:6px;
+    /* 1.4.12: the unit sits on the same line box as an 88px figure. Enlarged
+       letter/word spacing widened the figure enough to push the unit onto the
+       next line box, where the two overlapped (measured overlap area 8109px²).
+       Keeping the unit on an unbreakable inline-block that cannot be split
+       from the figure by spacing keeps the pair on one baseline. */
+    white-space:nowrap;display:inline-block;vertical-align:baseline}
   .stamp{ /* 唯一的旋转强调：斜盖在巨数右下角 */
     position:absolute;right:-14px;bottom:2px;transform:rotate(-1.8deg);
     background:var(--accent);color:var(--on-accent);font-weight:700;font-size:13px;
@@ -242,6 +260,43 @@
     .v-label{writing-mode:horizontal-tb;letter-spacing:.3em;padding-top:0}
     nav{display:none}
     .stamp{right:6px}
+  }
+  /* 1.4.10: the widest breakpoint above is 980px, so a 320px viewport still ran
+     the desktop grids. The page's own document overflowed by 72px and a dozen
+     children were pushed past the viewport (including the whole VRAM hero and
+     every parameter row). These rules collapse the remaining fixed tracks and
+     let the figure row wrap. */
+  @media (max-width:520px){
+    .band-inner{padding:18px 14px 8px}
+    .prow{grid-template-columns:1fr;gap:6px 8px}
+    .prow output{grid-column:1 / -1}
+    .inline-row{grid-template-columns:1fr;gap:6px}
+    /* The caption is a flex row with a status dot, and the text column was
+       squeezed to 152px — narrow enough that "GPU 1 NVIDIA RTX 3060" wrapped
+       one word per line. Giving the text the full row keeps the card name on
+       one or two lines instead of six. */
+    .g-cap{flex-wrap:wrap}
+    .g-cap .g-cap-t{flex:1 1 100%}
+    .giant .fig{font-size:64px}
+    .giant .unit{display:block;margin-left:0}
+    .stamp{position:static;display:inline-block;transform:none;margin-top:6px}
+    .trow{grid-template-columns:1fr auto}
+    .presets{flex-wrap:wrap}
+    .model-row{flex-wrap:wrap}
+    .m-meta{font-size:11.5px}
+    /* The second GPU row is a flex line where the usage bar takes flex:1, so
+       the card name was squeezed to 152px and "GPU 1 NVIDIA RTX 3060" printed
+       one word per line. The name goes full width on its own row and the bar
+       keeps the next. */
+    .g1{flex-wrap:wrap}
+    .g1 .g1-name{flex:1 1 100%}
+    .g1 .bar{flex:1 1 100%}
+    /* Three flex items sharing a 320px row left the heading 4 characters
+       wide, so "GPU 0 占用分配" printed vertically. The heading keeps its
+       width and the value and button wrap under it. */
+    .r-head{flex-wrap:wrap}
+    .r-head h3{flex:0 0 auto;white-space:nowrap}
+    footer{gap:10px}
   }
   @media (prefers-reduced-motion:reduce){
     html{scroll-behavior:auto}

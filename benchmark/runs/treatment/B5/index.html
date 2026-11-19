@@ -39,11 +39,15 @@ a:hover{background:var(--accent);text-decoration-thickness:2px}
 .wrap{max-width:1180px;margin:0 auto;padding:0 28px}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 /* ============ top bar: space, no rule ============ */
-.top .wrap{display:flex;align-items:center;gap:20px;height:68px}
+.top .wrap{display:flex;align-items:center;gap:20px;min-height:68px;flex-wrap:wrap;padding:6px 0}
 .wordmark{font-family:var(--mono);font-weight:700;font-size:24px;letter-spacing:-0.03em}
 .ver{font-family:var(--mono);font-size:13px;border:1px solid var(--ink);padding:1px 8px;background:var(--inset)}
-.top nav{margin-left:auto;display:flex;gap:22px}
-.top nav a{text-decoration-thickness:1px;font-size:15px}
+/* 1.4.10: a single-line flex nav pushed past a 320px viewport and the header
+   clipped it, so the links were unreachable with no scrollbar to reveal them —
+   the page's own document did not overflow, which is why only the element test
+   caught it. Wrapping lets the nav move to a second row instead. */
+.top nav{margin-left:auto;display:flex;gap:22px;flex-wrap:wrap;justify-content:flex-end}
+.top nav a{text-decoration-thickness:1px;font-size:15px;white-space:nowrap}
 /* ============ hero: display line + left-anchored column, void right; terminal bleeds ============ */
 .hero{padding:34px 0 30px}
 h1{

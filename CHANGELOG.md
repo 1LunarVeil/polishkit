@@ -2,6 +2,26 @@
 
 All notable changes to this project are recorded here. The format follows Keep a Changelog, and versions follow Semantic Versioning.
 
+## [2.2.5] - 2026-11-19
+
+Fixes the confirmed defects in the benchmark pages, plus the audit defect that hid one of them. Repairs only; no new capability.
+
+### Fixed
+
+- **`text_spacing.py` compared element boxes instead of text extents.** A block heading spans its container's full width, but its words may stop half way across. The tool measured the box, so a 1136px `<h1>` whose text ended at x=758 was reported as overlapping a note that starts at x=845 — 87px of empty space apart. Measurement now uses `Range.getClientRects()`, one rect per line of text, falling back to `getClientRects()` where a range cannot be built. Two tests pin it: a heading that clears its neighbour, and a wrapped inline whose fragments stay separate.
+- **B1 · model names lost a line under 1.4.12.** `.m-name` was `nowrap` + `ellipsis`, so enlarged letter spacing widened the name past its box and the ellipsis cut a whole line's worth (measured: 236px needed in a 201px box). Names now wrap, quant tags stay unbroken, and every identifier stays readable.
+- **B1 · the VRAM hero and the parameter rows did not reflow at 320px.** The narrowest breakpoint was 980px, so a 320px viewport still ran the desktop grids: the document overflowed by 72px and a dozen children sat past the viewport, including the whole hero. A 520px breakpoint collapses the fixed tracks, wraps the GPU rows and shrinks the display figure. Two follow-ups came from looking at the 390px capture rather than the audit: the second GPU's name was squeezed to 152px (one word per line) and the allocation heading printed vertically at four characters wide.
+- **B2 · the hanging note overlapped the title under 1.4.12.** With `line-height:1.0` the title gained a line and the note's fixed 42px overhang reached into it.
+- **B3 · the orders table and the range tabs overflowed at 320px.** Document width was 639px against a 320px viewport. The table now sits in a horizontal scroller — data tables are 1.4.10's explicit two-dimensional exception and their cells must stay comparable — while the tabs, header and channel select wrap. A `td.items` cell that had been truncating since before the override now wraps to two lines.
+- **B5 · the nav was pushed past a 320px viewport and clipped.** The document did not scroll, so only the element-level check found it: the links were unreachable with nothing to scroll toward. The header and nav now wrap.
+
+### Verification
+
+- 331 tests pass (329 + 2 for the line-box measurement).
+- All five treatment pages: text-spacing 0 FAIL each; reflow 0 FAIL each (B3 keeps 190 uncertain, all table and chart exceptions).
+- Probe pages unchanged: spacing probe still reports 3 FAIL, reflow probe 8, clean pages 0.
+- Desktop captures of B1, B2, B3 re-read after the edits: the signature elements, the hanging note and the chart are intact; the 390px B1 capture was read twice and drove two additional fixes.
+
 ## [2.2.4] - 2026-11-19
 
 The last two layout clauses the plugin taught but never measured.
