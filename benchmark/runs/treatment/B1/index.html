@@ -112,6 +112,9 @@
   .e-mark{width:28px;height:28px;border:1.5px solid var(--ctl);border-radius:50%;margin:0 auto 10px;position:relative}
   .e-mark::after{content:"";position:absolute;left:12px;top:6px;width:1.5px;height:12px;background:var(--ctl);transform:rotate(40deg)}
   .e-sub{color:var(--muted);font-size:12.5px;margin-top:4px}
+  /* clreq 6.1.1: keeps an opening bracket glued to the run it opens, so the
+     browser cannot break between them and leave 「 at a line end. */
+  .nowrap-run{white-space:nowrap}
   .m-foot{margin-top:10px;padding-top:12px;color:var(--muted);font-size:12.5px;
     display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
   .m-foot .num{color:var(--text)}
@@ -480,7 +483,10 @@
 
     <div class="m-empty" id="mEmpty" hidden>
       <div class="e-mark" aria-hidden="true"></div>
-      <p>没有匹配「<span id="mEmptyQ"></span>」的模型</p>
+      <!-- clreq 6.1.1: 「 must not end a line. Wrapping the quoted run in an
+           unbreakable span keeps the bracket with the text it opens, which a
+           bare text node followed by an inline <span> does not guarantee. -->
+      <p>没有匹配<span class="nowrap-run">「<span id="mEmptyQ"></span>」</span>的模型</p>
       <p class="e-sub">换个关键词，或到模型广场拉取新的 GGUF 仓库。</p>
     </div>
 

@@ -624,14 +624,32 @@ class PageSession:
                     "width": self.width, "height": self.height,
                     "deviceScaleFactor": 1, "mobile": False,
                 }, session=self.session_id)
-            self.session.send("Page.navigate", {"url": self.url},
-                              session=self.session_id)
+            navigation = self.session.send("Page.navigate", {"url": self.url},
+                                           session=self.session_id)
             loaded = wait_for_event(
                 self.session, "Page.loadEventFired", self.load_timeout,
                 match=lambda message: message.get("sessionId") == self.session_id)
             if loaded is None:
                 raise BrowserError(
                     f"page did not fire load within {self.load_timeout:g}s")
+            # A failed navigation still fires load: Chrome renders its own error
+            # page, which is a real document with real text. Auditing it would
+            # report findings about Chrome's UI as though they were the site's —
+            # the CJK audit read "依次前往 Chrome 菜单 >“" as a line-ending
+            # violation on a page whose server had simply been stopped. Check
+            # where the browser actually landed, and where the navigation said
+            # it was going.
+            error_text = navigation.get("errorText") if isinstance(navigation, dict) else None
+            if error_text:
+                raise BrowserError(f"navigation failed: {error_text}")
+            landed = self.session.send(
+                "Runtime.evaluate",
+                {"expression": "location.href", "returnByValue": True},
+                session=self.session_id)["result"].get("value")
+            if isinstance(landed, str) and landed.startswith("chrome-error://"):
+                raise BrowserError(
+                    f"navigation landed on a browser error page ({landed}); "
+                    f"the URL was not reachable, so nothing about it was measured")
             return self
         except BaseException:
             self._teardown()

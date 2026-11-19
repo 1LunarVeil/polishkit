@@ -2,6 +2,31 @@
 
 All notable changes to this project are recorded here. The format follows Keep a Changelog, and versions follow Semantic Versioning.
 
+## [2.2.6] - 2026-11-19
+
+The CJK runtime check that `cjk-typography.md` described but no tool measured.
+
+### Added
+
+- **`scripts/cjk_breaks.py`** — walks each rendered line character by character with a Range and reports clreq §6.1.1 violations: **LINE-START** when a line begins with a closing bracket or terminal punctuation, **LINE-END** when it ends with an opening bracket. It also names every element setting `word-break: break-all`, which is the property that disables the browser's own 禁则.
+  - The character sets are **derived from Unicode categories**, not transcribed from clreq's table: every `Pe` closing bracket is forbidden at line start, `Ps` opening brackets are vetoed explicitly (they are legal there), and the terminal `Po` marks are listed. Tests enumerate every `Pe` and `Ps` character in Unicode and assert the derivation both ways, so an added closing bracket cannot silently escape the rule.
+  - The walk runs at a 390px viewport on purpose: at 1440px a Chinese paragraph fits in two or three lines and the edges fall wherever the browser likes, so no prohibition is exercised.
+  - Pages with no CJK prose report that and claim nothing else. `white-space: pre` runs, where wrapping is an explicit author choice, come back uncertain.
+- `tools/crosscheck.py` runs it as a fifth column.
+- `tests/test_cjk_breaks.py`: 27 browser-free tests over the character derivation, CJK detection, and the failure/review split.
+
+### Fixed
+
+- **Every audit could measure a browser error page as though it were the site.** A failed navigation still fires `Page.loadEventFired`, and Chrome's own error document is real text — the CJK audit reported `依次前往 Chrome 菜单 >“` as a Chinese line-ending violation on a page whose server had simply been stopped. `cdp.PageSession` now checks both the navigation response's `errorText` and the landed `location.href` for `chrome-error://`, and raises before any audit runs. This closes the same hole for `page_audit`, `keyboard_audit`, `text_spacing` and `reflow`.
+- **B1 · an opening bracket ended a line.** `没有匹配「<span>…</span>」的模型` left `「` at a line end at 390px, because the bracket and the inline span after it are separate break opportunities. The quoted run is now wrapped in a `nowrap` span.
+
+### Verification
+
+- 358 tests pass (331 + 27).
+- Probe pages: a forced `<br>` before `、` reports LINE-START, one before `（` reports LINE-END, a clean control reports nothing — six lines walked to prove both directions.
+- A stopped server now yields `{"verified": false}` and exit 2 with `navigation failed: net::ERR_CONNECTION_REFUSED`, instead of a report about Chrome's error text.
+- Real page B1: 91 CJK elements / 70 lines, 0 violations after the fix; the other four benchmark pages contain no CJK prose and say so.
+
 ## [2.2.5] - 2026-11-19
 
 Fixes the confirmed defects in the benchmark pages, plus the audit defect that hid one of them. Repairs only; no new capability.

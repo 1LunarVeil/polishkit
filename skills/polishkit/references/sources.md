@@ -136,6 +136,33 @@ Three measurements in that tool are engineering decisions:
 viewport rather than a style override, and both remain manual checks.
 `prefers-reduced-motion` also stays manual.
 
+## CJK line-breaking audit (2.2.6)
+
+**clreq §6.1.1 行首行尾禁则** — https://www.w3.org/TR/clreq/, read 2026-11-19.
+The prohibition is not reimplemented here: browsers already apply it under
+`line-break: auto`, and a Python copy of the character table would rot. What
+`scripts/cjk_breaks.py` does is walk the rendered lines and find where the
+prohibition was *broken* — by `word-break: break-all`, by an inline element
+boundary, or by an authored `<br>`.
+
+The character sets are derived from Unicode, not transcribed:
+
+- **Forbidden at line start**: every `Pe` closing bracket, plus the terminal
+  punctuation that Unicode files under `Po`. `Ps` opening brackets are legal at
+  line start and are vetoed explicitly, because `Po` alone would let an opening
+  quote through.
+- **Forbidden at line end**: the opening brackets and opening quotes. This is
+  the mirror of the rule above, and clreq states it as one requirement.
+
+Server-side check: the page's `location.href` after load must not begin with
+`chrome-error://`. A failed navigation still fires `Page.loadEventFired`, and
+Chrome's own error page is a real document — auditing it reported
+"依次前往 Chrome 菜单 >“" as a Chinese line-ending violation on a page whose
+server had simply stopped. `cdp.PageSession` now raises before any audit runs.
+
+Deliberately not covered: hanging punctuation (`text-spacing-trim` is still
+partial), the GB 法 stricter tier, and vertical text.
+
 ## Deliberately not used
 
 - Icon, font-catalogue and CDN metadata, and any stack-specific code (React, Next.js, Tailwind, Figma plugin APIs). They do not match a vanilla or desktop WebView UI.

@@ -36,6 +36,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS = ROOT / "skills" / "polishkit" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
+import cjk_breaks  # noqa: E402
 import keyboard_audit  # noqa: E402
 import page_audit  # noqa: E402
 import reflow  # noqa: E402
@@ -47,6 +48,7 @@ AUDITS = (
     ("keyboard", keyboard_audit, "2.1.1/2.1.2 reach and traps, 2.4.7/1.4.11 focus"),
     ("spacing", text_spacing, "1.4.12 text-spacing survival"),
     ("reflow", reflow, "1.4.10 reflow at 320px, 1.4.4 text scale"),
+    ("cjk", cjk_breaks, "clreq 6.1.1 line-start/line-end 禁则"),
 )
 
 
@@ -67,6 +69,9 @@ def run_audit(module, url):
         elif module is reflow:
             measurements, scale_probe = module.audit_url(url)
             report = module.build_report(url, measurements, scale_probe)
+        elif module is cjk_breaks:
+            payload = module.audit_url(url)
+            report = module.build_report(url, payload)
         else:
             authored, overridden = module.audit_url(url)
             report = module.build_report(url, authored, overridden)
