@@ -337,6 +337,20 @@ class TargetSizeTests(unittest.TestCase):
         self.assertEqual(entry["severity"], "review")
         self.assertIn("2.5.8 Inline exception", page_audit.a11y_message(entry))
 
+    def test_zero_size_elements_are_never_collected_as_targets(self):
+        # REGRESSION: a collapsed panel is display:block with no box, so it
+        # reports a 0x0 rect. The collector skipped only display/visibility
+        # none, collected the 0x0 box, and the verdict failed it — eight false
+        # target-size FAILs on a booking page whose date picker was closed.
+        # 2.5.8 has nothing to measure on an element with no pointer area.
+        #
+        # The pure verdict still treats an explicit 0x0 rect as a failure (it
+        # would be one if such an element were reachable); the guard belongs in
+        # the collector, so the assertion is on the collector source.
+        self.assertIn("rect.width <= 0 || rect.height <= 0", page_audit.COLLECTOR_JS)
+        self.assertEqual(page_audit.target_size_verdict({"width": 0, "height": 0})["status"],
+                         "FAIL", "the verdict itself must stay strict")
+
 
 class AriaNameTests(unittest.TestCase):
     def test_missing_name_fails_with_absent_sources(self):

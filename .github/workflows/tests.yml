@@ -109,3 +109,20 @@ jobs:
               exit 1
             fi
           done
+
+      # crosscheck drives the three audits, so here it can only be asked the
+      # one thing it owes without a browser: a rejected URL exits 3 and says
+      # so, rather than printing an empty table that reads like a clean page.
+      - name: Crosscheck rejects an unsafe URL
+        shell: bash
+        run: |
+          set +e
+          output=$(python tools/crosscheck.py "file:///etc/passwd")
+          status=$?
+          set -e
+          echo "$output"
+          if [ "$status" -ne 3 ]; then
+            echo "expected exit status 3 from crosscheck, got $status"
+            exit 1
+          fi
+          echo "$output" | grep -q '"verified": false'

@@ -271,6 +271,11 @@ COLLECTOR_JS = r"""(function () {
 
     // TARGET-SIZE (2.5.8) and ARIA-NAME (4.1.2 / 1.1.1 subset). Invisible
     // elements are not rendered targets, so they are out of scope entirely.
+    // Zero-size counts as invisible here: a panel that is display:block but
+    // collapsed (no box) reports a 0x0 rect, and calling that an undersized
+    // target produced eight false FAILs on a booking page whose date picker
+    // was simply closed. The element is not reachable by pointer at all, so
+    // 2.5.8 has nothing to measure.
     var named = scope.querySelectorAll(
       "button, a[href], select, textarea, [role=button], img, input");
     for (var ti = 0; ti < named.length; ti++) {
@@ -281,6 +286,7 @@ COLLECTOR_JS = r"""(function () {
       var type = (el.getAttribute("type") || "").toLowerCase();
       var roleButton = el.getAttribute("role") === "button";
       var rect = el.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) continue;
 
       var sizeTarget = tag === "button" || tag === "select"
         || (tag === "a" && el.hasAttribute("href"))

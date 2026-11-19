@@ -2,6 +2,25 @@
 
 All notable changes to this project are recorded here. The format follows Keep a Changelog, and versions follow Semantic Versioning.
 
+## [2.2.3] - 2026-11-19
+
+One new tool and the defect it exposed in an existing one.
+
+### Added
+
+- **`tools/crosscheck.py`** — runs all three rendered audits against each URL and prints one table: failures and uncertain count per clause per page. Its reason for existing is that the audits answer different questions, and read one at a time nobody notices that a page scoring "0 failures" still has 44 uncertain text pairs no tool will settle. The legend names each column's clauses, an audit that cannot run is reported as `UNVERIFIED` rather than as zero, and `--json` keeps the full per-audit report.
+
+### Fixed
+
+- **`page_audit.py` failed collapsed panels under 2.5.8.** The collector skipped only `display:none` and `visibility:hidden`; a panel that is `display:block` but has no box reports a 0x0 rect, and eight of those became target-size FAILs on a booking page whose date picker was simply closed. Elements with no pointer area are now skipped at collection: 2.5.8 has nothing to measure on them. The pure verdict still treats an explicit 0x0 rect as a failure, because that is what it would be on a reachable element.
+- **`crosscheck.py` itself headlined the wrong number.** Its first version added contrast failures, target-size failures and accessible-name failures into one count, so a page with zero contrast failures and eight collapsed-panel artefacts read as eight contrast failures — which flatly contradicted `benchmark/RESULTS.md` and cost an hour of re-reading before the mistake was found. The columns now keep the clauses apart, and the headline is the contrast count the benchmark tracks.
+
+### Verification
+
+- 307 tests pass (299 + 8 across the two changes).
+- Cross-checked all five 2.0 treatment pages: contrast failures 0/0/0/0/0, matching the stored benchmark; keyboard 0 everywhere; text spacing 11/1/1/0/0, the defects 2.2 recorded and left in place as page issues.
+- The B4 collapsed-panel false positives are gone (8 → 0) with the contrast count unchanged.
+
 ## [2.2.2] - 2026-11-19
 
 One structural change and the resource leak it exposed. No new capability.

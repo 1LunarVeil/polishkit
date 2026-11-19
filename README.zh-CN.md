@@ -30,6 +30,7 @@
 | 证明一次改动到底改到了哪 | `scripts/image_diff.py`，零依赖解 PNG，输出变化区域与比例 |
 | 评审既有界面并给出分级结论 | `references/critique.md`（十个维度）与 `/design-review` |
 | 跑完全部机械检查并给出合并结论 | `/polish-audit`：源码检查 + 两项渲染审计，阻断/重要/待复核/不确定/未检查分列 |
+| 跨多页对比三项渲染审计 | `tools/crosscheck.py URL...`：一张表列出每条条款的失败数与不确定数，一眼看出"某维度干净但另一维度未测量"的页面 |
 | 在桌面或 WebView 应用里套用这些规则 | `references/desktop-app.md` |
 
 ## 做不到什么
