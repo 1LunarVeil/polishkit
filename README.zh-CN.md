@@ -28,6 +28,7 @@
 | 审计键盘路径与焦点环的实际渲染 | `scripts/keyboard_audit.py`：真实 Tab 走查、键盘陷阱、`tabindex="-1"` 控件、遮挡焦点、仅在 hover 失效的对比度，以及焦点环对它**所环绕控件**的像素对比度（2.1.1、2.1.2、2.4.7、2.4.11、1.4.11；2.4.13 作 AAA 参考） |
 | 证明一次改动到底改到了哪 | `scripts/image_diff.py`，零依赖解 PNG，输出变化区域与比例 |
 | 评审既有界面并给出分级结论 | `references/critique.md`（十个维度）与 `/design-review` |
+| 跑完全部机械检查并给出合并结论 | `/polish-audit`：源码检查 + 两项渲染审计，阻断/重要/待复核/不确定/未检查分列 |
 | 在桌面或 WebView 应用里套用这些规则 | `references/desktop-app.md` |
 
 ## 做不到什么

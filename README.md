@@ -31,6 +31,7 @@ Concretely, it changes four things about how an agent works on UI:
 | Read contrast through a draft lens; test hue-dependent meaning | `wcag.py --apca` (draft APCA Lc, supplementary) and `scripts/color_sim.py` (Machado 2009 CVD simulation with a pair-collapse check) |
 | Prove what a change actually did to the screen | `scripts/image_diff.py`, zero-dependency PNG decode, changed region and ratio, plus a baseline directory report |
 | Review an existing UI and get prioritized findings | `references/critique.md` (ten pillars) and `/design-review` |
+| Run every mechanical check and get one merged verdict | `/polish-audit`: source checks plus both rendered audits, with blocking, important, review, uncertain and not-checked stated separately |
 | Apply the rules inside a desktop or WebView app | `references/desktop-app.md` |
 
 ## What it cannot do

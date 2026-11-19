@@ -18,6 +18,8 @@ The interaction-level audit. 2.0 taught keyboard and focus rules the plugin neve
   - Same taxonomy as `page_audit.py` (measurable pass/FAIL, uncertain, review), same "claims nothing" contract with no browser, `--measure` bounds photographed stops and the report names those walked but not measured.
 - `tests/test_keyboard_audit.py`: 62 browser-free tests over the deciding logic and the pixel arithmetic, including REGRESSION tests for three defects a real smoke page caught first — the trap cascade that reported every later control as unreachable, the hover read that happened after the pointer left (turning a hover contrast failure into a pass), and the `<body>` end-of-walk stop that `label()` renamed and so went unrecognised, producing a trap FAIL and a "no indicator" FAIL on a clean page.
 - `image_diff.decode_png_bytes`: the PNG decoder without a path, so the audit can measure crops it never writes to disk.
+- `/polish-audit`: one command that runs the source checks and both rendered audits, and reports a merged verdict separated into blocking, important, review, uncertain and not-checked. It exists because the tools answer different questions and a merged report is what a reviewer actually needs.
+- `tools/build_dist.py --check` now compares the staged tree against the dev tree file by file. The old check compared manifests only, so editing a reference or a script after the last build left a stale staged tree that passed as clean — the same class of failure that made installs serve old content.
 
 ### Changed
 
