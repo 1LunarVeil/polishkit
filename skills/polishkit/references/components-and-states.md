@@ -70,6 +70,27 @@ Pass means: nothing overflows its container, truncated values show their full te
 - Shortcuts are shown next to the action they trigger, using the platform modifier.
 - No hover-only actions. Anything revealed on hover must also be reachable by focus and by touch.
 
+`scripts/keyboard_audit.py` measures these four rules instead of asking you to
+assert them. It dispatches real Tab presses, screenshots each stop focused and
+unfocused, and compares the two frames pixel by pixel — which is the only way to
+see an indicator built from `outline: auto`, a pseudo-element or a box-shadow,
+and the only way to catch a ring drawn in the same colour as the control it
+surrounds. Three traps it caught on real pages, all invisible to a code review:
+
+- A chart's focus ring used the series colour, and the focused bar was filled
+  with that same colour: the ring rendered at 1.01:1, i.e. not at all. Contrast
+  against the *page* was fine; contrast against the *control* was not.
+- `outline: auto` reports as `1px` in computed style whatever the browser
+  actually draws. Computed styles are evidence of intent, never of appearance.
+- A page that reached every one of its own controls could still pin Tab inside
+  the document forever, making the browser's own UI unreachable. Coverage is not
+  the test; leaving the document is.
+
+Prefer a ring that contrasts with both the control and the surface behind it —
+`outline: 3px solid` plus `outline-offset: 2px` in a colour that is not the
+component's own fill. Zero-offset rings on a filled control are the most common
+way this fails.
+
 ## Primitive behaviors (from Radix)
 
 Interaction contracts extracted from the Radix Primitives documentation, radix-ui.com/primitives/docs (components dialog, dropdown-menu, tabs, tooltip, toast; fetched 2026-11-07). Radix implements these so the WAI-ARIA patterns hold; role and ARIA-attribute details defer to the APG source. Where Radix's own defaults differ from the heuristics above (tooltip delay), the local heuristic stays the default here and the Radix number is recorded for comparison.

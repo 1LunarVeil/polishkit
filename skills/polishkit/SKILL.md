@@ -1,6 +1,6 @@
 ---
 name: polishkit
-description: Visual decisions and visual verification for web and desktop UI (direction, palette, type, layout, density, motion, states). Ships product precedents (Chinese and English keywords), WCAG and draft-APCA contrast checks, a token-file linter, a rendered-page contrast audit, color-vision simulation, a scanner for generic "AI slop" tells, and a CDP render-capture-diff loop that proves what a change did to the screen, dark theme and interaction states included. Use alongside frontend-design when building, restyling or reviewing a UI, choosing colors or fonts, or critiquing visual quality.
+description: Visual decisions and visual verification for web and desktop UI (direction, palette, type, layout, density, motion, states). Ships product precedents (Chinese and English keywords), WCAG and draft-APCA contrast checks, a token-file linter, a rendered-page contrast audit, color-vision simulation, a scanner for generic "AI slop" tells, a CDP render-capture-diff loop that proves what a change did to the screen (dark theme and interaction states included), and a keyboard audit that measures the Tab order, keyboard traps and the focus ring's real pixel contrast. Use alongside frontend-design when building, restyling or reviewing a UI, choosing colors or fonts, or critiquing visual quality.
 ---
 
 # PolishKit
@@ -57,7 +57,8 @@ Before calling it done, render the hero and the signature once and look (`python
 - `python scripts/slop_scan.py <changed paths>`. Exit status 1 means blocking findings.
 - `python scripts/token_lint.py <paths>` audits the token file and raw-value leaks.
 - Contrast for every text and UI pair you actually shipped (`wcag.py`; `--apca` adds a draft supplementary reading). When the page can be served, `python scripts/page_audit.py <url>` audits every visible pair in the render and separates measurable verdicts from uncertain ones.
-- A keyboard-only pass, a reduced-motion pass, and the break test with worst-case data.
+- `python scripts/keyboard_audit.py <url>` when the page can be served: it dispatches real Tab presses and screenshots each stop focused and unfocused, so keyboard reach, traps, a missing or invisible focus ring (measured against the control it surrounds, not the page), focus obscured by overlays, and contrast that only fails on hover are measured rather than asserted. Exit 1 means a measurable keyboard or focus failure. Read `--measure` in its output: stops past the budget were walked but not photographed, and the report says so.
+- A reduced-motion pass, and the break test with worst-case data.
 - Console errors are failures. So is a capture reported as `blank`; treat one reported as unsettled as suspect.
 
 When no browser can be reached, write "not visually verified", name the states you skipped, and claim nothing about what the rendered UI looks like.
@@ -105,5 +106,5 @@ Every default (font, palette, radius, shadow, layout, icon set) must be chosen f
 - `references/critique.md`: review procedure, ten pillars, severity, output format.
 - `references/visual-review.md`: how to render, capture, read and re-diff the UI.
 - `references/sources.md`: where each rule came from and what was deliberately not used.
-- `scripts/wcag.py`, `scripts/design_lookup.py`, `scripts/slop_scan.py`, `scripts/token_lint.py`, `scripts/visual_capture.py`, `scripts/image_diff.py`, `scripts/color_sim.py`, `scripts/cdp.py`, `scripts/page_audit.py`: read-only, no third-party packages, no network (the capture and audit tools talk to a loopback browser you already have). Use `py -3` if `python` is not on PATH.
+- `scripts/wcag.py`, `scripts/design_lookup.py`, `scripts/slop_scan.py`, `scripts/token_lint.py`, `scripts/visual_capture.py`, `scripts/image_diff.py`, `scripts/color_sim.py`, `scripts/cdp.py`, `scripts/page_audit.py`, `scripts/keyboard_audit.py`: read-only, no third-party packages, no network (the capture and audit tools talk to a loopback browser you already have). Use `py -3` if `python` is not on PATH.
 - `data/`: MIT-licensed CSV data vendored from ui-ux-pro-max (see `data/PROVENANCE.md`).

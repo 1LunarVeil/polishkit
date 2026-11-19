@@ -58,7 +58,15 @@ def _paeth(a, b, c):
 
 def decode_png(path):
     """Return (width, height, pixels) with pixels as bytes of 3 channels or 4."""
-    data = Path(path).read_bytes()
+    return decode_png_bytes(Path(path).read_bytes())
+
+
+def decode_png_bytes(data):
+    """Decode PNG bytes already in memory; same return shape as decode_png.
+
+    The interaction audit crops screenshots it never writes to disk, so it
+    needs the decoder without a path.
+    """
     if not data.startswith(PNG_SIGNATURE):
         raise Unsupported("not a PNG")
     width = height = depth = color_type = interlace = None

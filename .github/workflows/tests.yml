@@ -85,3 +85,27 @@ jobs:
             echo "expected exit status 3 for a rejected URL, got $status"
             exit 1
           fi
+
+      # The audits need a browser for the real work, so CI checks the contract
+      # that matters most: with nothing to measure, they claim nothing. The
+      # "no browser" condition is simulated with a stub rather than relied on,
+      # because a runner may well have Chromium and then exit for a different
+      # reason — a test that passes for the wrong reason proves nothing.
+      # The check lives in tests/ci_no_browser.py: a heredoc inside a YAML
+      # block would have to break Python's own indentation rules.
+      - name: Audits claim nothing without a browser
+        run: python -B tests/ci_no_browser.py
+
+      - name: Audits reject an unsafe URL
+        shell: bash
+        run: |
+          for tool in page_audit keyboard_audit; do
+            set +e
+            python "skills/polishkit/scripts/${tool}.py" "file:///etc/passwd"
+            status=$?
+            set -e
+            if [ "$status" -ne 3 ]; then
+              echo "expected exit status 3 from ${tool}, got $status"
+              exit 1
+            fi
+          done

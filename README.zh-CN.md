@@ -24,8 +24,10 @@
 | 按产品类型查先例 | `scripts/design_lookup.py`，基于八个数据集，配色自动做对比度检查 |
 | 找出源码里的通用"AI 味"和工程缺陷 | `scripts/slop_scan.py`，20 项检查（17 条行规则 + 焦点、reduced-motion、裸色值三项跨行检查），按严重度分级，有阻断项时退出码 1 |
 | 按多种尺寸与缩放抓真实渲染 | `scripts/visual_capture.py`，等画面稳定，报告 console 错误与空白帧 |
+| 审计渲染页面里每一对可见文字 | `scripts/page_audit.py`：可测的给判定，渐变/图片/遮挡显式归入 `uncertain` |
+| 审计键盘路径与焦点环的实际渲染 | `scripts/keyboard_audit.py`：真实 Tab 走查、键盘陷阱、`tabindex="-1"` 控件、遮挡焦点、仅在 hover 失效的对比度，以及焦点环对它**所环绕控件**的像素对比度（2.1.1、2.1.2、2.4.7、2.4.11、1.4.11；2.4.13 作 AAA 参考） |
 | 证明一次改动到底改到了哪 | `scripts/image_diff.py`，零依赖解 PNG，输出变化区域与比例 |
-| 评审既有界面并给出分级结论 | `references/critique.md`（九个维度）与 `/design-review` |
+| 评审既有界面并给出分级结论 | `references/critique.md`（十个维度）与 `/design-review` |
 | 在桌面或 WebView 应用里套用这些规则 | `references/desktop-app.md` |
 
 ## 做不到什么
@@ -134,6 +136,7 @@ python skills/polishkit/scripts/image_diff.py shots/wide-1440x900-light@1.png sh
 - `token_lint.py PATH ...` 审计 token 文件：定义处的配色对对比度、裸值泄漏（带"该用 var(--token)"建议）、缺失语义角色、未使用 token、偏离刻度的值。
 - `visual_capture.py URL --out DIR` 抓单张，或加 `--matrix` 抓标准矩阵（1440×900、1440×900@150%、1100×720、390×844）。CDP 引擎下 `--dark` 真实模拟 `prefers-color-scheme`，`--full-page`、`--element`、`--hover`、`--focus` 抓普通截图够不到的状态；任何 CDP 失败自动降级旧引擎，JSON 里如实标注本次用的引擎。它会反复抓直到连续两帧完全相同，避免把半渲染的空壳当成设计。退出码 2 表示找不到浏览器，3 表示 URL 被拒绝（仅 http/https、不以 `-` 开头、私网地址需显式加 `--allow-private`）。
 - `page_audit.py URL` 遍历渲染页面，审计每一对可见文字：可测的给 pass/fail，渐变、图片、混合模式、遮挡这类算不准的显式归入 `uncertain`，绝不冒充判定。
+- `keyboard_audit.py URL` 真实按下 Tab 逐站走查，每站各抓一张聚焦态与一张未聚焦态截图。报告：键盘无法到达的控件（2.1.1，含交互元素上的 `tabindex="-1"`）、键盘陷阱（2.1.2；模态对话框内部的循环算 review 不算失败）、缺失或不可感知的焦点环——对比度是对**它所环绕的控件**量的（2.4.7 / 1.4.11）、被作者内容盖住的焦点（2.4.11）、以及只在聚焦或 hover 态才失效的文字对比度（1.4.3）。2.4.13 的面积与同像素读数作为 AAA 证据打印，永不参与退出码。`--measure N` 限制拍多少站，报告会点名"走过但未拍"的站；退出码 1 表示有可测的键盘或焦点失败。
 - `color_sim.py COLOR ...` 模拟红色盲、绿色盲、蓝黄色盲（Machado 2009）；`--check FG BG` 报告配色对的对比度在模拟后是否崩塌。
 - `image_diff.py A.png B.png` 用标准库解 PNG，输出变化像素数、比例和包围盒；传入两个目录则跑基线报告；加 `--stats` 只看单张统计。
 
@@ -163,11 +166,11 @@ skills/polishkit/
     components-and-states.md  状态矩阵、文案规则、极限数据测试
     desktop-app.md          WebView 与桌面应用规则
     anti-slop.md            通用痕迹、为什么像默认值、该问什么
-    critique.md             评审流程、九个维度、严重度、输出格式
+    critique.md             评审流程、十个维度、严重度、输出格式
     visual-review.md        渲染、截图、读图、再对比
     sources.md              每条规则的来源，以及刻意未采用的内容
   scripts/                  wcag、design_lookup、slop_scan、token_lint、visual_capture、
-                            image_diff、page_audit、color_sim、cdp
+                            image_diff、page_audit、keyboard_audit、color_sim、cdp
   data/                     ui-ux-pro-max 的八个 MIT CSV 文件（另有自有的 zh-keywords.csv）
 commands/                   可选的斜杠命令
 tests/                      仅用标准库的单元测试与夹具
@@ -179,13 +182,14 @@ tests/                      仅用标准库的单元测试与夹具
 python -B -m unittest discover -s tests -v
 ```
 
-测试覆盖：对比度算法对公开参考值的校验、草案 APCA 实现对"引用源码推导锚点"的复现、OKLCH 与 sRGB 一致、Machado 模拟矩阵（灰度不变性、红→橄榄锚点）、产品名加权匹配、每条扫描规则与 token 检查对"缺陷夹具"的命中、多行标签与抑制机制、PNG 解码与精确 diff 几何（用生成的夹具）、尺寸不一致与非 PNG 的处理、解压炸弹与超大尺寸的拒绝、截图工具的 URL 校验（选项式字符串、非 http 协议、私网与链路本地地址、显式放行），以及 WebSocket/CDP 协议层的字节级测试（握手向量、帧布局、分片、上限、回环门禁）。测试不需要网络，也不需要浏览器；PNG 夹具由 `tests/make_fixtures.py` 生成。
+测试覆盖：对比度算法对公开参考值的校验、草案 APCA 实现对"引用源码推导锚点"的复现、OKLCH 与 sRGB 一致、Machado 模拟矩阵（灰度不变性、红→橄榄锚点）、产品名加权匹配、每条扫描规则与 token 检查对"缺陷夹具"的命中、多行标签与抑制机制、PNG 解码与精确 diff 几何（用生成的夹具）、尺寸不一致与非 PNG 的处理、解压炸弹与超大尺寸的拒绝、截图工具的 URL 校验（选项式字符串、非 http 协议、私网与链路本地地址、显式放行）、WebSocket/CDP 协议层的字节级测试（握手向量、帧布局、分片、上限、回环门禁），以及键盘审计的判定逻辑与像素算术（分桶归属、走查结束原因、手工构造帧上的焦点环测量）。测试不需要网络，也不需要浏览器；PNG 夹具由 `tests/make_fixtures.py` 生成。
 
 ## 已知边界
 
 - 扫描器只发现能用规则描述的模式，不判断"好不好看"。每条发现都需要人工确认。例如 `outline: none` 只有在没有替代焦点样式时才是问题。
 - 配色只是起点。192 行里只有 1 行的文字配对不达标，但有 173 行的边框低于 3:1、30 行的主色与背景低于 3:1。上线前必须复核 UI 配对。
 - 截图经 CDP 可达 hover、焦点、元素裁剪与整页状态；降级后的旧引擎只抓稳态画面，JSON 里始终标明本次用的引擎。展开菜单、过渡中间帧仍需驱动型浏览器工具。
+- `keyboard_audit.py` 需要浏览器，且只拍有限站数（`--measure`）；超出的站会被走过但不拍，报告会说明。它不模拟 `prefers-reduced-motion` 或 forced-colors。页面若在 `blur()` 后自动夺回焦点，该站以 uncertain 报告而非下判定——因为第二帧并非未聚焦帧。
 - `image_diff.py` 不是回归门禁，且只解码非隔行 8 位 PNG；其他 PNG 变体会被报告为不支持，而不是错误比较。
 - 机器上没有浏览器时，视觉这一步跑不了。此时技能要求评审写"未做视觉验证"，而不是描述一个没见过的页面。
 - 时长、密度、断点的阈值来自经验的启发式，不是标准。属于 WCAG 的条目在 `references/sources.md` 里单独标注。

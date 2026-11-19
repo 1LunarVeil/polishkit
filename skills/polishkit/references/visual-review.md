@@ -72,6 +72,31 @@ Capture these when they exist. Skip any that need unavailable data, and say whic
 | hover and focus states | where the cursor and keyboard actually land (`--hover`, `--focus`) |
 | full page | what lives below the fold (`--full-page`) |
 
+## 5a. The keyboard pass
+
+`--focus "selector"` captures one element you already know is broken. `python
+scripts/keyboard_audit.py <url>` finds out which ones are broken: it presses Tab
+for real, stop by stop, and shoots each stop twice — once focused, once not —
+then compares the frames. Read it as the fifth capture view, with numbers:
+
+- It measures the indicator against the control it *surrounds*, not the page
+  behind it. A ring in the component's own fill colour reads 1.0:1 there even
+  when every page-level contrast check passes. This is the failure mode that a
+  code review and `page_audit.py` both miss.
+- `outline: auto` computes as `1px` however thick the browser actually draws it,
+  and a ring drawn by `:focus-visible::after` or `box-shadow` has no outline at
+  all. Computed style describes intent; only the frame shows appearance.
+- Traps are reported with their extent. A cycle confined to a dialog is a
+  review — confirm Escape leaves it. A cycle anywhere else fails, including the
+  case where every control is reachable but Tab can never leave the document.
+- Controls carrying `tabindex="-1"` never enter a Tab walk by construction, so
+  the tool looks for them separately; a skip target is not a defect, an
+  interactive control removed from the order is.
+- `prefers-reduced-motion` is still manual: this tool does not emulate it.
+
+The report says how many stops were photographed and names how many were only
+walked. Claim nothing about a stop the tool did not measure.
+
 ## Report format
 
 Add a Visual section to the review:

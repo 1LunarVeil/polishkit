@@ -2,6 +2,36 @@
 
 All notable changes to this project are recorded here. The format follows Keep a Changelog, and versions follow Semantic Versioning.
 
+## [2.1.0] - 2026-11-19
+
+The interaction-level audit. 2.0 taught keyboard and focus rules the plugin never verified; this release measures them, closing the largest self-contradiction in the skill.
+
+### Added
+
+- **`scripts/keyboard_audit.py`** — a keyboard and focus audit over CDP. It dispatches real Tab presses (not simulated `focus()` calls, so `:focus-visible`, scroll anchoring and in-page focus management behave as they do for a keyboard user), screenshots each stop focused and unfocused, and compares the two frames pixel by pixel.
+  - **2.1.1 keyboard reach**: interactive elements carrying `tabindex="-1"` (which never enter a Tab walk by construction, so walking alone cannot find them), plus tabbables the walk never reached when the walk finished normally.
+  - **2.1.2 traps**: a walk that never leaves the document fails — including the case where every tabbable is reachable but the browser's own UI is not. A cycle confined to a dialog is a review naming the container.
+  - **2.4.7 / 1.4.11 focus indicator**: identity of the two frames, the indicator's same-pixel change, and its contrast against the colours it actually touches. Measurement is pixel evidence because `outline: auto` computes as `1px` whatever the browser draws, and `box-shadow` and pseudo-element rings have no outline at all.
+  - **2.4.11 focus obscured**: five hit-test samples inside the border box; "entirely hidden" is the criterion's bar, so a partly covered control passes.
+  - **1.4.3 in transient states**: the element's own text pair in the focused and hovered states, composited exactly as `page_audit.py` composites the resting state — catching pairs that pass at rest and fail on hover.
+  - **2.4.13 (AAA)**: indicator area against the 4h + 4w two-pixel perimeter and same-pixel state contrast, printed as supplementary evidence that never drives the exit code.
+  - Same taxonomy as `page_audit.py` (measurable pass/FAIL, uncertain, review), same "claims nothing" contract with no browser, `--measure` bounds photographed stops and the report names those walked but not measured.
+- `tests/test_keyboard_audit.py`: 62 browser-free tests over the deciding logic and the pixel arithmetic, including REGRESSION tests for three defects a real smoke page caught first — the trap cascade that reported every later control as unreachable, the hover read that happened after the pointer left (turning a hover contrast failure into a pass), and the `<body>` end-of-walk stop that `label()` renamed and so went unrecognised, producing a trap FAIL and a "no indicator" FAIL on a clean page.
+- `image_diff.decode_png_bytes`: the PNG decoder without a path, so the audit can measure crops it never writes to disk.
+
+### Changed
+
+- `SKILL.md` step 7 runs the keyboard audit instead of asking for a manual keyboard pass; the description, references and both READMEs name the new capability.
+- `critique.md` pillar 9 and the mechanical-checks list split the accessibility floor between `page_audit.py` (contrast, target size, names) and `keyboard_audit.py` (reach, traps, focus, states). `visual-review.md` gains a keyboard-pass section. `components-and-states.md` records the three failure modes the audit caught on real pages.
+- `sources.md` adds the clause texts for 2.1.1, 2.4.7, 2.4.11, 1.4.11 and 2.4.13 with their conformance levels, and states plainly which two measurements (per-side median adjacency; adjacency only over qualifying pixels) are engineering decisions rather than quoted thresholds.
+- Both READMEs also correct "nine pillars" to ten, which 2.0 had already changed and the capability table had not.
+
+### Evidence
+
+Run against the five 2.0 treatment pages, the new audit found a defect class `page_audit.py` cannot see. B3's chart bars carry `focus-visible` rings drawn in `--accent` (#963D0D) while the focused bar is filled with that same colour. Two bars lose the ring almost everywhere — "Sun 1 Nov" reads 1.01:1 on its top edge with only 1 of 3 comparable sides above the floor, and "Sat 7" 1.64:1 with 1 of 4 — so the ring is effectively invisible on the element it marks. Two more (`Thu 5`, `Fri 6`) have the same ring colour but keep three readable sides because the bar fills the plot area on only one edge; those pass, and the pass is correct under 1.4.11, whose test is whether the state can be picked out rather than whether every edge is perfect. An earlier per-side-minimum rule flagged all six as failures; checking the measured sides against the clause text is what corrected it. B2 and B4 report the expected background-image uncertainties on texture-heavy pages with no measurable failure; B1 and B5 are clean. B5 is the instructive near-miss: a 3px black ring on a button with a black hard shadow merges into that shadow at 1.02:1 on one edge while the other three sit at ~17.7:1.
+
+These page defects are recorded rather than silently fixed: they are benchmark artefacts from 2.0, and the fix is a page edit, not a tool change.
+
 ## [2.0.0] - 2026-11-08
 
 First release under the new name — **PolishKit** (formerly `frontend-aesthetics`; the 0.1.0–0.1.3 announcements below were published under the old name). The 0.1.x line built the machinery; 2.0 internalizes twenty sources of design practice into the skill itself, adds the expression layer that benchmark evidence showed was missing, and ships that evidence.

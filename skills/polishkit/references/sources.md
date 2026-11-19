@@ -42,6 +42,60 @@ Twenty further sources were read, extracted and internalized across batches A–
 - **Empirical**: Nielsen Norman Group and Baymard → three citations landed (line length 50–75/≤80, CJK ≤40, touch-target physical floor), twelve plugin heuristics honestly marked "no empirical source found (checked 2026-11-07)" in the batch notes. A widely-circulated "Baymard touch-target" article was verified 404 and re-attributed to UX Movement 2012.
 - **Expression**: the expression layer itself (`expression.md`) synthesizes the judgment sources into the checklist that benchmark evidence showed was needed — pages were compliant and inert without it.
 
+## Keyboard and focus audit (2.1)
+
+Normative text for every clause `scripts/keyboard_audit.py` reports was read
+from the W3C Understanding documents on 2026-11-19, not recalled:
+
+- **2.1.1 Keyboard (A)** — https://www.w3.org/WAI/WCAG22/Understanding/keyboard
+- **2.1.2 No Keyboard Trap (A)** — the trap the audit tests for; a modal
+  dialog's internal cycle is expected behaviour, so it is reported as a review
+  naming the container.
+- **2.4.7 Focus Visible (AA)** — https://www.w3.org/WAI/WCAG22/Understanding/focus-visible
+- **2.4.11 Focus Not Obscured (Minimum) (AA)** — https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.
+  Verbatim requirement: "When a user interface component receives keyboard
+  focus, the component is not entirely hidden due to author-created content."
+  The word *entirely* is why the audit passes a partly covered control, and its
+  Note 2 ("If the user can reveal the focused component without advancing the
+  keyboard focus") is why a scrollable-into-view control is not reported.
+- **1.4.11 Non-text Contrast (AA)** — https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.
+  "The visual presentation of the following have a contrast ratio of at least
+  3:1 against adjacent color(s)". This is the clause behind the plugin's own
+  3:1 focus-indicator floor, and it is what the pixel measurement checks: the
+  indicator against the colours it actually touches.
+- **2.4.13 Focus Appearance (AAA)** — https://www.w3.org/WAI/WCAG22/Understanding/focus-appearance.
+  Area: "at least as large as the area of a 2 CSS pixel thick perimeter of the
+  unfocused component or sub-component"; the Understanding document gives the
+  rectangle form as **4h + 4w**, which is the constant this plugin uses.
+  Contrast: "a contrast ratio of at least 3:1 between the same pixels in the
+  focused and unfocused states". **This criterion is AAA**, so it is reported as
+  supplementary evidence and never drives the exit status.
+
+Two measurements in the tool are engineering decisions rather than quoted
+thresholds, recorded here so the boundary is visible:
+
+- **Adjacent contrast is a per-side median, and the verdict needs most sides to
+  clear the floor.** Measured on hand-built indicator styles, a per-pixel
+  minimum is defeated by antialiased corners: a clean 6:1 ring reported 3.07:1
+  because one corner pixel blended toward the surface. A per-side median fixes
+  that, but taking the *worst* side as the verdict was wrong in the other
+  direction: a real page with a black 3px ring on a button carrying a black hard
+  shadow merges into the shadow at 1.02:1 on one edge while the other three sit
+  at 17.7:1, and 1.4.11 asks whether the state can be picked out, not whether
+  every edge is perfect. The tool therefore fails an indicator only when more
+  than half of its measured sides sit under the floor, and otherwise passes it
+  with the caveat recorded in `note`. Verified on five real pages: two chart
+  bars whose ring matched their own fill failed, two with the same ring but a
+  readable majority passed.
+- **The 1.4.11 adjacency check only runs on qualifying pixels** (those whose
+  focused-vs-unfocused change is already at least 3:1). A ring whose entire
+  change is below 3:1 has no indicator to measure and fails through the same
+  clause with the "not perceivable" message.
+
+Deliberately not covered: `prefers-forced-colors` (Windows High Contrast turns
+most rings into system colours the author does not control), `prefers-reduced-motion`,
+and 1.3.1 structure. None is implied by a clean audit result.
+
 ## Deliberately not used
 
 - Icon, font-catalogue and CDN metadata, and any stack-specific code (React, Next.js, Tailwind, Figma plugin APIs). They do not match a vanilla or desktop WebView UI.
