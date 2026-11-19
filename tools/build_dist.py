@@ -115,6 +115,11 @@ def build():
         encoding="utf-8",
     )
 
+    # Mimosa (a security hook) writes .mimosa/ into any workspace this session
+    # touches -- including the staging tree. Strip it after staging so an
+    # install never inherits hook ledgers.
+    shutil.rmtree(TARGET / ".mimosa", ignore_errors=True)
+
     problems = _verify(TARGET)
     if problems:
         for problem in problems:
