@@ -99,7 +99,7 @@ jobs:
       - name: Audits reject an unsafe URL
         shell: bash
         run: |
-          for tool in page_audit keyboard_audit text_spacing; do
+          for tool in page_audit keyboard_audit text_spacing reflow; do
             set +e
             python "skills/polishkit/scripts/${tool}.py" "file:///etc/passwd"
             status=$?

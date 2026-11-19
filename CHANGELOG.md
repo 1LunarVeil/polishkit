@@ -2,6 +2,29 @@
 
 All notable changes to this project are recorded here. The format follows Keep a Changelog, and versions follow Semantic Versioning.
 
+## [2.2.4] - 2026-11-19
+
+The last two layout clauses the plugin taught but never measured.
+
+### Added
+
+- **`scripts/reflow.py`** — loads the page at 320, 400 and 768 CSS px and reports WCAG 1.4.10's own failure: the document scrolling horizontally on vertically-flowing content, plus the elements that cause it. A `--text-scale 2.0` reading covers 1.4.4.
+  - Findings are grouped by shared right edge. One unresponsive dashboard grid produced 106 separate WIDER findings across five descendants at x=386; grouping reports it once and names how many elements restated it.
+  - The criterion's two-dimensional exception is structural: content inside `table`, `svg`, `video`, `canvas`, `pre`, `[role=img]` and similar is reported as `uncertain:2d-exception` with the container named, never as a failure. `code` is deliberately absent from that list — an inline snippet with `white-space:nowrap` is exactly the overflow that must be fixed, and treating it as excepted hid the only real finding on the probe page.
+- `tools/crosscheck.py` runs it as a fourth column, so the whole layout floor (contrast, keyboard, spacing, reflow) reads in one table.
+
+### Fixed
+
+- **`reflow.py` measured against the wrong width.** `documentElement.clientWidth` excludes the vertical scrollbar, so a 320px request reported a 305px viewport and every element reaching past the scrollbar became a false WIDER — 112 of them on one page. The requested width is now part of the measurement baseline; the scrollbar is the browser's furniture, not the page's failure.
+- **`reflow.py` discarded element geometry.** `classify` wrote the viewport into each finding's `width` field and dropped `right` entirely, so every finding read "320px wide" and the de-duplication that groups by right edge had nothing to group on. Both now survive, and the tested viewport travels as its own field.
+- **`reflow.py` applied the exception to ancestors but not to the element.** A wide `<table>` failed while its own cells were listed as excepted.
+
+### Verification
+
+- 329 tests pass (307 + 22).
+- Probe page with a 900px fixed card, a nowrap code line and an excepted table: 8 FAIL at every width, table excepted, healthy paragraph silent. Clean page: 0 FAIL, exit 0.
+- Five treatment pages: B1 27 FAIL grouped from 140 raw findings, B2 0, B3 4, B4 0, B5 3. B1's dashboard does not reflow at 320px — a real finding, not an artefact.
+
 ## [2.2.3] - 2026-11-19
 
 One new tool and the defect it exposed in an existing one.

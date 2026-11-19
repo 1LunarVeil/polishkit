@@ -72,11 +72,13 @@ class ReportTests(unittest.TestCase):
             {"url": "http://a/", "audits": {
                 "page": {"verified": True, "fail": 0, "uncertain": 4},
                 "keyboard": {"verified": True, "fail": 1, "uncertain": 0},
-                "spacing": {"verified": True, "fail": 0, "uncertain": 0}}},
+                "spacing": {"verified": True, "fail": 0, "uncertain": 0},
+                "reflow": {"verified": True, "fail": 0, "uncertain": 2}}},
             {"url": "http://b/", "audits": {
                 "page": {"verified": False, "reason": "no browser"},
                 "keyboard": {"verified": True, "fail": 0, "uncertain": 0},
-                "spacing": {"verified": True, "fail": 0, "uncertain": 0}}},
+                "spacing": {"verified": True, "fail": 0, "uncertain": 0},
+                "reflow": {"verified": True, "fail": 0, "uncertain": 0}}},
         ]
 
     def test_unverified_audits_are_named_not_zeroed(self):
@@ -94,9 +96,9 @@ class ReportTests(unittest.TestCase):
         for clause in ("1.4.3", "2.1.1", "1.4.12"):
             self.assertIn(clause, text)
 
-    def test_all_three_audits_are_registered(self):
+    def test_all_four_audits_are_registered(self):
         names = [name for name, _module, _covers in crosscheck.AUDITS]
-        self.assertEqual(names, ["page", "keyboard", "spacing"])
+        self.assertEqual(names, ["page", "keyboard", "spacing", "reflow"])
 
 
 if __name__ == "__main__":

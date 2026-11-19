@@ -25,6 +25,7 @@ sys.path.insert(0, str(ROOT / "skills" / "polishkit" / "scripts"))
 
 import keyboard_audit  # noqa: E402
 import page_audit  # noqa: E402
+import reflow  # noqa: E402
 import text_spacing  # noqa: E402
 
 
@@ -40,13 +41,14 @@ def run_quietly(main, argv):
 
 
 def main():
-    # One stub covers all three modules: they share the sibling visual_capture.
+    # One stub covers all four modules: they share the sibling visual_capture.
     keyboard_audit.visual_capture.find_browser = lambda: None
     page_audit.visual_capture.find_browser = lambda: None
     text_spacing.visual_capture.find_browser = lambda: None
+    reflow.visual_capture.find_browser = lambda: None
 
     failures = []
-    for tool in (page_audit, keyboard_audit, text_spacing):
+    for tool in (page_audit, keyboard_audit, text_spacing, reflow):
         code, output = run_quietly(tool.main, ["http://127.0.0.1:9/"])
         try:
             payload = json.loads(output)
@@ -64,7 +66,7 @@ def main():
         for failure in failures:
             print(f"FAIL {failure}", file=sys.stderr)
         return 1
-    print("all three audits claim nothing without a browser")
+    print("all four audits claim nothing without a browser")
     return 0
 
 

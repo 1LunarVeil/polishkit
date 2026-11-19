@@ -29,6 +29,7 @@ Concretely, it changes four things about how an agent works on UI:
 | Audit every visible text pair in the rendered page | `scripts/page_audit.py`: measurable verdicts separated from uncertain ones (gradients, images, occlusion) |
 | Audit the keyboard path and the focus ring as rendered | `scripts/keyboard_audit.py`: real Tab presses, traps, `tabindex="-1"` controls, overlay-obscured focus, hover-only contrast failures, and the indicator's pixel contrast against the control it surrounds (2.1.1, 2.1.2, 2.4.7, 2.4.11, 1.4.11; 2.4.13 as AAA evidence) |
 | Prove the layout survives a user's text-spacing overrides | `scripts/text_spacing.py`: applies WCAG 1.4.12's four values and reports clipped cards, `max-height` boxes, single-line labels losing text and text runs that only collide after the override |
+| Prove the layout reflows at 320 CSS px | `scripts/reflow.py`: loads the page at three widths, reports horizontal scrolling (1.4.10) and the elements that cause it, honours the two-dimensional exception, and takes a 1.4.4 text-scale reading |
 | Read contrast through a draft lens; test hue-dependent meaning | `wcag.py --apca` (draft APCA Lc, supplementary) and `scripts/color_sim.py` (Machado 2009 CVD simulation with a pair-collapse check) |
 | Prove what a change actually did to the screen | `scripts/image_diff.py`, zero-dependency PNG decode, changed region and ratio, plus a baseline directory report |
 | Review an existing UI and get prioritized findings | `references/critique.md` (ten pillars) and `/design-review` |
@@ -182,7 +183,7 @@ skills/polishkit/
     visual-review.md        render, capture, read, re-diff
     sources.md              where each rule came from, and what was rejected
   scripts/                  wcag, design_lookup, slop_scan, token_lint, visual_capture,
-                            image_diff, page_audit, keyboard_audit, text_spacing,
+                            image_diff, page_audit, keyboard_audit, text_spacing, reflow,
                             color_sim, cdp
   data/                     eight MIT-licensed CSV files from ui-ux-pro-max
 commands/                   optional slash commands

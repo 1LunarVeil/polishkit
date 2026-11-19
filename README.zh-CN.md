@@ -27,6 +27,7 @@
 | 审计渲染页面里每一对可见文字 | `scripts/page_audit.py`：可测的给判定，渐变/图片/遮挡显式归入 `uncertain` |
 | 审计键盘路径与焦点环的实际渲染 | `scripts/keyboard_audit.py`：真实 Tab 走查、键盘陷阱、`tabindex="-1"` 控件、遮挡焦点、仅在 hover 失效的对比度，以及焦点环对它**所环绕控件**的像素对比度（2.1.1、2.1.2、2.4.7、2.4.11、1.4.11；2.4.13 作 AAA 参考） |
 | 证明布局能撑住用户的文本间距覆盖 | `scripts/text_spacing.py`：注入 WCAG 1.4.12 的四项值，报告被裁切的卡片、`max-height` 盒子、丢掉文字的省略号标签，以及只在覆盖后才重叠的文字块 |
+| 证明布局在 320 CSS px 下能回流 | `scripts/reflow.py`：在三个宽度下加载页面，报告横向滚动（1.4.10）及其成因元素，遵守二维版面例外，并给出 1.4.4 的文字缩放读数 |
 | 证明一次改动到底改到了哪 | `scripts/image_diff.py`，零依赖解 PNG，输出变化区域与比例 |
 | 评审既有界面并给出分级结论 | `references/critique.md`（十个维度）与 `/design-review` |
 | 跑完全部机械检查并给出合并结论 | `/polish-audit`：源码检查 + 两项渲染审计，阻断/重要/待复核/不确定/未检查分列 |
@@ -174,7 +175,7 @@ skills/polishkit/
     visual-review.md        渲染、截图、读图、再对比
     sources.md              每条规则的来源，以及刻意未采用的内容
   scripts/                  wcag、design_lookup、slop_scan、token_lint、visual_capture、
-                            image_diff、page_audit、keyboard_audit、text_spacing、
+                            image_diff、page_audit、keyboard_audit、text_spacing、reflow、
                             color_sim、cdp
   data/                     ui-ux-pro-max 的八个 MIT CSV 文件（另有自有的 zh-keywords.csv）
 commands/                   可选的斜杠命令
