@@ -2,6 +2,31 @@
 
 All notable changes to this project are recorded here. The format follows Keep a Changelog, and versions follow Semantic Versioning.
 
+## [2.2.11] - 2026-11-20
+
+The benchmark grew from three measured dimensions to seven, and gained the two things that made its numbers re-derivable: an environment record and a failure library.
+
+### Added
+
+- **`tools/benchmark_env.py`** — records the environment a measurement was taken in: plugin version, Python, platform, machine, browser build, and a SHA-256 digest of every audit script. `--diff` compares the current environment against the record field by field and reports which tool drifted.
+  - It exists because of a real drift: the 2.0 benchmark recorded 101 contrast failures on the baseline condition, and the same never-edited pages now measure 105, stably, twice. Nothing in the pages or the audit changed. Without an environment record a reader cannot tell that from a regression.
+- **`benchmark/ENVIRONMENT.json`** — the fingerprint this report was measured under (Chrome 157.0.8103.79, Python 3.11.9, Windows 26200/AMD64).
+- **`benchmark/FAILURE-MODES.md`** — ten failure modes extracted from the actual failures across the three conditions, not from a taxonomy: narrow-viewport reflow, fixed widths, invisible focus rings, keyboard traps, text-spacing clipping, CJK line-breaking, contrast, attention misallocation, ladder gaps, and the reviewer-side trap of one root cause producing a dozen findings. Each names its measurable check, a real sample, the root cause and the fix, and which condition produced it.
+
+### Changed
+
+- **`benchmark/RESULTS.md` was re-measured end to end with 2.2.10 tooling.** Seven metrics now, four of them new (keyboard, text spacing, reflow, CJK line-breaking), across all three conditions. The number that matters: bare 5 / baseline 12 / treatment 0 keyboard failures; 21 / 28 / 0 reflow failures; 0 / 8 / 0 spacing failures; 0 / 1 / 0 CJK failures.
+- **The report now measures treatment twice.** The benchmark pages were repaired across four releases, so the 2.0 originals and the fixed pages are both measured and both shown. The originals carry **48 real defects** on the four dimensions the 2.0 tooling could not see — B1 losing a model name to an ellipsis, B3's chart ring at 1.01:1 against its own bar, B3 639px wide at a 320px viewport, B5's nav clipped with nothing to scroll toward. The 2.0 "0 fail" claim was true on the three dimensions it measured.
+
+### Fixed
+
+- **`keyboard_audit` focus findings carried no `check` name.** Three FAIL branches set `clause` but not `check`, so a JSON consumer grouping by check saw `None` for all sixteen focus failures in the benchmark. They are now `NO-FOCUS`, `LOW-CONTRAST` and `INDICATOR`.
+
+### Verified
+
+- 430 tests pass (412 + 18 for the environment tool).
+- Re-measuring all three conditions reproduced the recorded contrast totals: bare 48 (recorded 48), baseline 105 (recorded 101, the drift above), treatment 0 (recorded 0). Baseline measured twice, identical.
+
 ## [2.2.10] - 2026-11-20
 
 The platform dimension `design_lookup` was missing.

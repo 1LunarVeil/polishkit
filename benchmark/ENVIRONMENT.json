@@ -1,0 +1,27 @@
+{
+  "recorded_at": "2026-11-20T14:55:02Z",
+  "plugin_version": "2.2.10",
+  "python": "3.11.9",
+  "python_implementation": "CPython",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "machine": "AMD64",
+  "processor_note": "AMD64 Family 25 Model 97 Stepping 2, AuthenticAMD",
+  "browser_path": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "browser_version": "Google Chrome 157.0.8103.79",
+  "tool_digests": {
+    "cdp.py": "f4e629e26f058d7b",
+    "cjk_breaks.py": "81a1b176fa6de4a2",
+    "color_sim.py": "925274ff21c11acd",
+    "design_lookup.py": "a585c41810ab1a18",
+    "expression_audit.py": "a2b202f5f64be58f",
+    "image_diff.py": "4591306c1a096a2d",
+    "keyboard_audit.py": "474a0e511374b1ee",
+    "page_audit.py": "e5ede0b2558db5b2",
+    "reflow.py": "c0f90a43e4b01627",
+    "slop_scan.py": "c2f0ab7a8ef48794",
+    "text_spacing.py": "f8884f1cb1de226b",
+    "token_lint.py": "83940627bc585fc6",
+    "visual_capture.py": "435747021f1a8e71",
+    "wcag.py": "c958146c2165721e"
+  }
+}

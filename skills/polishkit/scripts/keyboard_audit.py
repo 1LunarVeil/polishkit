@@ -534,14 +534,14 @@ def indicator_verdict(indicator):
         "same_pixel_min": indicator.get("same_pixel_min"),
     }
     if changed == 0:
-        return dict(indicator, status="FAIL", severity="important", clause="WCAG 2.4.7",
-                    aaa=aaa,
+        return dict(indicator, check="NO-FOCUS", status="FAIL", severity="important",
+                    clause="WCAG 2.4.7", aaa=aaa,
                     message=("focused and unfocused frames are identical; the control "
                              "shows no focus indicator at all"))
     if qualifying == 0:
         strongest = indicator.get("same_pixel_median") or 0.0
-        return dict(indicator, status="FAIL", severity="important", clause="WCAG 1.4.11",
-                    aaa=aaa,
+        return dict(indicator, check="LOW-CONTRAST", status="FAIL",
+                    severity="important", clause="WCAG 1.4.11", aaa=aaa,
                     message=(f"pixels changed ({changed}) but the strongest state "
                              f"change is {strongest:.2f}:1, below the "
                              f"{FOCUS_FLOOR:.1f}:1 floor; the indicator is not "
@@ -552,13 +552,13 @@ def indicator_verdict(indicator):
         # One edge dissolving into an existing hard shadow does not hide the
         # state; an indicator unreadable against most of its surroundings does.
         if readable * 2 <= sides:
-            return dict(indicator, status="FAIL", severity="important",
-                        clause="WCAG 1.4.11", aaa=aaa,
+            return dict(indicator, check="LOW-CONTRAST", status="FAIL",
+                        severity="important", clause="WCAG 1.4.11", aaa=aaa,
                         message=(f"the indicator exists but only reaches {adjacent:.2f}:1 "
                                  f"against the colours it touches, on {sides - readable} "
                                  f"of {sides} sides (needs {FOCUS_FLOOR:.1f}:1); it "
                                  f"disappears into its surroundings"))
-        return dict(indicator, status="pass", severity="none",
+        return dict(indicator, check="INDICATOR", status="pass", severity="none",
                     clause="2.4.7 / 1.4.11", aaa=aaa,
                     note=(f"one edge ({sides - readable} of {sides}) sits at "
                           f"{adjacent:.2f}:1 against adjacent content; the ring stays "
