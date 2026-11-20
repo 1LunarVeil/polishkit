@@ -1,21 +1,21 @@
 {
-  "name": "frontend-aesthetics",
-  "description": "A design skill plus five checks and tools: contrast, product-type precedents, an AI-slop scanner, headless capture and screenshot diffing.",
+  "name": "polishkit",
+  "description": "Visual decision rules, product precedents, WCAG contrast checks, an AI-slop scanner, a render-capture-diff loop, keyboard/focus, text-spacing, reflow, CJK line-breaking and expression audits that complement the frontend-design skill.",
   "owner": {
     "name": "1LunarVeil"
   },
   "plugins": [
     {
-      "name": "frontend-aesthetics",
+      "name": "polishkit",
       "source": "./",
-      "version": "0.1.2",
-      "description": "Visual decision rules, product precedents, WCAG contrast checks, an AI-slop scanner and a render-capture-diff loop that complement the frontend-design skill.",
-      "displayName": "Frontend Aesthetics",
+      "version": "2.2.12",
+      "description": "Visual decision rules, product precedents, WCAG contrast checks, an AI-slop scanner, a render-capture-diff loop, keyboard/focus, text-spacing, reflow, CJK line-breaking and expression audits that complement the frontend-design skill.",
+      "displayName": "PolishKit",
       "displayName_i18n": {
-        "zh-CN": "前端审美"
+        "zh-CN": "PolishKit"
       },
       "description_i18n": {
-        "zh-CN": "决策规则、产品先例、对比度检查、AI 味扫描与渲染截图验证，补充 frontend-design。"
+        "zh-CN": "决策规则、产品先例、对比度检查、AI 味扫描、渲染截图验证、键盘/焦点、文本间距、回流、中文断行与表达层审计，补充 frontend-design。"
       },
       "category": "developer-tools",
       "author": {

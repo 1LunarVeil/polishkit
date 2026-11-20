@@ -126,3 +126,37 @@ jobs:
             exit 1
           fi
           echo "$output" | grep -q '"verified": false'
+
+      # The README benchmark tables are generated views of RESULTS.md
+      # (tools/benchmark_tables.py). 2.2.10 shipped with the READMEs still
+      # carrying the old numbers for a full release; this check makes that
+      # drift fail CI instead of waiting for a review to find it.
+      - name: README benchmark tables match RESULTS.md
+        run: python tools/benchmark_tables.py --check
+
+      # The corrected palette set is derived from colors.csv by a documented
+      # algorithm; regenerating must reproduce the shipped file byte for byte.
+      - name: Corrected palette set matches its derivation
+        run: python tools/palette_correct.py --check
+
+  # The unit matrix runs without a browser by design; the integration path
+  # (Chrome launched, WebSocket driven, screenshots decoded) had zero CI
+  # coverage until the external review pointed at it. The runners ship
+  # Chrome, so a defect fixture and a clean fixture are both measured here.
+  browser-smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+          - os: windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Real-browser smoke (page_audit + keyboard_audit over CDP)
+        run: python -B tests/smoke_browser.py

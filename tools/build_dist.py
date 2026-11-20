@@ -22,6 +22,12 @@ Two gates, because two different trees can be wrong:
                   invisible to --check. A test file edited in one tree only is
                   exactly how the mirror once ran 244 tests while dev ran 251.
 
+The build also stamps the two derived manifests (.claude-plugin/plugin.json and
+the Claude marketplace entry in .claude-plugin/marketplace.json) with the name,
+version and description of the source manifest (.zcode-plugin/plugin.json). The
+marketplace entry kept its own 0.1.2 through seven releases — every gate compared
+the manifests that were already consistent, and the one the public reads was not.
+
 The target is generated: never edit it by hand. This script refuses to clear a
 target that lacks the marker. The marker lives beside the target, not inside it:
 a directory-type marketplace copies the whole tree, so anything inside reaches
@@ -42,6 +48,12 @@ MARKER = ROOT.parent / ".polishkit-dist.generated"
 # The old in-tree marker. Still honoured so an existing target can be rebuilt,
 # and checked for so a rebuild that leaves it behind is caught.
 LEGACY_MARKER = ".generated-by-build_dist"
+
+# The source manifest is .zcode-plugin/plugin.json; two derived manifests
+# repeat its name/version/description and are stamped from it on every build.
+SOURCE_MANIFEST = ROOT / ".zcode-plugin" / "plugin.json"
+CLAUDE_MANIFEST = ROOT / ".claude-plugin" / "plugin.json"
+MARKETPLACE = ROOT / ".claude-plugin" / "marketplace.json"
 
 # Only what a plugin needs at runtime, plus the documents a user reads.
 INCLUDE_DIRS = (".zcode-plugin", ".claude-plugin", "skills", "commands")
@@ -93,8 +105,63 @@ def _fail(message):
 
 
 def _manifest():
-    path = ROOT / ".zcode-plugin" / "plugin.json"
-    return json.loads(path.read_text(encoding="utf-8"))
+    return json.loads(SOURCE_MANIFEST.read_text(encoding="utf-8"))
+
+
+def _write_json(path, payload):
+    # newline="\n" because json.dumps + a default text write produces CRLF on
+    # Windows, and the mirror's .gitattributes then flags every rewrite.
+    text = json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
+    with path.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(text)
+
+
+def _stamp_manifests():
+    """Stamp name/version/description from the source manifest into the derived ones.
+
+    The marketplace entry is the one that bit: it kept its own version from
+    0.1.2 while the plugin moved to 2.2.x, so the Claude Code plugin
+    marketplace showed every reader a version several minor lines behind the
+    artifact — found by an external review, not by any gate. The gates only
+    knew about the catalog and the two plugin manifests.
+
+    Stamping runs on every build, before anything is copied. Both files stay
+    hand-editable for the fields the manifest does not carry (display names,
+    category, i18n descriptions); the three stamped fields are no longer
+    hand-editable in practice, which is the point.
+    """
+    manifest = _manifest()
+    claude = json.loads(CLAUDE_MANIFEST.read_text(encoding="utf-8"))
+    changed = [field for field in ("name", "version", "description")
+               if claude.get(field) != manifest.get(field)]
+    if changed:
+        for field in changed:
+            claude[field] = manifest[field]
+        _write_json(CLAUDE_MANIFEST, claude)
+        print(f"  stamped .claude-plugin/plugin.json <- {manifest['version']}")
+
+    if not MARKETPLACE.is_file():
+        return _fail(f"missing marketplace manifest: {MARKETPLACE}")
+    marketplace = json.loads(MARKETPLACE.read_text(encoding="utf-8"))
+    entries = marketplace.get("plugins", [])
+    named = [entry for entry in entries if entry.get("name") == manifest["name"]]
+    if len(named) > 1:
+        return _fail(f"marketplace manifest lists {manifest['name']!r} {len(named)} times")
+    if named:
+        entry = named[0]
+    elif len(entries) == 1:
+        # A rename: the entry keeps its old name until this stamp updates it.
+        entry = entries[0]
+    else:
+        return _fail("marketplace manifest has no plugin entry to stamp")
+    changed = [field for field in ("name", "version", "description")
+               if entry.get(field) != manifest.get(field)]
+    if changed:
+        for field in changed:
+            entry[field] = manifest[field]
+        _write_json(MARKETPLACE, marketplace)
+        print(f"  stamped .claude-plugin/marketplace.json <- {manifest['version']}")
+    return 0
 
 
 def _strip_hook_ledger(target):
@@ -123,6 +190,22 @@ def _verify(target):
         problems.append(f"manifest name drift: {staged.get('name')!r} vs {manifest.get('name')!r}")
     if staged.get("version") != manifest.get("version"):
         problems.append(f"manifest version drift: {staged.get('version')!r} vs {manifest.get('version')!r}")
+
+    # The marketplace entry is what the Claude Code plugin marketplace shows
+    # the user; it carried 0.1.2 through seven releases before the stamp and
+    # this check existed. Verify it every time, not only after a stamp.
+    marketplace_path = target / ".claude-plugin" / "marketplace.json"
+    if marketplace_path.is_file():
+        entries = [entry for entry in json.loads(marketplace_path.read_text(encoding="utf-8")).get("plugins", [])
+                   if entry.get("name") == manifest["name"]]
+        if len(entries) != 1:
+            problems.append(f"marketplace.json has {len(entries)} entries named {manifest['name']!r}")
+        else:
+            if entries[0].get("version") != manifest["version"]:
+                problems.append(f"marketplace version drift: {entries[0].get('version')!r} "
+                                f"vs {manifest['version']!r}")
+            if entries[0].get("description") != manifest.get("description"):
+                problems.append("marketplace description differs from the manifest")
 
     skill = target / "skills" / manifest["name"] / "SKILL.md"
     if not skill.is_file():
@@ -208,6 +291,12 @@ def _size(path):
 
 
 def build():
+    # The derived manifests are stamped before anything is copied, so the
+    # staged tree and the mirror both carry the source manifest's version.
+    stamped = _stamp_manifests()
+    if stamped:
+        return stamped
+
     # An existing target may carry either the new sidecar marker or the old
     # in-tree one; both say this script made the directory.
     owned = MARKER.is_file() or (TARGET / LEGACY_MARKER).is_file()

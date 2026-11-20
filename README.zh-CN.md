@@ -21,7 +21,7 @@
 |---|---|
 | 为新的或平淡的界面定视觉方向 | `SKILL.md` 步骤 1–4、`references/principles.md`、`references/directions.md` |
 | 选出通过对比度的配色，含暗色主题 | `references/color-and-type.md` + `scripts/wcag.py`（hex、rgb、oklch） |
-| 按产品类型查先例 | `scripts/design_lookup.py`，基于八个数据集，配色自动做对比度检查 |
+| 按产品类型查先例 | `scripts/design_lookup.py`，基于八个数据集，配色默认取对比度修正后的衍生数据集（原样数据保留） |
 | 取目标桌面平台的清单 | `design_lookup.py --platform macos|windows|desktop`：窗口镶边、平台单位、控件尺寸、材质与快捷键（来自 `references/native-feel.md`），与 web UX 规则并列 |
 | 找出源码里的通用"AI 味"和工程缺陷 | `scripts/slop_scan.py`，20 项检查（17 条行规则 + 焦点、reduced-motion、裸色值三项跨行检查），按严重度分级，有阻断项时退出码 1 |
 | 按多种尺寸与缩放抓真实渲染 | `scripts/visual_capture.py`，等画面稳定，报告 console 错误与空白帧 |
@@ -45,8 +45,8 @@
 - **它不判断美丑。** 它量对比度、抓模式、给你看前后两张图。好不好看仍由人决定。
 - **它不是回归门禁。** `image_diff.py` 从不因"有差异"而失败：一次有意的重做可以改变每一个像素。它回答"改没改"，不回答"是不是变好了"。
 - **它不带浏览器。** 截图需要机器上已装 Chrome、Edge 或 Chromium，且按绝对路径解析；没有就以退出码 2 结束并说明。
-- **它看不到交互。** hover、焦点环、展开的菜单、过渡中间帧需要驱动型工具（如 Playwright）才能到达；本技能只抓落到稳态的画面。
-- **配色数据只是起点。** 192 行配色里，173 行的边框低于 3:1、30 行主色与背景低于 3:1，只有 1 行文字配对不达标。上线前必须复核 UI 配对。
+- **它不点击界面。** CDP 引擎抓得到 hover、焦点、暗色、元素与整页状态（`--hover`/`--focus`/`--dark`/`--element`/`--full-page`），`keyboard_audit.py` 会真实按 Tab 走查键盘路径——但从不点击：展开的菜单与多步流程仍需驱动型工具（如 Playwright）。过渡中间帧是刻意不抓的：截图等画面稳定再拍。
+- **配色数据只是起点。** 它以两种形式交付：`colors.csv`（ui-ux-pro-max 原样数据，192 行里 173 行边框低于 3:1、30 行主色填充、1 行文字配对不达标）与 `palettes-corrected.csv`（衍生数据集，查询工具默认使用，全部不达标配对已调整到达标）。推导方式与再生成见 `data/PROVENANCE.md`。
 
 ## 引用与来源
 
@@ -138,7 +138,7 @@ python skills/polishkit/scripts/image_diff.py shots/wide-1440x900-light@1.png sh
 ```
 
 - `wcag.py FG BG ...` 输出每对颜色的对比度，并给出 AA 正文（4.5:1）、大字号与 UI（3:1）、AAA 正文（7:1）的判定。支持 `#hex`、`rgb()`、`oklch()`；超出 sRGB 的 OKLCH 会像浏览器一样被裁切。`--apca` 追加草案版 APCA Lc 值，标注为补充信息；WCAG 判定仍是唯一门禁。
-- `design_lookup.py "<关键词>"` 返回匹配的产品类型、样式、经过检查的配色、字体组合和推理规则。中文关键词经 `data/zh-keywords.csv` 映射；不达标的配色对附带调整建议值，并明确标注"仅建议，未应用"。加 `--ux`、`--motion`、`--charts` 追加更多段落。
+- `design_lookup.py "<关键词>"` 返回匹配的产品类型、样式、经过检查的配色、字体组合和推理规则，默认读取对比度修正后的衍生配色数据集（`--original-palette` 切回原样数据）。中文关键词经 `data/zh-keywords.csv` 映射；仍不达标的配色对附带调整建议值，并明确标注"仅建议，未应用"。加 `--ux`、`--motion`、`--charts` 追加更多段落。
 - `slop_scan.py PATH ...` 把发现分为 `blocking`、`important`、`review`、`polish`，支持行级 `/* slop-ignore: RULE-ID */` 与项目级 `.sloprc`，另有 `--changed` 只扫 git 变更文件。存在阻断级发现时退出码为 1，可用于 CI；加 `--json` 输出机器可读结果。
 - `token_lint.py PATH ...` 审计 token 文件：定义处的配色对对比度、裸值泄漏（带"该用 var(--token)"建议）、缺失语义角色、未使用 token、偏离刻度的值。
 - `visual_capture.py URL --out DIR` 抓单张，或加 `--matrix` 抓标准矩阵（1440×900、1440×900@150%、1100×720、390×844）。CDP 引擎下 `--dark` 真实模拟 `prefers-color-scheme`，`--full-page`、`--element`、`--hover`、`--focus` 抓普通截图够不到的状态；任何 CDP 失败自动降级旧引擎，JSON 里如实标注本次用的引擎。它会反复抓直到连续两帧完全相同，避免把半渲染的空壳当成设计。退出码 2 表示找不到浏览器，3 表示 URL 被拒绝（仅 http/https、不以 `-` 开头、私网地址需显式加 `--allow-private`）。
@@ -197,7 +197,7 @@ python -B -m unittest discover -s tests -v
 ## 已知边界
 
 - 扫描器只发现能用规则描述的模式，不判断"好不好看"。每条发现都需要人工确认。例如 `outline: none` 只有在没有替代焦点样式时才是问题。
-- 配色只是起点。192 行里只有 1 行的文字配对不达标，但有 173 行的边框低于 3:1、30 行的主色与背景低于 3:1。上线前必须复核 UI 配对。
+- 配色只是起点。查询默认读取衍生数据集：原数据里不达标的配对（192 行中 173 行边框低于 3:1、30 行主色填充、1 行文字配对）已做最小幅度调整至达标；`--original-palette` 随时切回原样数值。修正是向黑白方向的灰度调整，不是重新设计——用之前照样要复核 UI 配对。
 - 截图经 CDP 可达 hover、焦点、元素裁剪与整页状态；降级后的旧引擎只抓稳态画面，JSON 里始终标明本次用的引擎。展开菜单、过渡中间帧仍需驱动型浏览器工具。
 - `keyboard_audit.py` 需要浏览器，且只拍有限站数（`--measure`）；超出的站会被走过但不拍，报告会说明。它不模拟 `prefers-reduced-motion` 或 forced-colors。页面若在 `blur()` 后自动夺回焦点，该站以 uncertain 报告而非下判定——因为第二帧并非未聚焦帧。
 - `image_diff.py` 不是回归门禁，且只解码非隔行 8 位 PNG；其他 PNG 变体会被报告为不支持，而不是错误比较。
@@ -214,16 +214,33 @@ python -B -m unittest discover -s tests -v
 
 ## 基准
 
-`benchmark/` 内置 5 brief × 三条件的试点，用插件自己的工具（page_audit、slop_scan、visual_capture）度量：**裸模型**（无任何设计指导）vs **frontend-design** 单跑 vs **frontend-design + PolishKit**。
+`benchmark/` 内置 5 brief × 三条件的试点，用插件自己的审计脚本度量：**裸模型**（无任何设计指导）vs **frontend-design** 单跑 vs **frontend-design + PolishKit**。下面两张表由 `tools/benchmark_tables.py --write` 从 `benchmark/RESULTS.md` 生成，CI 校验漂移。
 
+<!-- benchmark:generated:start tools/benchmark_tables.py --write; do not edit -->
 | 指标 | bare | frontend-design | + PolishKit |
 |---|---|---|---|
-| 渲染页对比度 fail | 48 | 101 | **0** |
-| 扫描发现 | 54（27 important） | 88（45 important） | **2（review）** |
-| 零状态标记页 | 1 | 2 | **0** |
-| 永不稳定渲染 | 1 | 3 | **0** |
+| 渲染页对比度 fail（WCAG 1.4.3） | **48** | 105 | **0** |
+| 对比度 uncertain（渐变/图像/遮挡，不可测） | 12 | 103 | 182 |
+| 靶标尺寸 fail（2.5.8） | 13 | 21 | 11 |
+| 无可访问名称元素（4.1.2） | 0 | 0 | 0 |
+| **键盘可达性 / 焦点 fail（2.1.1 / 2.4.7 / 1.4.11 / 2.4.11）** | **5** | **12** | **0** |
+| **文本间距 fail（1.4.12）** | 0 | **8** | **0** |
+| **回流 fail（1.4.10，320 CSS px）** | **21** | **28** | **0** |
+| **CJK 断行 fail（clreq §6.1.1）** | 0 | **1** | **0** |
+| slop_scan important 发现 | 30 | 45 | **1** |
 
-裸模型条件自己的输出恰好收敛到立场警告的那条 AI-slop 配方（暖奶油 + 赤陶 + 衬线，无人引导）。完整表格、协议与如实局限：`benchmark/RESULTS.md`。维护者裁决：地板守住，审美以更张狂的风格追平。
+| 指标 | 2.0 原始 treatment | 2.2.10 修复后 |
+|---|---|---|
+| 对比度 fail | 0 | 0 |
+| 键盘 fail | **2** | 0 |
+| 文本间距 fail | **11** | 0 |
+| 回流 fail | **34** | 0 |
+| CJK 断行 fail | **1** | 0 |
+<!-- benchmark:generated:end --><!-- benchmark:generated:end -->
+
+读这些零时要带上报告的前提：n=5、单次运行、单一底模。测量、修复与复测用的是本插件同一套工具——单人维护没有独立评审方——所以这些数字是"地板守住了"的证据，不是独立审计。treatment 列是修复后的一代；2.0 原始产物在四个当时测不了的维度上有 48 处真实缺陷（第二张表）。
+
+裸模型条件自己的输出恰好收敛到立场警告的那条 AI-slop 配方（暖奶油 + 赤陶 + 衬线，无人引导）。完整表格、协议与如实局限：`benchmark/RESULTS.md`。维护者并排看的裁决（终审与建工具是同一人）：地板守住，审美以更张狂的风格追平。
 
 ## 许可
 

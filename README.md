@@ -21,7 +21,7 @@ Concretely, it changes four things about how an agent works on UI:
 |---|---|
 | Decide a visual direction for a new or bland UI | `SKILL.md` steps 1-4, `references/principles.md`, `references/directions.md` |
 | Choose colors that pass contrast, including dark theme | `references/color-and-type.md` + `scripts/wcag.py` (hex, rgb, oklch) |
-| Look up precedents for a product type | `scripts/design_lookup.py` over eight vendored datasets, with palettes auto contrast-checked |
+| Look up precedents for a product type | `scripts/design_lookup.py` over eight vendored datasets, with palettes pre-corrected for contrast (the unchanged originals kept alongside) |
 | Get the desktop platform checklist for a target OS | `design_lookup.py --platform macos|windows|desktop`: window chrome, platform units, control sizes, materials and accelerators from `references/native-feel.md`, alongside the web UX rows |
 | Find generic "AI slop" tells and craft defects in code | `scripts/slop_scan.py`, 20 checks (17 line rules plus focus, reduced-motion and raw-colour checks), severity-ranked, exit 1 on blocking |
 | Capture the real rendered UI at several sizes and scales | `scripts/visual_capture.py`, waits for a settled frame, reports console errors and blank frames |
@@ -48,8 +48,8 @@ Stated plainly, because the alternative is users discovering it later.
 - **It does not judge beauty.** It measures contrast, catches patterns and shows you before and after. Whether the result looks good remains a human call.
 - **It is not a regression gate.** `image_diff.py` never fails on difference: a deliberate redesign may change every pixel. It answers "did this change", not "is this better".
 - **It does not ship a browser.** Capture needs Chrome, Edge or Chromium already installed, found by absolute path. Without one it exits 2 and says so.
-- **It does not see interaction.** Hover, focus rings, open menus and mid-transition states need a driving tool (Playwright and similar) to reach; this skill captures landed states only.
-- **Its palette data is a starting point.** Of 192 palette rows, 173 have a border below 3:1 and 30 have a primary fill below 3:1 against their background. Only one row has a failing text pair. Check UI pairs before shipping.
+- **It does not click through UIs.** The CDP engine captures hover, focus, dark-theme, element and full-page states (`--hover`, `--focus`, `--dark`, `--element`, `--full-page`), and `keyboard_audit.py` walks the keyboard path with real Tab presses — but nothing is ever clicked, so open menus and multi-step flows still need a driving tool (Playwright and similar). Mid-transition frames are excluded by design: capture waits for a settled frame.
+- **Its palette data is a starting point.** It ships in two forms: `colors.csv`, the ui-ux-pro-max data unchanged (173 of 192 borders below 3:1 against their background, 30 primary fills, one text pair), and `palettes-corrected.csv`, a derived set the lookup uses by default, in which every failing pair has been adjusted to pass. Derivation and regeneration: `data/PROVENANCE.md`.
 
 ## Credits
 
@@ -145,7 +145,7 @@ python skills/polishkit/scripts/image_diff.py shots/wide-1440x900-light@1.png sh
 If you installed the skill into an agent, run the same scripts from the installed skill folder, for example `~/.claude/skills/polishkit/scripts/`.
 
 - `wcag.py FG BG ...` prints the contrast ratio for each pair, with verdicts for AA text (4.5:1), large text and UI (3:1) and AAA text (7:1). It accepts `#hex`, `rgb()` and `oklch()`. Out-of-gamut OKLCH values are clipped to sRGB, the same way a browser clips them. `--apca` adds a draft APCA Lc value, marked as supplementary; the WCAG verdicts stay the gate.
-- `design_lookup.py "<keywords>"` returns matching product types, styles, a contrast-checked palette, type pairings and reasoning rules from the vendored data. Chinese keywords work through `data/zh-keywords.csv`; failed palette pairs come with suggested adjusted values marked "not applied". Use `--ux`, `--motion` and `--charts` for extra sections.
+- `design_lookup.py "<keywords>"` returns matching product types, styles, a contrast-checked palette, type pairings and reasoning rules from the vendored data, reading the derived contrast-corrected palette set by default (`--original-palette` selects the unchanged vendored values). Chinese keywords work through `data/zh-keywords.csv`; a pair that still fails comes with a suggested adjusted value marked "not applied". Use `--ux`, `--motion` and `--charts` for extra sections.
 - `slop_scan.py PATH ...` reports generic tells and craft defects as `blocking`, `important`, `review` or `polish`, honours line-level `/* slop-ignore: RULE-ID */` and a project `.sloprc`, and has a `--changed` mode for git. It exits with status 1 when a blocking finding exists, so it can gate CI. Use `--json` for machine output.
 - `token_lint.py PATH ...` audits token files: definition-site contrast, raw-value leaks with "use var(--token)" suggestions, missing semantic roles, unused tokens and off-scale values.
 - `visual_capture.py URL --out DIR` shoots the page at one size, or a standard matrix with `--matrix` (1440x900, 1440x900 at 150%, 1100x720, 390x844). Over CDP, `--dark` really emulates `prefers-color-scheme`, and `--full-page`, `--element`, `--hover`, `--focus` capture the states plain screenshots cannot; any CDP failure falls back to the legacy engine and the JSON says which engine ran. It shoots repeatedly until two consecutive frames are identical, so a half-rendered shell is not mistaken for a design. Exit 2 means no browser was found; exit 3 means the URL was rejected (only http/https, no leading `-`, and no private addresses without `--allow-private`).
@@ -205,7 +205,7 @@ The suite covers the contrast math against published reference values, the draft
 ## Known limitations
 
 - The scanner finds patterns. It cannot judge taste, and each finding needs a human decision. For example, `outline: none` only matters when nothing replaces the focus style.
-- The palettes are starting points. Measured across all 192 rows, only one has a failing text pair, but 173 have a border below 3:1 and 30 have a primary fill below 3:1 against their background. Check the UI pairs before shipping.
+- The palettes are starting points. The lookup reads a derived set by default in which every vendored pair that failed (173 of 192 borders below 3:1, 30 primary fills, one text pair) has been minimally adjusted to pass; the unchanged vendored values are one `--original-palette` away. A corrected color is blended toward black or white, not redesigned — check the UI pairs before shipping either way.
 - Visual capture reaches hover, focus, element and full-page states over CDP; the legacy fallback engine only lands final states, and the JSON always says which engine ran. Open menus and mid-transition frames still need a driving browser tool.
 - `keyboard_audit.py` needs a browser and photographs a bounded number of stops (`--measure`); stops beyond the budget are walked but not measured, and the report says so. It does not emulate `prefers-reduced-motion` or forced-colors. A page that restores focus after `blur()` is reported as uncertain rather than verdicted, because the second frame is then not an unfocused frame.
 - `image_diff.py` is not a regression gate and decodes only non-interlaced 8-bit PNG. Other PNG variants are reported as unsupported rather than compared wrongly.
@@ -222,16 +222,33 @@ The suite covers the contrast math against published reference values, the draft
 
 ## Benchmark
 
-`benchmark/` holds a 5-brief, three-condition pilot measured with the plugin's own tools (page_audit, slop_scan, visual_capture): **bare model** (no design guidance) vs **frontend-design** alone vs **frontend-design + PolishKit**.
+`benchmark/` holds a 5-brief, three-condition pilot measured with the plugin's own audit scripts: **bare model** (no design guidance) vs **frontend-design** alone vs **frontend-design + PolishKit**. Both tables are generated from `benchmark/RESULTS.md` by `tools/benchmark_tables.py --write`, and CI checks them for drift.
 
+<!-- benchmark:generated:start tools/benchmark_tables.py --write; do not edit -->
 | Metric | bare | frontend-design | + PolishKit |
 |---|---|---|---|
-| Rendered-page contrast failures | 48 | 101 | **0** |
-| Scanner findings | 54 (27 important) | 88 (45 important) | **2 (review)** |
-| Pages with zero state markers | 1 | 2 | **0** |
-| Renders that never settle | 1 | 3 | **0** |
+| Rendered-page contrast failures (WCAG 1.4.3) | **48** | 105 | **0** |
+| Contrast uncertain (gradients/images/occlusion, unmeasurable) | 12 | 103 | 182 |
+| Target-size failures (2.5.8) | 13 | 21 | 11 |
+| Elements without an accessible name (4.1.2) | 0 | 0 | 0 |
+| Keyboard / focus failures (2.1.1 / 2.4.7 / 1.4.11 / 2.4.11) | **5** | **12** | **0** |
+| Text-spacing failures (1.4.12) | 0 | **8** | **0** |
+| Reflow failures (1.4.10, 320 CSS px) | **21** | **28** | **0** |
+| CJK line-breaking failures (clreq §6.1.1) | 0 | **1** | **0** |
+| slop_scan important findings | 30 | 45 | **1** |
 
-The bare condition's own output converges on the exact AI-slop recipe the stance warns about (cream + terracotta + serif, unbidden). Full tables, protocol and honest limitations: `benchmark/RESULTS.md`. The maintainer's verdict: floors held, aesthetics at parity with a distinct, bolder style.
+| Metric | 2.0 originals | after repair |
+|---|---|---|
+| Contrast failures | 0 | 0 |
+| Keyboard failures | **2** | 0 |
+| Text-spacing failures | **11** | 0 |
+| Reflow failures | **34** | 0 |
+| CJK line-breaking failures | **1** | 0 |
+<!-- benchmark:generated:end --><!-- benchmark:generated:end -->
+
+Read the zeros with the report's own caveats: n=5, single run, one base model. The pages were measured, repaired and re-measured with this plugin's tools — a single-maintainer project has no independent reviewer — so the numbers are evidence that the floor held, not an independent audit. The treatment column is the repaired generation; the 2.0 originals carry 48 real defects on the dimensions the 2.0 tooling could not see (second table).
+
+The bare condition's own output converges on the exact AI-slop recipe the stance warns about (cream + terracotta + serif, unbidden). Full tables, protocol and honest limitations: `benchmark/RESULTS.md`. The maintainer's side-by-side verdict, made by the same person who built the tool: floors held, aesthetics at parity with a distinct, bolder style.
 
 ## License
 

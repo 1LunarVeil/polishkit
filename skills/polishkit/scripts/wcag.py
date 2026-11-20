@@ -2,8 +2,12 @@
 
 Usage: python wcag.py FG BG [FG BG ...]
 
-Alpha channels are ignored: composite a translucent color onto its real
-background before checking it. Out-of-gamut oklch values are clipped to sRGB.
+A translucent foreground is composited over the background it is measured
+against before the ratio is computed: rgba(255,255,255,0.08) over #0f172a is
+nearly invisible, and reading it as opaque white called that pair 17.85:1.
+The background's own alpha stays ignored — what sits beneath it is unknown,
+so compositing it would invent a backdrop. Out-of-gamut oklch values are
+clipped to sRGB, the same way a browser clips them.
 """
 
 import argparse
@@ -16,7 +20,9 @@ AA_LARGE_OR_UI = 3.0
 AAA_TEXT = 7.0
 
 _HEX = re.compile(r"#([0-9a-f]{3}|[0-9a-f]{6})")
-_RGB = re.compile(r"rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)")
+_RGB = re.compile(
+    r"rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:[\s,]+([\d.]+%?))?\s*\)"
+)
 _OKLCH = re.compile(
     r"oklch\(\s*([\d.]+%?)\s+([\d.]+)\s+([\d.]+)(?:deg)?(?:\s*/\s*[\d.]+%?)?\s*\)"
 )
@@ -36,18 +42,35 @@ def _to_srgb(channel):
 
 
 def parse_color(value):
-    """Return (r, g, b) with each channel in 0..1."""
+    """Return (r, g, b) with each channel in 0..1; alpha is not included."""
+    return _parse(value)[0]
+
+
+def _parse(value):
+    """Return ((r, g, b), alpha), channels in 0..1 and alpha in 0..1.
+
+    parse_color keeps its three-channel return so every existing caller is
+    unchanged; the alpha channel rides along for contrast_ratio and composite.
+    """
     text = value.strip().lower()
     match = _HEX.fullmatch(text)
     if match:
         digits = match.group(1)
         if len(digits) == 3:
             digits = "".join(ch * 2 for ch in digits)
-        return tuple(int(digits[i:i + 2], 16) / 255 for i in (0, 2, 4))
+        return tuple(int(digits[i:i + 2], 16) / 255 for i in (0, 2, 4)), 1.0
 
-    match = _RGB.match(text)
+    match = _RGB.fullmatch(text)
     if match:
-        return tuple(min(max(float(part) / 255, 0.0), 1.0) for part in match.groups())
+        rgb = tuple(min(max(float(part) / 255, 0.0), 1.0) for part in match.groups()[:3])
+        alpha_text = match.group(4)
+        if alpha_text is None:
+            alpha = 1.0
+        elif alpha_text.endswith("%"):
+            alpha = min(float(alpha_text[:-1]) / 100, 1.0)
+        else:
+            alpha = min(float(alpha_text), 1.0)
+        return rgb, alpha
 
     match = _OKLCH.fullmatch(text)
     if match:
@@ -66,7 +89,7 @@ def parse_color(value):
         red = 4.0767416621 * l_ - 3.3077115913 * m_ + 0.2309699292 * s_
         green = -1.2684380046 * l_ + 2.6097574011 * m_ - 0.3413193965 * s_
         blue = -0.0041960863 * l_ - 0.7034186147 * m_ + 1.7076147010 * s_
-        return tuple(_to_srgb(channel) for channel in (red, green, blue))
+        return tuple(_to_srgb(channel) for channel in (red, green, blue)), 1.0
 
     raise ValueError(f"unsupported color {value!r}; use #hex, rgb() or oklch()")
 
@@ -76,7 +99,20 @@ def relative_luminance(rgb):
     return 0.2126 * red + 0.7152 * green + 0.0722 * blue
 
 
+def composite(fg, bg):
+    """Return fg composited over bg as #hex, honouring fg's alpha channel."""
+    fg_rgb, alpha = _parse(fg)
+    bg_rgb = parse_color(bg)
+    mixed = tuple(alpha * f + (1 - alpha) * b for f, b in zip(fg_rgb, bg_rgb))
+    return "#%02x%02x%02x" % tuple(round(channel * 255) for channel in mixed)
+
+
 def contrast_ratio(fg, bg):
+    # A translucent foreground's real color is what it becomes over this
+    # background; measuring the raw channels read an 8%-alpha white as pure
+    # white and called a near-invisible pair 17.85:1.
+    if _parse(fg)[1] < 1.0:
+        fg = composite(fg, bg)
     lighter, darker = sorted(
         (relative_luminance(parse_color(fg)), relative_luminance(parse_color(bg))),
         reverse=True,

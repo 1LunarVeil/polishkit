@@ -1,0 +1,164 @@
+"""Real-browser smoke test: the CDP path, measured end to end.
+
+Every unit test runs without a browser — by design, and stated in both
+READMEs. That left the integration path (Chrome launched, WebSocket
+negotiated, pages driven, screenshots decoded) with zero automated coverage,
+which an external review flagged: the plugin's headline features — dark
+theme, hover/focus capture, rendered audits — all live on exactly that path.
+The CI runners ship Chrome, so this file closes the gap there and on any
+machine that has a browser:
+
+- a defect fixture must FAIL where defects were planted: a low-contrast text
+  pair (WCAG 1.4.3), a control removed from the tab order (2.1.1), and a link
+  with no focus indicator (2.4.7);
+- a clean fixture must come back 0 FAIL on both audits — the paired-direction
+  check that proves the audits did not merely learn to shout;
+- both reports say verified: true, which only happens when the whole capture
+  stack actually ran.
+
+Run from the repository root: python -B tests/smoke_browser.py
+Exit 0 = both directions behaved; 1 = a finding mismatched; 2 = no browser
+(the no-browser contract is covered separately by tests/ci_no_browser.py).
+"""
+
+import io
+import json
+import sys
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+
+sys.dont_write_bytecode = True
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "skills" / "polishkit" / "scripts"))
+
+import keyboard_audit  # noqa: E402
+import page_audit  # noqa: E402
+import visual_capture  # noqa: E402
+
+DEFECT_PAGE = """<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>smoke defect</title>
+<style>
+  a:focus { outline: none; }
+  button { padding: 12px 16px; font-size: 16px; }
+</style></head>
+<body>
+  <p style="color:#a0a0a0;background:#ffffff;font-size:14px">low contrast copy</p>
+  <p><button type="button" tabindex="-1">ghost button</button></p>
+  <p><a href="#nowhere">focusless link</a></p>
+</body></html>
+"""
+
+CLEAN_PAGE = """<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>smoke clean</title>
+<style>
+  button:focus { outline: 3px solid #0000ff; outline-offset: 2px; }
+  button { padding: 12px 16px; font-size: 16px; }
+</style></head>
+<body>
+  <p style="color:#1a1a1a;background:#ffffff;font-size:14px">strong contrast copy</p>
+  <p><button type="button">real button</button></p>
+</body></html>
+"""
+
+
+class _FixtureHandler(BaseHTTPRequestHandler):
+    def do_GET(self):  # noqa: N802  (http.server API name)
+        page = {"/defect": DEFECT_PAGE, "/clean": CLEAN_PAGE}.get(self.path)
+        if page is None:
+            self.send_error(404)
+            return
+        body = page.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *args):
+        pass  # request logging would drown the assertions
+
+
+def _run(main, argv):
+    stream = io.TextIOWrapper(io.BytesIO(), encoding="utf-8", write_through=True)
+    original = sys.stdout
+    sys.stdout = stream
+    try:
+        code = main(argv)
+    finally:
+        sys.stdout = original
+    raw = stream.buffer.getvalue().decode("utf-8")
+    try:
+        return code, json.loads(raw)
+    except ValueError:
+        return code, {"verified": False, "reason": f"output was not JSON: {raw[:400]!r}"}
+
+
+def main():
+    if visual_capture.find_browser() is None:
+        print("smoke_browser: no Chromium-family browser found; nothing to prove", file=sys.stderr)
+        return 2
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), _FixtureHandler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{server.server_address[1]}"
+    failures = []
+    try:
+        code, page = _run(page_audit.main, [f"{base}/defect", "--json"])
+        summary = page.get("summary", {})
+        if code != 1 or not page.get("verified"):
+            failures.append(f"page_audit defect page: exit {code}, verified {page.get('verified')}")
+        if summary.get("fail", 0) < 1:
+            failures.append(f"page_audit defect page: planted contrast pair did not fail "
+                            f"(summary: {summary})")
+        print(f"page_audit /defect: exit {code}, contrast fail {summary.get('fail')}")
+
+        code, keys = _run(keyboard_audit.main, [f"{base}/defect", "--json"])
+        summary = keys.get("summary", {})
+        if code != 1 or not keys.get("verified"):
+            failures.append(f"keyboard_audit defect page: exit {code}, verified {keys.get('verified')}")
+        if summary.get("unreachable", 0) < 1:
+            failures.append(f"keyboard_audit defect page: the tabindex=-1 control was not "
+                            f"reported unreachable (summary: {summary})")
+        if summary.get("no_indicator", 0) < 1:
+            failures.append(f"keyboard_audit defect page: the outline:none link was not "
+                            f"reported without a focus indicator (summary: {summary})")
+        print(f"keyboard_audit /defect: exit {code}, fail {summary.get('fail')}, "
+              f"unreachable {summary.get('unreachable')}, no_indicator {summary.get('no_indicator')}")
+
+        code, page = _run(page_audit.main, [f"{base}/clean", "--json"])
+        summary = page.get("summary", {})
+        if code != 0 or not page.get("verified"):
+            failures.append(f"page_audit clean page: exit {code}, verified {page.get('verified')}")
+        if summary.get("fail", 0) != 0:
+            failures.append(f"page_audit clean page: {summary.get('fail')} failure(s) on a clean page "
+                            f"(summary: {summary})")
+        print(f"page_audit /clean: exit {code}, contrast fail {summary.get('fail')}")
+
+        code, keys = _run(keyboard_audit.main, [f"{base}/clean", "--json"])
+        summary = keys.get("summary", {})
+        if code != 0 or not keys.get("verified"):
+            failures.append(f"keyboard_audit clean page: exit {code}, verified {keys.get('verified')}")
+        if summary.get("fail", 0) != 0:
+            failures.append(f"keyboard_audit clean page: {summary.get('fail')} failure(s) on a clean page "
+                            f"(summary: {summary})")
+        print(f"keyboard_audit /clean: exit {code}, fail {summary.get('fail')}")
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+    if failures:
+        for failure in failures:
+            print(f"FAIL {failure}", file=sys.stderr)
+        return 1
+    print("smoke_browser: the CDP path measured both directions correctly")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

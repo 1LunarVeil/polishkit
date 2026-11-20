@@ -5,10 +5,11 @@ Usage: python design_lookup.py "saas dashboard dark" [--top N] [--ux] [--motion]
 Chinese keywords work too ("暗色 仪表盘"): CJK runs are greedily longest-matched
 against data/zh-keywords.csv (original content, not vendored) and each match
 contributes its English tokens; matched terms are printed as a trace line.
-Latin/digit spans use the regular English tokenizer. The output is evidence to
-weigh, not a finished design: every palette is contrast-checked here, failing
-pairs come with adjusted suggestions marked "not applied", and the final
-palette still needs checking with wcag.py.
+Latin/digit spans use the regular English tokenizer. The palette comes from
+data/palettes-corrected.csv — the vendored colors.csv with every pair that
+failed adjusted to pass — and every pair is still checked here; any pair that
+still fails comes with an adjusted suggestion marked "not applied". The
+unchanged vendored values are one --original-palette away.
 """
 
 import argparse
@@ -167,8 +168,14 @@ def _repair_suggestion(fg, bg, required):
     extreme moves the foreground away from the background. Returns
     (hex suggestion, direction label), or (None, label) when even the extreme
     cannot reach the ratio — then the background has to move instead.
+
+    A translucent foreground blends from its effective color over this
+    background, not from its raw channels: rgba(255,255,255,0.08) over a dark
+    background is a near-background grey, and blending the raw white channels
+    would have suggested no change at all.
     """
-    fg_rgb, bg_rgb = wcag.parse_color(fg), wcag.parse_color(bg)
+    fg_rgb = wcag.parse_color(wcag.composite(fg, bg))
+    bg_rgb = wcag.parse_color(bg)
     toward_black = wcag.relative_luminance(bg_rgb) >= 0.5
     direction = (0.0, 0.0, 0.0) if toward_black else (1.0, 1.0, 1.0)
     label = "black" if toward_black else "white"
@@ -189,7 +196,7 @@ def _repair_suggestion(fg, bg, required):
     return blended(hi), label
 
 
-def _print_palette(product_type, colors):
+def _print_palette(product_type, colors, original=None):
     print("## Palette (contrast checked, sRGB)")
     row = next((item for item in colors if item["Product Type"].lower() == product_type.lower()), None)
     if row is None:
@@ -197,6 +204,15 @@ def _print_palette(product_type, colors):
         return
     for field in PALETTE_FIELDS:
         print(f"- {field}: {row.get(field) or '-'}")
+    if original is not None:
+        # The default source is the derived, contrast-corrected set; say what
+        # moved and where the untouched values live, so a reader never has to
+        # take the corrected numbers on faith.
+        changed = [f"{field} {original.get(field)} → {row.get(field)}"
+                   for field in PALETTE_FIELDS if row.get(field) != original.get(field)]
+        if changed:
+            print(f"- contrast-corrected from the vendored values: {'; '.join(changed)}")
+            print("  (derived set data/palettes-corrected.csv; --original-palette prints the originals)")
     tally = {"text": [0, 0], "UI": [0, 0]}  # kind -> [failing, checked]
     for fg_field, bg_field, kind, required in PAIRS:
         fg, bg = row.get(fg_field, ""), row.get(bg_field, "")
@@ -399,6 +415,9 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Product-type precedents for a UI brief.")
     parser.add_argument("query", help="keywords in English or Chinese, e.g. 'saas dashboard dark' or '暗色 仪表盘'")
     parser.add_argument("--top", type=int, default=1, help="product types to detail (default 1)")
+    parser.add_argument("--original-palette", action="store_true",
+                        help="read the vendored colors.csv instead of the derived "
+                             "contrast-corrected palette set (data/palettes-corrected.csv)")
     parser.add_argument("--ux", action="store_true", help="add matching UX guideline rules")
     parser.add_argument("--platform", choices=PLATFORM_CHOICES, default="all",
                         help="target platform for the UX rows and the desktop checklist: "
@@ -445,7 +464,13 @@ def main(argv=None):
 
     styles = _load("styles.csv")
     style_rows = _print_styles(product, styles)
-    _print_palette(product_type, _load("colors.csv"))
+    if args.original_palette:
+        _print_palette(product_type, _load("colors.csv"))
+    else:
+        colors = _load("palettes-corrected.csv" if (DATA / "palettes-corrected.csv").is_file()
+                       else "colors.csv")
+        originals = {row["Product Type"]: row for row in _load("colors.csv")}
+        _print_palette(product_type, colors, original=originals.get(product_type))
     _print_typography(query, style_rows, _load("typography.csv"))
     _print_reasoning(product_type, _load("ui-reasoning.csv"))
     if args.ux:

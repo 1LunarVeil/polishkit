@@ -42,7 +42,7 @@ This matters because the version number is a claim about capability. Reserve the
 4. For a scanner rule, prove both directions: the fixture with the defect must trigger the rule, and a near-miss fixture without it must not. Add both to `tests/`.
 5. For a new contrast value, add the pair to the test or show the `wcag.py` output in the pull request.
 6. For a new rendered check, prove it against a page that has the defect and a page that does not. A check that never fires and a check that fires on healthy pages are both defects, and neither shows up in a unit test.
-7. Update `CHANGELOG.md` under an Unreleased heading, and bump the version in both manifests when releasing.
+7. Update `CHANGELOG.md` under an Unreleased heading, and bump the version in `.zcode-plugin/plugin.json` — the only manifest with a hand-set version. `tools/build_dist.py` stamps the same name/version/description into `.claude-plugin/plugin.json` and the marketplace entry in `.claude-plugin/marketplace.json` on the next build, and `--check` verifies them.
 
 ## Style
 

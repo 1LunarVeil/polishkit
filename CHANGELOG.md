@@ -2,6 +2,29 @@
 
 All notable changes to this project are recorded here. The format follows Keep a Changelog, and versions follow Semantic Versioning.
 
+## [2.2.12] - 2026-11-21
+
+An external review named three trust defects and six structural risks. This release fixes what a single-maintainer project can fix on its own and states the rest more plainly than before.
+
+### Added
+
+- **`data/palettes-corrected.csv`** — the vendored palette set with every failing pair adjusted to pass. The review put it plainly: 173 of 192 borders below 3:1 and 30 primary fills shipped with "suggested values, not applied", collecting the same arithmetic from every user forever. `design_lookup.py` reads the corrected set by default and prints what moved next to the values; `--original-palette` selects the untouched vendored file; the derivation is documented in `data/PROVENANCE.md`.
+- **`tools/palette_correct.py`** — generates and verifies the corrected set (same minimal blend the lookup has always suggested; the background moves only when no foreground blend can reach the ratio). `--check` re-derives the file and compares it byte for byte in CI.
+- **`tools/benchmark_tables.py`** — the README benchmark tables are generated views of `benchmark/RESULTS.md` (`--write` regenerates, `--check` verifies in CI). Both tables now include the two-generation treatment measurement, so the headline "0" sits beside the 2.0 originals' 48 defects instead of standing alone.
+
+### Fixed
+
+- **The README benchmark tables carried the 2.0 numbers through the 2.2.10 re-measurement.** baseline contrast read 101 (measured: 105), bare slop "54 (27 important)" (measured: 30), treatment "2 (review)" (measured: 1) — the drift was found by the review, not by any gate. The tables are now generated, and CI fails on drift.
+- **`.claude-plugin/marketplace.json` said 0.1.2 while the plugin was at 2.2.11** — every reader of the Claude Code marketplace path saw a version several minor lines behind the artifact, and no gate covered that file. Versions now have one source: `.zcode-plugin/plugin.json`. `tools/build_dist.py` stamps the Claude manifest and the marketplace entry on every build, and `--check` verifies them.
+- **`wcag.py` measured rgba() colors as opaque.** The alpha channel was dropped at parse time, so `rgba(255,255,255,0.08)` on a dark background read 17.85:1 instead of 1.24:1 — a false pass on the 19 vendored rows that use translucent borders. A translucent foreground is now composited over the background it is measured against; the background's own alpha stays ignored (what sits beneath it is unknown).
+- **Both READMEs' "what it cannot do" contradicted their own capability tables.** The bullet still claimed the skill "captures landed states only" next to a table advertising CDP hover/focus/dark/element/full-page capture — a stale 0.1.x-era claim the review found in the Chinese README and the English one carried too. Rewritten in both: those states are real, nothing is ever clicked, mid-transition frames are excluded by design.
+
+### Verified
+
+- 450 tests pass (430 before this release; +20 for palette derivation, alpha compositing, table generation and the README drift regression).
+- `tests/smoke_browser.py` joins CI on ubuntu and windows: a defect fixture fails where planted (contrast 1.4.3, unreachable control 2.1.1, missing focus indicator 2.4.7) and a clean fixture reports 0 FAIL on both rendered audits. This is the CDP path's first automated end-to-end coverage; previously all tests ran without a browser.
+- The benchmark's circularity is now stated where the numbers are read, not only in the report: n=5, single run, one base model, measurement/repair/re-measurement with the same tools, no independent reviewer. The independent blind-evaluation condition the review asked for remains a known limitation — it needs more people than a single-maintainer project has.
+
 ## [2.2.11] - 2026-11-20
 
 The benchmark grew from three measured dimensions to seven, and gained the two things that made its numbers re-derivable: an environment record and a failure library.
