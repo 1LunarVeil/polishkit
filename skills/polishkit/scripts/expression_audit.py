@@ -1,42 +1,48 @@
-"""Measure the parts of the expression layer that a browser can measure.
+"""Read how a page allocates its expression budget, and ask about the conflicts.
 
 Usage:
-  python expression_audit.py URL [--json] [--allow-private] [--width W]
+  python expression_audit.py URL [--json] [--allow-private] [--width W] [--height H]
 
-`references/expression.md` describes four kinds of deliberate contrast and a
-six-item checklist. Three of those items have numbers behind them, and until
-now nothing checked them — the same gap the keyboard and text-spacing audits
-closed for their clauses. This tool measures the measurable ones and says
-plainly which items it cannot judge.
+This tool replaced an earlier version that reported a single "type ratio" —
+largest font size divided by body size. The maintainer's critique was right:
+that number says how loud the page is, never whether the loud thing deserved
+to be loud. A 100px "Hello" scores the same as a 100px revenue figure. Worse,
+it measured the largest text on the whole page, so a decorative numeral far
+below the fold could carry a page's "drama" score.
 
-Measured (each reported as a number with a verdict against the file's floor):
+What it reports now, all measured on the first screen (the viewport), because
+that is where the allocation decision is visible:
 
-- TYPE RATIO   largest rendered text / body text. `expression.md` asks for at
-               least 3x; under 2.5x reads flat and is a FAIL, 2.5-3x is a review.
-- WEIGHT SPAN  the set of rendered font weights. The file asks for "the ends of
-               the family — 200-300 against 700-800"; a page whose lightest
-               weight is 400 and heaviest 600 is the dullest use of a variable
-               font and gets a review.
-- SIZE STEPS   how many distinct font sizes carry text. One step per role is the
-               point; a page with 2 sizes or with 15 near-identical ones reads
-               either flat or noisy.
-- DISPLAY TRACKING  display-size runs should tighten tracking (-0.01 to -0.03em)
-               and cut line-height to 1.0-1.2, which is what contrasts with the
-               open body setting. Reported as numbers, judged as a review.
+- ATTENTION      the loudest text element (largest size, then largest area).
+                 Everything else is graded against it: how many distinct size
+                 steps sit below it, and whether the second-loudest text is
+                 close enough in size to compete.
+- COLUMN FILL    of the vertical strip the loudest element occupies, how much
+                 is filled by other text before the fold. A 70px figure over a
+                 mostly-empty 480px band fills little; the same figure inside a
+                 dense panel fills most of it. This is the measure that
+                 separates "the number carries the page" from "the number is
+                 the page".
+- STEP LADDER    the sizes present on the first screen, as a ladder from the
+                 loudest down to body. A ladder with a missing rung (70 then 22,
+                 nothing between) leaves a visual desert; a ladder with
+                 88/30/20/15 has no gap for the eye to fall through.
+- DENSITY        text items per 100,000 CSS px² of first screen, as a raw
+                 number with no threshold — a photo portfolio is legitimately
+                 sparse and a dashboard is not, so this never becomes a verdict.
 
-Not measured, and named as such in every report:
+What it asks instead of judging: for the loudest element it prints the size, the
+text, the count of other information in its own band, the blank run below it,
+and the page's own h1 if there is one. Then it states the question a reviewer
+should answer — "is this the thing the screen exists to show?" — because that is
+a product question and no rectangle can answer it.
 
-- whether there is exactly one asymmetry, one full-bleed moment, one focal point
-  (all are visual judgements a rect cannot make);
-- whether the signature element is the best-crafted thing on the page;
-- whether a hero field is dead flat (texture);
-- whether removing the signature would leave the page generic.
+Nothing here gates a build. Every finding is review severity; the exit status is
+0 unless the audit could not run at all. A tool that let taste break CI would
+reproduce the failure mode the benchmark's human-verdict section warns about.
 
-Those stay in the polish pass, and a report that lists them as "manual" is more
-honest than one that scores them from geometry.
-
-Exit status: 0 no measurable failure, 1 the type ratio is under 2.5x,
-2 no browser or CDP failure ({"verified": false}), 3 URL rejected.
+Exit status: 0 always, 2 no browser or CDP failure ({"verified": false}),
+3 URL rejected.
 
 Read-only: prints a report and writes nothing. stdlib only; CDP on loopback.
 """
@@ -50,31 +56,31 @@ import cdp  # noqa: E402  (sibling module; no third-party dependencies)
 import visual_capture  # noqa: E402
 
 BODY_FALLBACK = 16.0
-MIN_RATIO = 3.0        # expression.md: display >= 3x body
-FLAT_RATIO = 2.5       # below this a page reads flat
-MIN_LIGHT = 400        # a page whose lightest weight is 400 has no light end
-MAX_HEAVY = 600        # ... and whose heaviest is 600 has no heavy end
-DISPLAY_MIN_SIZE = 32.0
-DISPLAY_TRACKING = (-0.03, -0.01)
-DISPLAY_LINE_HEIGHT = (1.0, 1.2)
-MAX_SAMPLES = 400
+DISPLAY_MIN = 32.0          # a size worth calling display-scale, in CSS px
+BAND_PAD_FACTOR = 1.5       # the loud element's band, as a multiple of its height
+LADDER_GAP_FACTOR = 1.8     # a size jump above this ratio is a missing rung
+COMPETITOR_RATIO = 0.75     # a second element at 75%+ of the loudest competes
+MAX_SAMPLES = 500
 
 CLAUSE_COVERAGE = (
-    "references/expression.md items 1 (type drama: display >= 3x body, weight "
-    "extremes) measured; items 2-6 (composition, softening, focal point, "
-    "texture, signature) are visual and left to the polish pass"
+    "references/expression.md item 1 (type drama) and item 4 (focal engineering) "
+    "as first-screen geometry: attention target, column fill, size ladder, "
+    "density. Composition, texture and signature are printed as questions, not "
+    "scored."
 )
 
 MANUAL_ITEMS = (
-    "exactly one asymmetry per screen",
-    "one full-bleed or overlap moment",
-    "exactly one focal point earned by two levers",
-    "whether any hero-scale field is dead flat",
-    "whether removing the signature element would leave the page generic",
+    "is the loudest element the thing this screen exists to show?",
+    "does any hero-scale field look dead flat, or does it carry texture?",
+    "would removing the signature element leave the page generic?",
+    "is there exactly one asymmetry, or does the tension fight itself?",
+    "does the copy name the same action the same way everywhere?",
 )
 
 COLLECTOR_JS = r"""(function () {
   var MAX = __MAX_SAMPLES__;
+  var DISPLAY_MIN = __DISPLAY_MIN__;
+  var BAND_PAD = __BAND_PAD__;
   var result;
   try {
     result = collect();
@@ -93,23 +99,19 @@ COLLECTOR_JS = r"""(function () {
   function ownText(el) {
     var out = "";
     for (var i = 0; i < el.childNodes.length; i++) {
-      var node = el.childNodes[i];
-      if (node.nodeType === 3) out += node.nodeValue;
+      if (el.childNodes[i].nodeType === 3) out += el.childNodes[i].nodeValue;
     }
-    return out.trim();
+    return out.replace(/\s+/g, " ").trim();
   }
 
   function collect() {
-    var body = document.body || document.documentElement;
-    var bodySize = parseFloat(getComputedStyle(body).fontSize) || 16;
-    var all = document.querySelectorAll("*");
-    var samples = [];
-    var sizes = {};
-    var weights = {};
+    var VH = window.innerHeight, VW = window.innerWidth;
+    var nodes = document.querySelectorAll("*");
+    var items = [];
     var capped = false;
 
-    for (var i = 0; i < all.length; i++) {
-      var el = all[i];
+    for (var i = 0; i < nodes.length; i++) {
+      var el = nodes[i];
       var text = ownText(el);
       if (!text) continue;
       var rect = el.getBoundingClientRect();
@@ -117,37 +119,141 @@ COLLECTOR_JS = r"""(function () {
       var cs = getComputedStyle(el);
       if (cs.display === "none" || cs.visibility === "hidden") continue;
       if (parseFloat(cs.opacity) === 0) continue;
-      var fontSize = parseFloat(cs.fontSize) || 0;
-      var fontWeight = parseInt(cs.fontWeight, 10) || 400;
-      var rounded = Math.round(fontSize);
-      sizes[rounded] = (sizes[rounded] || 0) + 1;
-      weights[fontWeight] = (weights[fontWeight] || 0) + 1;
-      if (samples.length < MAX) {
-        samples.push({
-          tag: label(el),
-          size: rounded,
-          weight: fontWeight,
-          line_height_ratio: cs.lineHeight === "normal" ? null :
-            (parseFloat(cs.lineHeight) || 0) / fontSize,
-          letter_spacing_em: cs.letterSpacing === "normal" ? 0 :
-            (parseFloat(cs.letterSpacing) || 0) / fontSize,
-          family: (cs.fontFamily || "").split(",")[0].replace(/["']/g, "").trim(),
-          family_declaration: (cs.fontFamily || "").replace(/["']/g, "")
-            .replace(/\\s*,\\s*/g, ", ").trim(),
-          text: text.slice(0, 40)
-        });
-      } else {
-        capped = true;
-      }
+      if (items.length >= MAX) { capped = true; break; }
+      items.push({
+        tag: label(el),
+        text: text.slice(0, 60),
+        size: Math.round(parseFloat(cs.fontSize)) || 0,
+        weight: parseInt(cs.fontWeight, 10) || 400,
+        top: Math.round(rect.top),
+        bottom: Math.round(rect.bottom),
+        left: Math.round(rect.left),
+        right: Math.round(rect.right),
+        above_fold: rect.top < VH
+      });
+    }
+
+    // The loud element: biggest size, then biggest area, among first-screen
+    // text. Restricting to the fold is the correction this rewrite is about —
+    // a decorative numeral 2000px down should not decide the page's score.
+    var onScreen = items.filter(function (it) { return it.above_fold; });
+    var loud = null;
+    for (var j = 0; j < onScreen.length; j++) {
+      var it = onScreen[j];
+      if (!loud) { loud = it; continue; }
+      var areaA = (it.right - it.left) * (it.bottom - it.top);
+      var areaB = (loud.right - loud.left) * (loud.bottom - loud.top);
+      if (it.size > loud.size || (it.size === loud.size && areaA > areaB)) loud = it;
+    }
+
+    var bodySize = parseFloat(getComputedStyle(document.body || document.documentElement).fontSize) || 16;
+
+    if (!loud) {
+      return { viewport: {w: VW, h: VH}, body_size: bodySize, items: [],
+               loud: null, capped: capped };
+    }
+
+    // The loud element's own band: its height grown by BAND_PAD on both sides.
+    var pad = Math.max(40, (loud.bottom - loud.top) * BAND_PAD);
+    var bandLo = loud.top - pad, bandHi = loud.bottom + pad;
+    var band = onScreen.filter(function (it) {
+      return it !== loud && it.bottom > bandLo && it.top < bandHi;
+    });
+
+    // The blank run directly below the loud element, in its horizontal range.
+    var below = onScreen.filter(function (it) {
+      return it.top >= loud.bottom - 2 && it.right > loud.left && it.left < loud.right;
+    }).sort(function (a, b) { return a.top - b.top; });
+    var gapBelow = below.length ? Math.round(below[0].top - loud.bottom) : null;
+
+    // Column fill: of the vertical strip from the loud element's top to 400px
+    // past its bottom (clamped to the fold), how much is covered by text.
+    var stripTop = loud.top;
+    var stripBottom = Math.min(VH, loud.bottom + 400);
+    var stripHeight = Math.max(1, stripBottom - stripTop);
+    var inColumn = onScreen.filter(function (it) {
+      return it.top >= stripTop && it.top < stripBottom &&
+             it.right > loud.left && it.left < loud.right;
+    }).sort(function (a, b) { return a.top - b.top; });
+    var covered = 0, cursor = stripTop;
+    for (var c = 0; c < inColumn.length; c++) {
+      var seg = inColumn[c];
+      if (seg.top < cursor) continue;
+      covered += seg.bottom - seg.top;
+      cursor = seg.bottom;
+    }
+
+    // Size ladder: distinct sizes on the first screen, loudest to body.
+    var sizeCounts = {};
+    for (var s = 0; s < onScreen.length; s++) {
+      sizeCounts[onScreen[s].size] = (sizeCounts[onScreen[s].size] || 0) + 1;
+    }
+    var ladder = Object.keys(sizeCounts).map(Number)
+      .sort(function (a, b) { return b - a; });
+
+    // Competitors: text at 75% or more of the loud element's size.
+    var competitors = onScreen.filter(function (it) {
+      return it !== loud && it.size >= loud.size * 0.75;
+    }).map(function (it) {
+      return {tag: it.tag, size: it.size, text: it.text.slice(0, 40)};
+    });
+
+    var pageH1 = document.querySelector("h1");
+    var h1 = null;
+    if (pageH1) {
+      var h1rect = pageH1.getBoundingClientRect();
+      h1 = {text: (pageH1.innerText || "").replace(/\s+/g, " ").trim().slice(0, 60),
+            size: Math.round(parseFloat(getComputedStyle(pageH1).fontSize)) || 0,
+            above_fold: h1rect.top < VH};
+    }
+
+    // Visual mass in the loud element's band. Text geometry alone cannot tell
+    // "empty" from "occupied by an image": B4's 64px of blank under its display
+    // line is a full-bleed horizon photograph, while B3's 78px is genuinely
+    // empty. Counting large visual elements in the band is the cheapest honest
+    // signal, and when it fires the tool says it cannot judge the emptiness
+    // rather than reporting it as a defect.
+    var visualBand = [];
+    var visuals = document.querySelectorAll(
+      "img,picture,svg,canvas,video,[style*='background-image']," +
+      "[class*=plate],[class*=figure],[class*=media],[class*=illustration]");
+    for (var v = 0; v < visuals.length; v++) {
+      var vel = visuals[v];
+      var vr = vel.getBoundingClientRect();
+      if (vr.width < 200 || vr.height < 120) continue;
+      if (vr.bottom < bandLo || vr.top > bandHi) continue;
+      visualBand.push({
+        tag: label(vel),
+        width: Math.round(vr.width),
+        height: Math.round(vr.height)
+      });
+    }
+
+    // The page's own body-level background image or gradient: a hero that is
+    // painted rather than filled with elements.
+    var bodyStyle = getComputedStyle(document.body || document.documentElement);
+    var pageFill = null;
+    if (bodyStyle.backgroundImage && bodyStyle.backgroundImage !== "none") {
+      pageFill = bodyStyle.backgroundImage.slice(0, 80);
     }
 
     return {
+      viewport: {w: VW, h: VH},
       body_size: bodySize,
-      sizes: sizes,
-      weights: weights,
-      samples: samples,
-      capped: capped,
-      viewport_width: document.documentElement.clientWidth
+      loud: {tag: loud.tag, text: loud.text, size: loud.size, weight: loud.weight,
+             top: loud.top, bottom: loud.bottom},
+      band: {lo: Math.round(bandLo), hi: Math.round(bandHi), other_items: band.length,
+             visual_items: visualBand},
+      gap_below: gapBelow,
+      column: {height: Math.round(stripHeight), covered: Math.round(covered),
+               items: inColumn.length},
+      ladder: ladder,
+      size_counts: sizeCounts,
+      competitors: competitors,
+      hero_items: onScreen.length,
+      h1: h1,
+      page_fill: pageFill,
+      capped: capped
     };
   }
 })()"""
@@ -156,278 +262,313 @@ COLLECTOR_JS = r"""(function () {
 # --- pure logic ------------------------------------------------------------
 
 
-def type_ratio(payload):
-    """Largest rendered size divided by body size."""
-    sizes = payload.get("sizes") or {}
-    if not sizes:
+def ladder_gaps(ladder, body_size, factor=LADDER_GAP_FACTOR):
+    """Size pairs on the ladder whose ratio exceeds `factor`.
+
+    A ladder of 88/30/20/15 has ratios 2.9, 1.5, 1.3 — every step is walkable.
+    A ladder of 70/22/14 has 3.2 between the first two, which leaves a visual
+    desert under the display figure: nothing at 30–50px to carry the eye down.
+    Returns [(bigger, smaller), ...] with the sizes that straddle the gap.
+    """
+    steps = [float(size) for size in (ladder or []) if float(size) > 0]
+    if not steps:
+        return []
+    steps = sorted(steps, reverse=True)
+    if body_size and steps and steps[-1] > float(body_size) * 1.01:
+        steps.append(float(body_size))
+    gaps = []
+    for bigger, smaller in zip(steps, steps[1:]):
+        if smaller and bigger / smaller > factor:
+            gaps.append((int(bigger), int(smaller)))
+    return gaps
+
+
+def column_fill(payload):
+    """Percentage of the loud element's strip that other text occupies."""
+    column = payload.get("column") or {}
+    height = float(column.get("height") or 0)
+    covered = float(column.get("covered") or 0)
+    if height <= 0:
         return 0.0
+    return min(100.0, round(covered * 100.0 / height, 1))
+
+
+def density(payload):
+    """Text items per 100,000 CSS px² of first screen. No threshold on purpose."""
+    viewport = payload.get("viewport") or {}
+    area = float(viewport.get("w") or 0) * float(viewport.get("h") or 0)
+    items = float(payload.get("hero_items") or 0)
+    if area <= 0:
+        return 0.0
+    return round(items * 100000.0 / area, 1)
+
+
+def ratio_to_body(payload):
+    """The old type ratio, kept as one number among several, not as a verdict."""
+    loud = payload.get("loud") or {}
+    size = float(loud.get("size") or 0)
     raw_body = payload.get("body_size")
-    # `or` would turn a measured 0 into the fallback; a zero body size is not a
-    # missing one, it is an unrenderable page, and the ratio is undefined.
+    # `or` would turn a measured 0 into the fallback; a zero body size means the
+    # page is unrenderable, and the ratio is undefined rather than 16.
     body = float(raw_body) if raw_body is not None else BODY_FALLBACK
-    if body <= 0:
+    if not size or body <= 0:
         return 0.0
-    largest = max(float(size) for size in sizes)
-    return largest / body
+    return round(size / body, 2)
 
 
-def ratio_verdict(ratio):
-    """(status, severity, message) for the display/body ratio."""
-    if ratio >= MIN_RATIO:
-        return ("pass", "none", f"display is {ratio:.1f}x body, at or above the 3x floor")
-    if ratio >= FLAT_RATIO:
-        return ("FAIL", "important",
-                f"display is {ratio:.1f}x body; expression.md asks for 3x, and under "
-                f"2.5x reads flat")
-    return ("FAIL", "important",
-            f"display is only {ratio:.1f}x body; a page whose largest text is under "
-            f"2.5x the body reads flat")
+def visual_fill(payload):
+    """Large visual elements inside the loud element's band, and page-level fill.
 
-
-def weight_span(payload):
-    """(lightest, heaviest) rendered weights, or (None, None) when none."""
-    weights = payload.get("weights") or {}
-    if not weights:
-        return None, None
-    values = sorted(int(weight) for weight in weights)
-    return values[0], values[-1]
-
-
-def weight_verdict(light, heavy):
-    """Review when the page never leaves the middle of the family.
-
-    "The middle" is 400-600: 400 is the default body weight, so a page whose
-    lightest weight is 400 has no light end however heavy its headings get, and
-    a page whose heaviest is 600 never reaches a real bold. The comparison is
-    inclusive at both ends for that reason.
+    Returns (items, page_fill). `items` is the count of big images, canvases,
+    plates and painted blocks that overlap the band; `page_fill` is the body's
+    background-image when it has one. Both exist because text geometry cannot
+    tell an empty band from one the page has filled with a photograph, and a
+    tool that reported B4's horizon shot as "78px of blank" would be wrong in
+    the most expensive way — confidently.
     """
-    if light is None:
-        return ("review", "review", "no text found, so no weight span to read")
-    if light >= MIN_LIGHT and heavy <= MAX_HEAVY:
-        return ("review", "review",
-                f"weights run only {light}-{heavy}; expression.md asks for the ends "
-                f"of the family (200-300 against 700-800)")
-    if light >= MIN_LIGHT:
-        return ("review", "review",
-                f"the lightest weight is {light}; there is no light end to contrast "
-                f"the heavy one")
-    if heavy <= MAX_HEAVY:
-        return ("review", "review",
-                f"the heaviest weight is {heavy}; there is no heavy end to contrast "
-                f"the light one")
-    return ("pass", "none",
-            f"weights span {light}-{heavy}, which reaches both ends")
+    band = payload.get("band") or {}
+    items = band.get("visual_items") or []
+    return len(items), payload.get("page_fill")
 
 
-def size_steps(payload):
-    """Distinct rounded font sizes that carry text."""
-    return len(payload.get("sizes") or {})
+def band_is_painted(payload):
+    """True when the band has enough visual mass that emptiness cannot be judged."""
+    count, page_fill = visual_fill(payload)
+    return count > 0 or bool(page_fill)
 
 
-def steps_verdict(steps):
-    if steps <= 0:
-        return ("review", "review", "no sized text found")
-    if steps <= 2:
-        return ("review", "review",
-                f"only {steps} distinct text sizes; hierarchy has almost no room")
-    if steps > 12:
-        return ("review", "review",
-                f"{steps} distinct text sizes; a scale this granular reads as drift")
-    return ("pass", "none", f"{steps} distinct sizes")
+def attention_questions(payload):
+    """The questions a reviewer answers about the loud element.
 
-
-def display_samples(payload):
-    """Samples at display size, for the tracking and line-height reading."""
-    return [sample for sample in payload.get("samples") or []
-            if float(sample.get("size") or 0) >= DISPLAY_MIN_SIZE]
-
-
-def display_readings(payload):
-    """Summarise tracking and line-height at display size.
-
-    Reported as numbers, never as a verdict: `expression.md` asks for tight
-    tracking and a 1.0-1.2 line-height to contrast the open body setting, but a
-    subject can justify other values and a rect cannot tell which.
+    This is the substance of the rewrite. The previous version scored the page;
+    a score tells a model nothing it can act on and tells a designer nothing
+    they did not already suspect. A question with the measured evidence
+    attached is answerable: it names the element, what else is near it, and what
+    the page's own heading claims the page is about.
     """
-    samples = display_samples(payload)
-    if not samples:
-        return {"samples": 0, "tracking_em": None, "line_height_ratio": None}
-    tracking = [sample.get("letter_spacing_em") for sample in samples
-                if sample.get("letter_spacing_em") is not None]
-    ratios = [sample.get("line_height_ratio") for sample in samples
-              if sample.get("line_height_ratio")]
-    return {
-        "samples": len(samples),
-        "tracking_em": round(sum(tracking) / len(tracking), 3) if tracking else None,
-        "line_height_ratio": round(sum(ratios) / len(ratios), 2) if ratios else None,
-        "tracking_in_range": bool(tracking) and
-                             DISPLAY_TRACKING[0] <= (sum(tracking) / len(tracking)) <= DISPLAY_TRACKING[1],
-        "line_height_in_range": bool(ratios) and
-                                DISPLAY_LINE_HEIGHT[0] <= (sum(ratios) / len(ratios)) <= DISPLAY_LINE_HEIGHT[1],
-    }
+    loud = payload.get("loud") or {}
+    if not loud:
+        return []
+    band = payload.get("band") or {}
+    h1 = payload.get("h1") or {}
+    questions = []
+    size = int(loud.get("size") or 0)
+    text = (loud.get("text") or "")[:40]
+    others = int(band.get("other_items") or 0)
+    gap = payload.get("gap_below")
+    fill = column_fill(payload)
+    painted = band_is_painted(payload)
+    visual_count, _page_fill = visual_fill(payload)
 
+    opening = (f"the loudest thing on the first screen is {loud.get('tag')} at "
+               f"{size}px (\"{text}\"), with {others} other text item(s) in its band "
+               f"and {fill:g}% of its column filled before the fold")
+    # The blank-run clause, the painted-band caveat, and the question itself are
+    # assembled separately: writing them as one chained conditional swallowed the
+    # opening sentence, because a trailing `if painted else` binds to the whole
+    # concatenation rather than to its last term.
+    if gap is not None and gap > 8 and not painted:
+        opening += f", then {gap}px of blank before the next text"
+    if painted:
+        if visual_count:
+            opening += (f"; the band holds {visual_count} large visual element(s), so "
+                        f"the blank may be filled with imagery this tool cannot measure")
+        else:
+            opening += ("; the page paints its own background, so that blank may be "
+                        "imagery this tool cannot measure")
+    questions.append(opening + ". Is that the thing this screen exists to show?")
 
-def families(payload):
-    """Every distinct `font-family` declaration that carries text, with counts.
+    if h1 and h1.get("above_fold") and h1.get("text"):
+        h1_size = int(h1.get("size") or 0)
+        if h1_size and size and h1_size < size * 0.6:
+            questions.append(
+                f"the page's own h1 (\"{h1['text']}\") is {h1_size}px while the display "
+                f"figure is {size}px; the heading describes the product and the figure "
+                f"describes one measurement — confirm the figure is the more important "
+                f"of the two")
 
-    Counting first names was wrong and produced a false finding on every
-    benchmark page: `Segoe UI` and `Segoe UI Light` are one family at two
-    weights, `Cascadia Code` and `Consolas` are one mono stack, and a
-    `Noto Sans SC` CJK fallback is a fourth role rather than a fourth family.
-    A page declaring five stacks (sans, sans-light, serif, mono, CJK fallback)
-    is doing exactly what `color-and-type.md` asks for.
+    competitors = payload.get("competitors") or []
+    if len(competitors) > 1:
+        names = ", ".join(f"{c.get('text', '')[:24]} ({c.get('size')}px)"
+                          for c in competitors[:3])
+        questions.append(
+            f"{len(competitors)} elements compete at 75% or more of the loudest "
+            f"size ({names}); two focal points cancel each other — decide which one "
+            f"wins and step the others down")
 
-    So this reports the declarations and their sample counts, and lets the
-    reviewer map them onto roles. It is not a count with a threshold.
-    """
-    counts = {}
-    for sample in payload.get("samples") or []:
-        declaration = sample.get("family_declaration") or sample.get("family")
-        if declaration:
-            counts[declaration] = counts.get(declaration, 0) + 1
-    return dict(sorted(counts.items(), key=lambda item: -item[1]))
+    gaps = ladder_gaps(payload.get("ladder"), payload.get("body_size"))
+    # A skipped rung is only a problem when the band is thin in text AND not
+    # painted. B2 skips 102→22 over a 76.9%-filled column; B4 skips 92→25 over a
+    # horizon photograph. B3 skips 70→22 over nothing, which is the case worth
+    # raising.
+    if gaps and (fill < 55 or (gap is not None and gap > 48)) and not painted:
+        pairs = ", ".join(f"{big}px → {small}px" for big, small in gaps[:3])
+        questions.append(
+            f"the size ladder skips {pairs} while only {fill:g}% of the column is "
+            f"filled"
+            + (f" and {gap}px of it is blank" if gap is not None and gap > 8 else "")
+            + "; the band under the display text carries little, so the display "
+              f"figure reads as decorative rather than as the page's work")
+    return questions
 
 
 def classify(payload):
-    """Split into (measures, reviews). There is no uncertain bucket here.
+    """Split into (measures, reviews). Nothing here is a failure.
 
-    Every number this tool reports is a measured value; what it cannot measure
-    it does not report at all, and lists under `manual` instead. Everything is
-    review severity and nothing is a failure: the type ratio is the only item
-    with a number in the file, and even that describes expressiveness rather
-    than conformance. A tool that could fail a build on taste would reproduce
-    exactly the failure mode the benchmark's human-verdict section warns about.
+    Every number describes how a page spends its attention, which is a product
+    judgement. Reporting one of them as a FAIL would let taste break a build.
     """
     reviews = []
-    ratio = type_ratio(payload)
-    _, _, message = ratio_verdict(ratio)
-    reviews.append({"check": "TYPE-RATIO", "status": "review",
-                    "severity": "review", "clause": "expression.md item 1",
-                    "ratio": round(ratio, 2), "message": message})
-
-    light, heavy = weight_span(payload)
-    _, _, message = weight_verdict(light, heavy)
-    reviews.append({"check": "WEIGHT-SPAN", "status": "review",
-                    "severity": "review", "clause": "expression.md item 1",
-                    "light": light, "heavy": heavy, "message": message})
-
-    steps = size_steps(payload)
-    _, _, message = steps_verdict(steps)
-    reviews.append({"check": "SIZE-STEPS", "status": "review",
-                    "severity": "review", "clause": "expression.md item 1",
-                    "steps": steps, "message": message})
-
-    readings = display_readings(payload)
-    if readings["samples"]:
-        tracking = readings["tracking_em"]
-        line_height = readings["line_height_ratio"]
-        notes = []
-        # A tolerance of 0.005em absorbs the rounding that made -0.030 measure
-        # as "outside -0.03 to -0.01" on a page that had set exactly -0.03.
-        if tracking is not None and not readings["tracking_in_range"] \
-                and not (DISPLAY_TRACKING[0] - 0.005 <= tracking
-                         <= DISPLAY_TRACKING[1] + 0.005):
-            notes.append(f"tracking {tracking:.3f}em is outside the "
-                         f"{DISPLAY_TRACKING[0]} to {DISPLAY_TRACKING[1]}em the file asks for")
-        if line_height is not None and not readings["line_height_in_range"] \
-                and not (DISPLAY_LINE_HEIGHT[0] - 0.02 <= line_height
-                         <= DISPLAY_LINE_HEIGHT[1] + 0.02):
-            notes.append(f"display line-height {line_height:.2f} is outside the "
-                         f"{DISPLAY_LINE_HEIGHT[0]} to {DISPLAY_LINE_HEIGHT[1]} range")
-        if notes:
-            reviews.append({"check": "DISPLAY-SETTING", "status": "review",
-                            "severity": "review", "clause": "expression.md item 1",
-                            "tracking_em": tracking, "line_height_ratio": line_height,
-                            "message": "at display size, " + "; ".join(notes)})
-
-    names = families(payload)
-    if len(names) > 6:
-        # Six declarations is where a page stops looking like roles and starts
-        # looking like drift. Below that, five is normal (sans, sans-light,
-        # serif, mono, CJK fallback) and the report lists them without judging.
-        reviews.append({"check": "FAMILIES", "status": "review", "severity": "review",
-                        "clause": "expression.md / color-and-type.md",
-                        "families": list(names)[:6],
-                        "message": f"{len(names)} distinct font-family declarations "
-                                   f"carry text ({'; '.join(list(names)[:3])}; ...); "
-                                   f"check they map onto named roles rather than drift"})
+    loud = payload.get("loud") or {}
+    if loud:
+        reviews.append({
+            "check": "ATTENTION", "tag": loud.get("tag"),
+            "status": "review", "severity": "review",
+            "clause": "expression.md item 4 (focal engineering)",
+            "size": loud.get("size"), "text": loud.get("text"),
+            "column_fill": column_fill(payload),
+            "gap_below": payload.get("gap_below"),
+            "message": (f"the loudest first-screen element is {loud.get('tag')} at "
+                        f"{loud.get('size')}px; {column_fill(payload):g}% of its column "
+                        f"is filled before the fold"),
+        })
+        gaps = ladder_gaps(payload.get("ladder"), payload.get("body_size"))
+        fill = column_fill(payload)
+        gap = payload.get("gap_below")
+        painted = band_is_painted(payload)
+        thin = fill < 55 or (gap is not None and gap > 48)
+        if gaps and thin and not painted:
+            reviews.append({
+                "check": "LADDER", "tag": loud.get("tag"),
+                "status": "review", "severity": "review",
+                "clause": "expression.md item 1 (type drama)",
+                "gaps": [{"from": big, "to": small} for big, small in gaps],
+                "column_fill": fill,
+                "message": ("the size ladder skips "
+                            + ", ".join(f"{big}→{small}px" for big, small in gaps[:3])
+                            + f" while the column is only {fill:g}% filled; the display "
+                              f"text has little around it to be a focal point of"),
+            })
+        if painted:
+            visual_count, page_fill = visual_fill(payload)
+            reviews.append({
+                "check": "VISUAL-FILL", "tag": loud.get("tag"),
+                "status": "uncertain", "severity": "review",
+                "clause": "not measurable from text geometry",
+                "visual_items": visual_count,
+                "page_background_image": page_fill,
+                "message": (f"the band around {loud.get('tag')} "
+                            + (f"holds {visual_count} large visual element(s)"
+                               if visual_count else "sits on a page-painted background")
+                            + "; whether the space reads as composed or as empty is "
+                              "a visual judgement this tool cannot make"),
+            })
+    reviews.append({
+        "check": "DENSITY", "tag": "(first screen)",
+        "status": "review", "severity": "review",
+        "clause": "information, not a verdict",
+        "density": density(payload),
+        "items": payload.get("hero_items", 0),
+        "message": (f"{payload.get('hero_items', 0)} text items on the first screen "
+                    f"({density(payload):g} per 100k px²); read it against the brief — "
+                    f"a portfolio is legitimately sparse, a dashboard is not"),
+    })
     return [], reviews
 
 
 def build_report(url, payload, viewport=None):
     measures, reviews = classify(payload)
-    fails = [item for item in measures if item.get("status") == "FAIL"]
+    loud = payload.get("loud") or {}
     return {
         "url": url,
         "verified": True,
-        "viewport": viewport,
+        "viewport": viewport or payload.get("viewport"),
         "clause_coverage": CLAUSE_COVERAGE,
         "metrics": {
             "body_size": round(float(payload.get("body_size") or BODY_FALLBACK), 1),
-            "type_ratio": round(type_ratio(payload), 2),
-            "weights": {"light": weight_span(payload)[0],
-                        "heavy": weight_span(payload)[1]},
-            "size_steps": size_steps(payload),
-            "display": display_readings(payload),
-            "families": families(payload),
+            "loud": {"tag": loud.get("tag"), "text": loud.get("text"),
+                     "size": loud.get("size"), "weight": loud.get("weight")},
+            "ratio_to_body": ratio_to_body(payload),
+            "column_fill": column_fill(payload),
+            "gap_below": payload.get("gap_below"),
+            "ladder": payload.get("ladder") or [],
+            "competitors": payload.get("competitors") or [],
+            "hero_items": payload.get("hero_items", 0),
+            "density": density(payload),
+            "h1": payload.get("h1"),
         },
-        "findings": fails + reviews,
+        "findings": reviews,
+        "questions": attention_questions(payload),
         "manual": list(MANUAL_ITEMS),
         "summary": {
-            "fail": len(fails),
-            "review": len(reviews),
-            "type_ratio": round(type_ratio(payload), 2),
-            "measured_samples": len(payload.get("samples") or []),
+            "fail": 0,
+            "review": sum(1 for item in reviews if item.get("status") == "review"),
+            "uncertain": sum(1 for item in reviews if item.get("status") == "uncertain"),
+            "hero_items": payload.get("hero_items", 0),
+            "column_fill": column_fill(payload),
+            "ratio_to_body": ratio_to_body(payload),
+            "visual_fill": visual_fill(payload)[0],
             "capped": bool(payload.get("capped")),
         },
     }
 
 
 def has_measurable_fail(report):
-    """Always False: nothing here gates a build.
-
-    The type ratio is the closest thing to a threshold, and it is still a
-    judgement about expressiveness rather than conformance. Exposing it as an
-    exit code would let taste break CI, which is exactly the failure mode the
-    benchmark's human verdict section warns about.
-    """
+    """Always False: this tool reads allocation, and allocation is a judgement."""
     return bool(report["summary"]["fail"])
 
 
 def render_text(report):
     metrics = report["metrics"]
     summary = report["summary"]
-    display = metrics["display"]
+    loud = metrics["loud"]
     lines = [
-        f"Expression audit: {report['url']}",
+        f"Expression audit (first screen): {report['url']}",
         f"Scope: {report['clause_coverage']}",
-        f"Type ratio: {metrics['type_ratio']:.2f}x body "
-        f"({metrics['body_size']:g}px body, largest carried text)",
-        f"Weights: {metrics['weights']['light']} to {metrics['weights']['heavy']}; "
-        f"{metrics['size_steps']} distinct sizes; "
-        f"{len(metrics['families'])} font-family declaration(s)",
     ]
-    for declaration, count in list(metrics["families"].items())[:6]:
-        lines.append(f"  {count:>4} samples  {declaration}")
-    if display["samples"]:
-        lines.append(
-            f"Display setting: tracking {display['tracking_em']}em, "
-            f"line-height {display['line_height_ratio']} "
-            f"({display['samples']} samples at >= {DISPLAY_MIN_SIZE:g}px)")
-    else:
-        lines.append(f"Display setting: no text at or above {DISPLAY_MIN_SIZE:g}px")
+    if not loud.get("tag"):
+        lines.append("No text found on the first screen; nothing to read.")
+        return "\n".join(lines)
+    lines.append(
+        f"Loudest: {loud['tag']} at {loud['size']}px, weight {loud['weight']} "
+        f"(\"{loud['text']}\")")
+    lines.append(
+        f"Column fill: {metrics['column_fill']:g}% of the strip it occupies is text "
+        f"before the fold; blank below it: {metrics['gap_below']}px")
+    lines.append(
+        f"Density: {metrics['hero_items']} text items on the first screen "
+        f"({metrics['density']:g} per 100k px²)")
+    ladder = metrics["ladder"]
+    if ladder:
+        lines.append("Size ladder (first screen): "
+                     + " / ".join(f"{size}" for size in ladder) + " px")
+    if metrics["ratio_to_body"]:
+        lines.append(f"Reference: loudest / body = {metrics['ratio_to_body']:g}x "
+                     f"(body {metrics['body_size']:g}px) — reported, not judged")
+    if metrics["competitors"]:
+        lines.append("Competing at 75%+ of the loudest size: "
+                     + ", ".join(f"{c.get('text', '')[:20]} ({c.get('size')}px)"
+                                 for c in metrics["competitors"][:4]))
     lines.append("")
-    lines.append("Measurements against expression.md (all review severity; none gate a build):")
     for finding in report["findings"]:
-        lines.append(f"REVIEW [{finding['check']}] {finding.get('message')}")
-    lines.append("")
-    lines.append("Left to the polish pass (a rect cannot judge these):")
+        if finding.get("status") == "uncertain":
+            lines.append(f"UNCERTAIN [{finding['check']}] {finding.get('message')}")
+    if any(item.get("status") == "uncertain" for item in report["findings"]):
+        lines.append("")
+    if report["questions"]:
+        lines.append("Questions to answer (the measurement cannot):")
+        for question in report["questions"]:
+            lines.append(f"  ? {question}")
+        lines.append("")
+    lines.append("Left to the polish pass:")
     for item in report["manual"]:
         lines.append(f"  - {item}")
     lines.append("")
-    lines.append(f"Summary: {summary['review']} review item(s) over "
-                 f"{summary['measured_samples']} text samples; no exit status "
-                 f"(taste never gates a build)")
+    lines.append(f"Summary: {summary['review']} review item(s), "
+                 f"{summary['uncertain']} uncertain"
+                 + (f" ({summary['visual_fill']} visual element(s) the text geometry "
+                    f"cannot judge)" if summary.get("visual_fill") else "")
+                 + ", no exit status (allocation is a judgement, not a conformance rule)")
     if summary.get("capped"):
         lines.append(f"NOTE: sampling stopped at {MAX_SAMPLES} text nodes")
     return "\n".join(lines)
@@ -441,7 +582,10 @@ def _collect(session, session_id):
         "(async () => {"
         "try { if (document.fonts && document.fonts.ready) await document.fonts.ready; }"
         " catch (e) {}"
-        "return " + COLLECTOR_JS.replace("__MAX_SAMPLES__", str(MAX_SAMPLES)) + ";"
+        "return " + COLLECTOR_JS
+        .replace("__MAX_SAMPLES__", str(MAX_SAMPLES))
+        .replace("__DISPLAY_MIN__", str(DISPLAY_MIN))
+        .replace("__BAND_PAD__", str(BAND_PAD_FACTOR)) + ";"
         "})()"
     )
     value = session.send(
@@ -460,7 +604,7 @@ def _collect(session, session_id):
 
 
 def audit_url(url, width=1440, height=900):
-    """Load at a desktop width: expression is judged on the composition, not a phone."""
+    """Load at desktop size, because the allocation decision is composed there."""
     with cdp.PageSession(url, width=width, height=height) as page:
         page.settle()
         return _collect(page.session, page.session_id)
@@ -468,8 +612,9 @@ def audit_url(url, width=1440, height=900):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(
-        description="Measure the expression layer's measurable items: type ratio, "
-                    "weight span, size steps, display setting.")
+        description="Read how a page allocates attention on its first screen: the "
+                    "loudest element, its column fill, the size ladder, density — and "
+                    "the questions those numbers raise.")
     parser.add_argument("url")
     parser.add_argument("--json", action="store_true",
                         help="print the JSON report instead of text")

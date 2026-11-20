@@ -1,14 +1,18 @@
 """Browser-free tests for expression_audit.py.
 
-What is pinned here is the arithmetic and the honesty: which numbers the tool
-reports, and that nothing it reports can fail a build. Two of these tests
-record defects a real page caught first:
+The tool reads how a page allocates attention on its first screen. What is
+pinned here is the arithmetic and the restraint:
 
-- counting first font-family names reported five "families" on a page that had
-  three roles, because `Segoe UI Light` is a weight of `Segoe UI` and
-  `Cascadia Code`/`Consolas` are one mono stack;
-- a page that set tracking to exactly -0.03em measured as "outside -0.03 to
-  -0.01" through float error.
+- a skipped size rung is only raised when the band is thin *and* not painted,
+  because a photography hero legitimately has a void under its title;
+- a page-painted background or a large image in the band downgrades the
+  emptiness reading to uncertain rather than reporting it as a defect;
+- nothing the tool reports can fail a build.
+
+The rewrite this file covers replaced a single "type ratio" score. Two tests
+record why: the ratio measured the largest text on the *whole page*, so a
+decorative numeral 2000px down decided the score, and it said nothing about
+whether the loud thing deserved to be loud.
 """
 
 import io
@@ -43,215 +47,254 @@ def run(main, argv):
     return code, raw.getvalue().decode("utf-8")
 
 
-def sample(**overrides):
-    base = {"tag": "p", "size": 16, "weight": 400, "line_height_ratio": 1.6,
-            "letter_spacing_em": 0.0, "family": "Segoe UI",
-            "family_declaration": "Segoe UI, sans-serif", "text": "sample"}
-    base.update(overrides)
-    return base
-
-
-def payload(samples=None, sizes=None, weights=None, body_size=16, **overrides):
-    samples = samples if samples is not None else [sample()]
+def page(**overrides):
+    """One first-screen payload: a dense panel with a display figure."""
     base = {
-        "body_size": body_size,
-        "sizes": sizes if sizes is not None else {16: len(samples)},
-        "weights": weights if weights is not None else {400: len(samples)},
-        "samples": samples,
+        "viewport": {"w": 1440, "h": 900},
+        "body_size": 14,
+        "loud": {"tag": "span#fig", "text": "12.9", "size": 88, "weight": 300,
+                 "top": 90, "bottom": 207},
+        "band": {"lo": 90, "hi": 380, "other_items": 39, "visual_items": []},
+        "gap_below": -1,
+        "column": {"height": 376, "covered": 376, "items": 34},
+        "ladder": [88, 30, 20, 15, 14, 13, 12],
+        "size_counts": {"88": 1, "30": 1, "20": 1, "15": 20, "14": 40, "13": 20, "12": 15},
+        "competitors": [],
+        "hero_items": 98,
+        "h1": {"text": "ZhuLong", "size": 15, "above_fold": True},
+        "page_fill": None,
         "capped": False,
-        "viewport_width": 1440,
     }
     base.update(overrides)
     return base
 
 
-class TypeRatioTests(unittest.TestCase):
-    def test_the_ratio_is_display_over_body(self):
+def sparse_page(**overrides):
+    """B3's shape: a big figure over a thin, unpainted band."""
+    base = page(
+        loud={"tag": "div#big-fig", "text": "£1,847", "size": 70, "weight": 300,
+              "top": 174, "bottom": 244},
+        band={"lo": 139, "hi": 349, "other_items": 11, "visual_items": []},
+        gap_below=78,
+        column={"height": 305, "covered": 128, "items": 19},
+        ladder=[70, 22, 21, 15, 14, 13, 12],
+        competitors=[],
+        hero_items=51,
+        h1={"text": "Mill & Crumb", "size": 21, "above_fold": True},
+        page_fill=None,
+    )
+    base.update(overrides)
+    return base
+
+
+def photo_page(**overrides):
+    """B4's shape: same geometry as the sparse page, painted by a photograph."""
+    base = sparse_page(
+        loud={"tag": "span.l2", "text": "above the water", "size": 92,
+              "weight": 400, "top": 633, "bottom": 725},
+        gap_below=64,
+        column={"height": 267, "covered": 141, "items": 15},
+        ladder=[92, 25, 18, 15, 14, 13],
+        hero_items=15,
+        page_fill="linear-gradient(rgba(0,0,0,0), rgb(20,30,26))",
+    )
+    base.update(overrides)
+    return base
+
+
+class ColumnFillTests(unittest.TestCase):
+    def test_fill_is_covered_over_height(self):
+        self.assertAlmostEqual(expression_audit.column_fill(page()), 100.0)
+
+    def test_a_thin_column_reports_its_share(self):
         self.assertAlmostEqual(
-            expression_audit.type_ratio(payload(sizes={16: 3, 88: 1}, body_size=14)),
-            88 / 14)
+            expression_audit.column_fill(page(column={"height": 305, "covered": 128,
+                                                     "items": 19})),
+            42.0)
 
-    def test_no_text_gives_zero(self):
-        self.assertEqual(expression_audit.type_ratio(payload(sizes={})), 0.0)
-
-    def test_a_zero_body_size_does_not_divide_by_zero(self):
-        self.assertEqual(expression_audit.type_ratio(payload(sizes={16: 1}, body_size=0)), 0.0)
-
-    def test_a_missing_body_falls_back_to_16(self):
-        self.assertAlmostEqual(
-            expression_audit.type_ratio({"sizes": {32: 1}}), 2.0)
-
-    def test_three_times_body_passes(self):
-        status, _severity, message = expression_audit.ratio_verdict(3.0)
-        self.assertEqual(status, "pass")
-        self.assertIn("3x floor", message)
-
-    def test_below_two_and_a_half_is_called_flat(self):
-        status, _severity, message = expression_audit.ratio_verdict(1.25)
-        self.assertEqual(status, "FAIL")
-        self.assertIn("reads flat", message)
-
-    def test_between_two_and_a_half_and_three_is_also_flat(self):
-        status, _severity, message = expression_audit.ratio_verdict(2.7)
-        self.assertEqual(status, "FAIL")
-        self.assertIn("expression.md asks for 3x", message)
-
-
-class WeightSpanTests(unittest.TestCase):
-    def test_the_span_is_lightest_to_heaviest(self):
+    def test_zero_height_is_zero_not_a_crash(self):
         self.assertEqual(
-            expression_audit.weight_span(payload(weights={200: 1, 400: 4, 800: 2})),
-            (200, 800))
+            expression_audit.column_fill(page(column={"height": 0, "covered": 0})), 0.0)
 
-    def test_no_weights_gives_nones(self):
-        self.assertEqual(expression_audit.weight_span(payload(weights={})), (None, None))
-
-    def test_both_ends_present_passes(self):
-        status, _severity, _message = expression_audit.weight_verdict(300, 700)
-        self.assertEqual(status, "pass")
-
-    def test_only_the_middle_is_a_review(self):
-        status, severity, message = expression_audit.weight_verdict(400, 600)
-        self.assertEqual((status, severity), ("review", "review"))
-        self.assertIn("200-300 against 700-800", message)
-
-    def test_a_missing_light_end_is_a_review(self):
-        _status, _severity, message = expression_audit.weight_verdict(500, 700)
-        self.assertIn("no light end", message)
-
-    def test_a_missing_heavy_end_is_a_review(self):
-        _status, _severity, message = expression_audit.weight_verdict(200, 500)
-        self.assertIn("no heavy end", message)
+    def test_fill_never_exceeds_one_hundred(self):
+        self.assertEqual(
+            expression_audit.column_fill(page(column={"height": 100,
+                                                     "covered": 250})), 100.0)
 
 
-class SizeStepTests(unittest.TestCase):
-    def test_steps_count_distinct_sizes(self):
-        self.assertEqual(expression_audit.size_steps(payload(sizes={14: 1, 16: 4, 24: 1})), 3)
+class DensityTests(unittest.TestCase):
+    def test_density_is_items_per_100k_px(self):
+        # 98 items over 1440x900 = 1296000 px² → 98 * 1e5 / 1296000 ≈ 7.56
+        self.assertAlmostEqual(expression_audit.density(page()), 7.6, places=1)
 
-    def test_two_steps_is_too_few(self):
-        _status, _severity, message = expression_audit.steps_verdict(2)
-        self.assertIn("almost no room", message)
-
-    def test_thirteen_steps_reads_as_drift(self):
-        _status, _severity, message = expression_audit.steps_verdict(13)
-        self.assertIn("reads as drift", message)
-
-    def test_seven_steps_is_quiet(self):
-        status, _severity, _message = expression_audit.steps_verdict(7)
-        self.assertEqual(status, "pass")
+    def test_a_missing_viewport_is_zero(self):
+        self.assertEqual(expression_audit.density(page(viewport={})), 0.0)
 
 
-class DisplayTests(unittest.TestCase):
-    def test_only_display_sized_samples_are_read(self):
-        mixed = [sample(size=88, letter_spacing_em=-0.02, line_height_ratio=1.0),
-                 sample(size=16, letter_spacing_em=0.0, line_height_ratio=1.6)]
-        readings = expression_audit.display_readings(payload(samples=mixed))
-        self.assertEqual(readings["samples"], 1)
-        self.assertAlmostEqual(readings["tracking_em"], -0.02)
-        self.assertAlmostEqual(readings["line_height_ratio"], 1.0)
+class LadderGapTests(unittest.TestCase):
+    def test_a_ladder_with_no_skipped_rung_yields_nothing(self):
+        # 88 → 30 is 2.9x, under the 1.8 factor threshold? No: 2.9 > 1.8, so this
+        # ladder does skip. Use a genuinely continuous ladder to test the empty case.
+        self.assertEqual(
+            expression_audit.ladder_gaps([48, 32, 24, 16], 16), [])
 
-    def test_no_display_text_reports_zero_samples(self):
-        readings = expression_audit.display_readings(payload(samples=[sample(size=16)]))
-        self.assertEqual(readings["samples"], 0)
-        self.assertIsNone(readings["tracking_em"])
+    def test_the_display_jump_is_reported(self):
+        self.assertEqual(
+            expression_audit.ladder_gaps([70, 22, 15], 14), [(70, 22)])
 
-    def test_tracking_at_the_boundary_is_inside(self):
-        # REGRESSION: -0.03 measured as outside "-0.03 to -0.01" through float
-        # error, so a page that had set exactly the file's value was flagged.
-        readings = expression_audit.display_readings(
-            payload(samples=[sample(size=64, letter_spacing_em=-0.03,
-                                    line_height_ratio=1.0)]))
-        self.assertTrue(readings["tracking_in_range"])
+    def test_body_size_is_appended_when_missing(self):
+        gaps = expression_audit.ladder_gaps([70, 22], 14)
+        self.assertEqual(gaps, [(70, 22)])
 
-    def test_a_loose_display_reading_is_outside(self):
-        readings = expression_audit.display_readings(
-            payload(samples=[sample(size=64, letter_spacing_em=0.05,
-                                    line_height_ratio=1.6)]))
-        self.assertFalse(readings["tracking_in_range"])
-        self.assertFalse(readings["line_height_in_range"])
+    def test_an_empty_ladder_yields_nothing(self):
+        self.assertEqual(expression_audit.ladder_gaps([], 16), [])
+        self.assertEqual(expression_audit.ladder_gaps(None, 16), [])
+
+    def test_a_single_step_still_compares_against_body(self):
+        # One display size over body is one jump, and 40/16 = 2.5x is past the
+        # factor, so it is reported: a lone 40px heading over 16px text has no
+        # intermediate step, which is exactly what the check is for.
+        self.assertEqual(expression_audit.ladder_gaps([40], 16), [(40, 16)])
 
 
-class FamilyTests(unittest.TestCase):
-    def test_declarations_are_counted_with_samples(self):
-        families = expression_audit.families(payload(samples=[
-            sample(family_declaration="Segoe UI, sans-serif"),
-            sample(family_declaration="Segoe UI, sans-serif"),
-            sample(family_declaration="Georgia, serif"),
-        ]))
-        self.assertEqual(families["Segoe UI, sans-serif"], 2)
-        self.assertEqual(families["Georgia, serif"], 1)
+class PaintedBandTests(unittest.TestCase):
+    def test_a_visual_element_in_the_band_counts_as_painted(self):
+        painted = page(band={"lo": 0, "hi": 300, "other_items": 4,
+                             "visual_items": [{"tag": "img.plate", "width": 1200,
+                                               "height": 600}]})
+        self.assertTrue(expression_audit.band_is_painted(painted))
 
-    def test_weight_variants_of_one_family_count_as_one_declaration_each(self):
-        # REGRESSION: the first-name count reported five "families" on a page
-        # with three roles, because Segoe UI Light is a weight of Segoe UI.
-        families = expression_audit.families(payload(samples=[
-            sample(family_declaration="Segoe UI, sans-serif"),
-            sample(family_declaration="Segoe UI Light, Segoe UI, sans-serif"),
-        ]))
-        self.assertEqual(len(families), 2, "two declarations, and the report says so")
-        self.assertIn("Segoe UI Light, Segoe UI, sans-serif", families)
+    def test_a_page_painted_background_counts_as_painted(self):
+        self.assertTrue(expression_audit.band_is_painted(photo_page()))
 
-    def test_five_declarations_do_not_raise_a_finding(self):
-        samples = [sample(family_declaration=decl) for decl in (
-            "Segoe UI, sans-serif",
-            "Segoe UI Light, Segoe UI, sans-serif",
-            "Georgia, serif",
-            "Cascadia Code, Consolas, monospace",
-            "Noto Sans SC, sans-serif",
-        )]
-        _measures, reviews = expression_audit.classify(payload(samples=samples))
-        self.assertNotIn("FAMILIES", [review["check"] for review in reviews])
+    def test_a_text_only_band_is_not_painted(self):
+        self.assertFalse(expression_audit.band_is_painted(sparse_page()))
+
+    def test_visual_fill_reports_the_count_and_the_background(self):
+        count, fill = expression_audit.visual_fill(photo_page())
+        self.assertEqual(count, 0)
+        self.assertIn("linear-gradient", fill)
+
+
+class QuestionTests(unittest.TestCase):
+    def test_the_loud_element_question_names_size_and_text(self):
+        questions = expression_audit.attention_questions(page())
+        self.assertTrue(questions)
+        self.assertIn("span#fig", questions[0])
+        self.assertIn("88px", questions[0])
+        self.assertIn("12.9", questions[0])
+        self.assertIn("Is that the thing this screen exists to show?", questions[0])
+
+    def test_a_small_h1_under_a_large_figure_is_questioned(self):
+        # B3: the product heading is 21px while one measurement is 70px.
+        questions = expression_audit.attention_questions(sparse_page())
+        joined = " ".join(questions)
+        self.assertIn("Mill & Crumb", joined)
+        self.assertIn("21px", joined)
+        self.assertIn("confirm the figure is the more important", joined)
+
+    def test_a_heading_close_to_display_size_is_not_questioned(self):
+        # B1: h1 at 15px vs a figure at 88px would trigger, so this test uses a
+        # page whose h1 is large enough not to.
+        lively = page(h1={"text": "ZhuLong", "size": 60, "above_fold": True})
+        joined = " ".join(expression_audit.attention_questions(lively))
+        self.assertNotIn("confirm the figure is the more important", joined)
+
+    def test_the_sparse_unpainted_band_raises_the_ladder_question(self):
+        joined = " ".join(expression_audit.attention_questions(sparse_page()))
+        self.assertIn("the size ladder skips", joined)
+        self.assertIn("70px → 22px", joined)
+        self.assertIn("reads as decorative", joined)
+
+    def test_the_same_geometry_painted_does_not_raise_it(self):
+        # REGRESSION: B4 has B3's exact geometry — a skipped rung over a 53%
+        # column with 64px of blank — and the blank is a horizon photograph.
+        joined = " ".join(expression_audit.attention_questions(photo_page()))
+        self.assertNotIn("reads as decorative", joined)
+        self.assertIn("the page paints its own background", joined)
+
+    def test_a_well_filled_column_does_not_raise_the_ladder_question(self):
+        # B2: skips 102→22 but fills 77% of its column, which is the design of a
+        # photography hero.
+        filled = page(ladder=[102, 22, 17, 15], column={"height": 100,
+                                                        "covered": 77, "items": 5},
+                      page_fill=None)
+        joined = " ".join(expression_audit.attention_questions(filled))
+        self.assertNotIn("reads as decorative", joined)
+
+    def test_competing_foci_are_reported(self):
+        competing = page(competitors=[{"tag": "h2#a", "size": 80, "text": "One"},
+                                      {"tag": "h2#b", "size": 76, "text": "Two"}])
+        joined = " ".join(expression_audit.attention_questions(competing))
+        self.assertIn("2 elements compete", joined)
+        self.assertIn("cancel each other", joined)
+
+    def test_a_page_with_no_text_asks_nothing(self):
+        self.assertEqual(
+            expression_audit.attention_questions(page(loud={}, band={})), [])
 
 
 class ClassifyTests(unittest.TestCase):
-    def test_nothing_here_is_a_failure(self):
-        # The whole point: taste never gates a build.
-        flat = payload(sizes={16: 4, 20: 1}, weights={400: 5},
-                       samples=[sample(size=16), sample(size=20)])
-        measures, reviews = expression_audit.classify(flat)
-        self.assertEqual(measures, [])
-        self.assertTrue(reviews)
+    def test_nothing_is_ever_a_failure(self):
+        for payload in (page(), sparse_page(), photo_page()):
+            _measures, reviews = expression_audit.classify(payload)
+            self.assertEqual(_measures, [])
+            self.assertTrue(reviews)
 
-    def test_a_flat_page_produces_three_reviews(self):
-        flat = payload(sizes={16: 4, 20: 1}, weights={400: 5},
-                       samples=[sample(size=16), sample(size=20)])
-        _measures, reviews = expression_audit.classify(flat)
-        checks = [review["check"] for review in reviews]
-        self.assertIn("TYPE-RATIO", checks)
-        self.assertIn("WEIGHT-SPAN", checks)
-        self.assertIn("SIZE-STEPS", checks)
+    def test_a_dense_first_screen_raises_no_ladder_finding(self):
+        _measures, reviews = expression_audit.classify(page())
+        self.assertNotIn("LADDER", [item["check"] for item in reviews])
 
-    def test_every_review_names_the_expression_item(self):
-        _measures, reviews = expression_audit.classify(payload())
-        for review in reviews:
-            self.assertIn("expression.md", review["clause"])
+    def test_a_thin_unpainted_screen_raises_the_ladder_finding(self):
+        _measures, reviews = expression_audit.classify(sparse_page())
+        self.assertIn("LADDER", [item["check"] for item in reviews])
+
+    def test_a_painted_screen_raises_uncertain_instead(self):
+        _measures, reviews = expression_audit.classify(photo_page())
+        checks = [(item["check"], item["status"]) for item in reviews]
+        self.assertIn(("VISUAL-FILL", "uncertain"), checks)
+        self.assertNotIn("LADDER", [item["check"] for item in reviews])
+
+    def test_density_is_always_reported(self):
+        for payload in (page(), sparse_page()):
+            _measures, reviews = expression_audit.classify(payload)
+            self.assertIn("DENSITY", [item["check"] for item in reviews])
 
 
 class ReportTests(unittest.TestCase):
     def test_has_measurable_fail_is_always_false(self):
-        flat = payload(sizes={16: 4, 20: 1}, weights={400: 5},
-                       samples=[sample(size=16)])
-        report = expression_audit.build_report("http://x/", flat)
+        report = expression_audit.build_report("http://x/", sparse_page())
         self.assertFalse(expression_audit.has_measurable_fail(report))
 
+    def test_summary_separates_review_from_uncertain(self):
+        report = expression_audit.build_report("http://x/", photo_page())
+        self.assertEqual(report["summary"]["fail"], 0)
+        self.assertGreaterEqual(report["summary"]["uncertain"], 1)
+
     def test_the_manual_items_are_named(self):
-        report = expression_audit.build_report("http://x/", payload())
+        report = expression_audit.build_report("http://x/", page())
         self.assertEqual(len(report["manual"]), 5)
-        self.assertTrue(any("focal point" in item for item in report["manual"]))
         self.assertTrue(any("signature" in item for item in report["manual"]))
 
-    def test_the_text_report_lists_the_manual_items(self):
-        report = expression_audit.build_report("http://x/", payload())
+    def test_the_text_report_lists_questions_and_manual_items(self):
+        report = expression_audit.build_report("http://x/", sparse_page())
         text = expression_audit.render_text(report)
+        self.assertIn("Questions to answer", text)
         self.assertIn("Left to the polish pass", text)
         self.assertIn("no exit status", text)
+        self.assertIn("reported, not judged", text)
+
+    def test_a_page_without_text_says_so(self):
+        report = expression_audit.build_report("http://x/", page(loud={}, band={}))
+        self.assertIn("No text found", expression_audit.render_text(report))
 
     def test_json_output_is_parseable(self):
-        with mock.patch.object(expression_audit, "audit_url", return_value=payload()):
+        with mock.patch.object(expression_audit, "audit_url",
+                               return_value=page()):
             code, output = run(expression_audit.main, ["http://127.0.0.1:1/", "--json"])
         report = json.loads(output)
         self.assertTrue(report["verified"])
-        self.assertIn("type_ratio", report["metrics"])
+        self.assertIn("column_fill", report["metrics"])
 
     def test_a_failed_audit_claims_nothing(self):
         def boom(url, **kwargs):
@@ -265,6 +308,20 @@ class ReportTests(unittest.TestCase):
     def test_url_rejection_exits_three(self):
         code, _output = run(expression_audit.main, ["file:///etc/passwd"])
         self.assertEqual(code, 3)
+
+
+class RatioTests(unittest.TestCase):
+    def test_the_ratio_is_kept_as_a_reference_number(self):
+        self.assertAlmostEqual(expression_audit.ratio_to_body(page()), 6.29, places=2)
+
+    def test_a_zero_body_gives_zero(self):
+        self.assertEqual(
+            expression_audit.ratio_to_body(page(body_size=0)), 0.0)
+
+    def test_it_never_appears_as_a_finding(self):
+        # The rewrite's whole point: the ratio is reported, not judged.
+        _measures, reviews = expression_audit.classify(page())
+        self.assertNotIn("TYPE-RATIO", [item["check"] for item in reviews])
 
 
 if __name__ == "__main__":

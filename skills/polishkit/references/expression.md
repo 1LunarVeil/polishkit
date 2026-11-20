@@ -56,7 +56,7 @@ Flat 100% solid fills at hero scale read as wireframes.
 5. Is any hero-scale field dead flat?
 6. Would removing the signature element leave the page generic? If yes, the signature is not crafted yet — go back.
 
-Items 1 (partly) has numbers, so `scripts/expression_audit.py` measures it: the type ratio against the 3× floor, the weight span against the light/heavy ends, the count of distinct sizes, and the tracking and line-height at display size. It reports those as numbers and lists items 2–6 as manual, because a rectangle cannot tell you whether a page has one asymmetry or a good focal point. Nothing it reports gates a build — taste does not belong in an exit code — and that restraint is the point: the benchmark's human verdicts are what caught the pages this file was written for.
+`scripts/expression_audit.py` reads the first screen and reports how attention is allocated: the loudest element, how much of its own column is filled before the fold, the size ladder from display down to body, and the text density. Then it asks the questions the numbers raise and answers none of them — is the loudest thing the thing this screen exists to show; is the page's own heading a third the size of one measurement; do two elements compete. That restraint is deliberate: an earlier version scored a single "type ratio" and it was a weak proxy, because the loudest thing being loud says nothing about whether it deserved to be. When the band around the loud element holds a large image or the page paints its own background, the emptiness is reported as uncertain — a photography hero's void and a dashboard's dead band have the same geometry, and only a person can tell them apart. Items 2–6 stay in the polish pass.
 
 ## 刻意不采用
 

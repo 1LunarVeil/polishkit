@@ -2,6 +2,32 @@
 
 All notable changes to this project are recorded here. The format follows Keep a Changelog, and versions follow Semantic Versioning.
 
+## [2.2.8] - 2026-11-20
+
+`expression_audit` was rewritten after the maintainer's critique: a single "type ratio" score was a weak proxy that said how loud a page is, never whether the loud thing deserved to be loud.
+
+### Changed
+
+- **`expression_audit.py` now reads attention allocation instead of scoring drama.** It reports, measured on the first screen only:
+  - **ATTENTION** the loudest element, the count of other text in its band, how much of its own column is filled before the fold, and the blank run below it.
+  - **LADDER** the size steps present, with a skipped rung reported only when the band is thin *and* unpainted.
+  - **DENSITY** text items per 100,000 CSS px², as a raw number with no threshold — a portfolio is legitimately sparse and a dashboard is not.
+  - The old ratio survives as one reference line, printed with "reported, not judged" beside it.
+- **It asks questions and answers none of them.** For each page it prints what the numbers imply — *is the loudest thing the thing this screen exists to show; is the page's own heading a third the size of one measurement; do two elements compete* — and leaves the decision to the model or the designer, which is where it belongs.
+- **Imagery makes emptiness uncertain.** When the band around the loud element holds a large image, canvas or painted block, or the page paints its own background, the emptiness is reported as `uncertain` with the evidence. A photography hero's void and a dashboard's dead band have the same text geometry; only a person can tell them apart.
+
+### Fixed
+
+- **The ratio measured the whole page, not the first screen.** B2's largest text was a decorative `12` at 118px *2000px below the fold*, and it was deciding that page's "drama" score. First-screen restriction is the correction the rewrite is about.
+- **A chained conditional swallowed the question's opening sentence.** Writing the blank-run clause, the painted-band caveat and the closing question as one `+ ... if painted else ""` chain bound the `if` to the whole concatenation, so every unpainted page printed `". Is that the thing this screen exists to show?"` with no subject.
+- **`body_size: 0` fell through to the 16px fallback** in `ratio_to_body`, the same `0 or 16` mistake fixed once already in this file.
+
+### Verification
+
+- 397 tests pass (391 + 6 net after the rewrite; the file's suite grew to 39).
+- Five benchmark pages: B3 is the only one flagged, with three questions — a 70px figure over a 41.9%-filled column, 78px of blank, a 21px page heading, and a 70→22px ladder gap. B2, B4 and B5 report `VISUAL-FILL` as uncertain instead, because their bands carry photographs or painted backgrounds. B1, a dense dashboard, raises none of it.
+- The maintainer reviewed the five pages side by side and judged 4.75–6.74× not to be over-expressed, while calling B3's first screen genuinely wrong: the number drew the eye, the page's actual subject had been pushed below the fold. The rewrite is what turns that judgement into something the tool can point at.
+
 ## [2.2.7] - 2026-11-20
 
 The expression layer stops being a claim and becomes a measurement — for the parts of it a rectangle can measure.

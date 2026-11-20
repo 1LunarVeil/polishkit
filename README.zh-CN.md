@@ -29,7 +29,7 @@
 | 证明布局能撑住用户的文本间距覆盖 | `scripts/text_spacing.py`：注入 WCAG 1.4.12 的四项值，报告被裁切的卡片、`max-height` 盒子、丢掉文字的省略号标签，以及只在覆盖后才重叠的文字块 |
 | 证明布局在 320 CSS px 下能回流 | `scripts/reflow.py`：在三个宽度下加载页面，报告横向滚动（1.4.10）及其成因元素，遵守二维版面例外，并给出 1.4.4 的文字缩放读数 |
 | 按渲染结果审计中文断行 | `scripts/cjk_breaks.py`：逐行遍历，报告 clreq §6.1.1 禁则违规（收尾标点起行、起始括号收行），以及通常导致它们的 `word-break: break-all` |
-| 测量表达层而非声称它 | `scripts/expression_audit.py`：字阶比对 3× 地板、字重跨度、字号档数、display 的字距与行高——以及它明确说无法判断的五项。全部 review 级；审美永不参与门禁 |
+| 读出一页如何分配注意力，再自己裁决 | `scripts/expression_audit.py`：首屏最响的元素、它所在列的填充率、字号阶梯与文字密度——只报数字与由此引出的问题，从不给分。带内有图像时报为 uncertain，因为矩形分不清照片与空洞 |
 | 证明一次改动到底改到了哪 | `scripts/image_diff.py`，零依赖解 PNG，输出变化区域与比例 |
 | 评审既有界面并给出分级结论 | `references/critique.md`（十个维度）与 `/design-review` |
 | 跑完全部机械检查并给出合并结论 | `/polish-audit`：源码检查 + 两项渲染审计，阻断/重要/待复核/不确定/未检查分列 |
