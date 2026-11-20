@@ -2,6 +2,21 @@
 
 All notable changes to this project are recorded here. The format follows Keep a Changelog, and versions follow Semantic Versioning.
 
+## [2.2.10] - 2026-11-20
+
+The platform dimension `design_lookup` was missing.
+
+### Added
+
+- **`design_lookup.py --platform`** — `all` (default), `web`, `mobile`, `visionos`, `macos`, `windows`, `desktop`. The vendored `ux-guidelines.csv` has no desktop rows (its Platform column offers All/Web/Mobile/VisionOS), so the macOS and Windows checklists live in the lookup itself and index `references/native-feel.md`: window chrome and the three window states, type at platform units (13pt default, 10pt floor, no Light weights on macOS), control sizes (28×28pt default, 44×44pt hit region), Mica and the content layer above it, Win11 radii and the two densities, and the accelerators each platform expects. `desktop` prints both and says to pick one window's platform and commit.
+- `tests/test_lookup_zh.py` gains 15 tests over the mapping, the checklist contents and backward compatibility.
+
+### Verified
+
+- 412 tests pass (397 + 15).
+- Default output is unchanged: with no `--platform`, the lookup still prints the All/Web row set and no desktop checklist.
+- Each choice exercised: `web`, `mobile`, `visionos` narrow the row set; `macos` and `windows` add their checklist; `desktop` prints both; a platform without `--ux` still prints its checklist.
+
 ## [2.2.9] - 2026-11-20
 
 Fixes B3's first screen — the page the new expression audit was built to find — and corrects one metric that was charging a hero for width it never claimed.

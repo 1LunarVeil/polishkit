@@ -23,11 +23,12 @@ Run this from the skill's base directory:
 
 ```
 python scripts/design_lookup.py "saas dashboard dark" --ux --motion
+python scripts/design_lookup.py "settings window" --ux --platform macos
 ```
 
 Chinese keywords work too ("暗色 仪表盘"); mapped terms are printed as a trace. When the product displays data, also pass `--charts`.
 
-Use English keywords. The output gives the matching product type, its styles, a palette with contrast-checked text and UI pairs, typography pairings and reasoning rules. Treat it as evidence, not an answer. Its first style is often a trend pick (glassmorphism, neon, bento) that is wrong for dense tools. Text pairs fail in only one of the 192 palette rows, but most palettes have a border below 3:1 against the background, so every palette needs its UI pairs checked before use.
+Use English keywords. The output gives the matching product type, its styles, a palette with contrast-checked text and UI pairs, typography pairings and reasoning rules. `--platform macos|windows|desktop` swaps the UX rows for that target and prints the macOS or Windows checklist (window chrome, type at platform units, control sizes, materials, accelerators) from `references/native-feel.md`; `desktop` prints both and says to pick one. Treat it as evidence, not an answer. Its first style is often a trend pick (glassmorphism, neon, bento) that is wrong for dense tools. Text pairs fail in only one of the 192 palette rows, but most palettes have a border below 3:1 against the background, so every palette needs its UI pairs checked before use.
 
 ## 4. Direction
 

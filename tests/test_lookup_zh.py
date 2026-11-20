@@ -110,5 +110,98 @@ class PaletteRepairTests(unittest.TestCase):
         self.assertIn("self-host", out)
 
 
+class PlatformTests(unittest.TestCase):
+    """The --platform dimension indexes references/native-feel.md.
+
+    The vendored ux-guidelines.csv has no desktop rows (its Platform column is
+    All/Web/Mobile/VisionOS), so the macOS and Windows checklists live in the
+    lookup itself and point back at the reference. These tests pin the mapping
+    and the backward compatibility: with no --platform, output is the All/Web
+    set it always was.
+    """
+
+    def test_default_platform_keeps_the_all_and_web_rows(self):
+        allowed, desktop = design_lookup._platform_rows("all")
+        self.assertEqual(allowed, ("All", "Web"))
+        self.assertIsNone(desktop)
+
+    def test_web_platform_is_the_default_set(self):
+        self.assertEqual(design_lookup._platform_rows("web"), (("All", "Web"), None))
+
+    def test_mobile_narrows_to_all_and_mobile(self):
+        allowed, desktop = design_lookup._platform_rows("mobile")
+        self.assertEqual(allowed, ("All", "Mobile"))
+        self.assertIsNone(desktop)
+
+    def test_visionos_narrows_to_all_and_visionos(self):
+        allowed, _ = design_lookup._platform_rows("visionos")
+        self.assertEqual(allowed, ("All", "VisionOS"))
+
+    def test_macos_adds_the_desktop_checklist_to_web_rows(self):
+        allowed, desktop = design_lookup._platform_rows("macos")
+        self.assertEqual(allowed, ("All", "Web"))
+        self.assertEqual(desktop, "macos")
+
+    def test_windows_adds_the_desktop_checklist(self):
+        _allowed, desktop = design_lookup._platform_rows("windows")
+        self.assertEqual(desktop, "windows")
+
+    def test_desktop_covers_both_platforms(self):
+        _allowed, desktop = design_lookup._platform_rows("desktop")
+        self.assertEqual(desktop, "desktop")
+
+    def test_every_platform_choice_is_handled(self):
+        for choice in design_lookup.PLATFORM_CHOICES:
+            with self.subTest(choice=choice):
+                design_lookup._platform_rows(choice)  # must not raise
+
+    def test_macos_checklist_carries_the_reference_numbers(self):
+        rules = " ".join(design_lookup.DESKTOP_PLATFORMS["macos"]["rules"])
+        self.assertIn("13pt", rules)
+        self.assertIn("44x44pt", rules)
+        self.assertIn("28x28pt", rules)
+        # The HIG has no Light weights at UI sizes; native-feel.md says so.
+        self.assertIn("no Light weights", rules)
+
+    def test_windows_checklist_carries_the_reference_numbers(self):
+        rules = " ".join(design_lookup.DESKTOP_PLATFORMS["windows"]["rules"])
+        self.assertIn("Mica", rules)
+        self.assertIn("8", rules)
+        self.assertIn("32/40", rules)
+
+    def test_macos_platform_prints_the_checklist(self):
+        code, out = run(design_lookup.main,
+                        ["dashboard", "--ux", "--platform", "macos"])
+        self.assertEqual(code, 0)
+        self.assertIn("macOS platform checklist", out)
+        self.assertIn("trailing ellipsis", out)
+
+    def test_desktop_platform_prints_both_checklists(self):
+        code, out = run(design_lookup.main,
+                        ["dashboard", "--ux", "--platform", "desktop"])
+        self.assertEqual(code, 0)
+        self.assertIn("### macOS", out)
+        self.assertIn("### Windows", out)
+        self.assertIn("never mix", out)
+
+    def test_a_platform_without_ux_still_prints_the_checklist(self):
+        code, out = run(design_lookup.main,
+                        ["dashboard", "--platform", "windows"])
+        self.assertEqual(code, 0)
+        self.assertIn("Windows platform checklist", out)
+
+    def test_web_platform_prints_no_desktop_checklist(self):
+        code, out = run(design_lookup.main,
+                        ["dashboard", "--ux", "--platform", "web"])
+        self.assertEqual(code, 0)
+        self.assertNotIn("platform checklist", out)
+
+    def test_mobile_platform_reports_its_row_set(self):
+        code, out = run(design_lookup.main,
+                        ["dashboard", "--ux", "--platform", "mobile"])
+        self.assertEqual(code, 0)
+        self.assertIn("All/Mobile rows", out)
+
+
 if __name__ == "__main__":
     unittest.main()

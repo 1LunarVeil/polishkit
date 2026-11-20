@@ -267,9 +267,88 @@ def _print_reasoning(product_type, reasoning):
     print()
 
 
-def _print_ux(query, limit=6):
-    print("## UX guideline matches (web and all-platform rows)")
-    rows = [row for row in _load("ux-guidelines.csv") if row["Platform"] in ("All", "Web")]
+# Desktop platform checklists, kept here rather than in the vendored CSV: the
+# CSV's Platform column offers All/Web/Mobile/VisionOS and has no desktop rows,
+# while `references/native-feel.md` carries the macOS and Windows numbers. This
+# table is the lookup's index into that file — short entries that a model can
+# act on, each traceable to the reference.
+DESKTOP_PLATFORMS = {
+    "macos": {
+        "label": "macOS",
+        "rules": (
+            "window controls above the body, leading region clear for them; "
+            "reproduce main/key/inactive states or use the system chrome",
+            "system font SF, 13pt default, 10pt minimum; Regular to Bold only — "
+            "no Light weights",
+            "controls 28x28pt default, 20x20pt minimum; hit region at least "
+            "44x44pt; a push button opening another window takes a trailing ellipsis",
+            "standard materials plus vibrant variants in two blending modes "
+            "(behind-window, within-window); inactive windows drop vibrancy",
+            "⌘ accelerators, menus in the system menu bar in HIG order",
+        ),
+    },
+    "windows": {
+        "label": "Windows",
+        "rules": (
+            "Mica for the app backdrop of long-lived windows (Mica Alt for tabbed "
+            "title bars), with one content layer of LayerFillColorDefaultBrush above "
+            "it; falls back to a solid when inactive or in Battery Saver",
+            "default to the user's light/dark setting; darker surfaces mark less "
+            "important layers, accent stays sparse and contrast-optimized per mode",
+            "Win11 corner radius 8 (windows) / 4 (controls); two densities — "
+            "32/40 epx standard, 24/32 in compact mode",
+            "Ctrl accelerators; title bar is app content, so keep caption buttons "
+            "clear and honour the system high-contrast palette",
+        ),
+    },
+}
+
+PLATFORM_CHOICES = ("all", "web", "mobile", "visionos", "macos", "windows", "desktop")
+
+
+def _platform_rows(platform):
+    """UX-guideline rows for a platform, and whether a desktop checklist applies.
+
+    `all` keeps the previous behaviour (All + Web). A desktop target gets the
+    Web rows plus the macOS or Windows checklist, because a desktop app is a
+    WebView or a native shell and the interaction rules it inherits are the web
+    ones — what changes is the chrome, the metrics and the accelerators.
+    """
+    if platform == "desktop":
+        return ("All", "Web"), "desktop"
+    if platform in DESKTOP_PLATFORMS:
+        return ("All", "Web"), platform
+    return ({"all": ("All", "Web"), "web": ("All", "Web"),
+             "mobile": ("All", "Mobile"),
+             "visionos": ("All", "VisionOS")}[platform], None)
+
+
+def _print_platform(platform):
+    """The desktop checklist for a named platform, or a note that none applies."""
+    if platform == "desktop":
+        print("## Desktop platform")
+        for key, info in DESKTOP_PLATFORMS.items():
+            print(f"### {info['label']} — pick one, never mix")
+            for rule in info["rules"]:
+                print(f"- {rule}")
+        print()
+        return
+    info = DESKTOP_PLATFORMS.get(platform)
+    if info is None:
+        return
+    print(f"## {info['label']} platform checklist (from references/native-feel.md)")
+    for rule in info["rules"]:
+        print(f"- {rule}")
+    print()
+
+
+def _print_ux(query, limit=6, platform="all"):
+    allowed, desktop = _platform_rows(platform)
+    target = ("desktop" if desktop == "desktop"
+              else DESKTOP_PLATFORMS[desktop]["label"] if desktop else "")
+    print(f"## UX guideline matches ({'/'.join(allowed)} rows"
+          + (f", {target} target" if target else "") + ")")
+    rows = [row for row in _load("ux-guidelines.csv") if row["Platform"] in allowed]
     scored = []
     for row in rows:
         overlap = len(query & _tokens(row["Category"] + " " + row["Issue"] + " " + row["Description"]))
@@ -278,6 +357,7 @@ def _print_ux(query, limit=6):
     scored.sort(key=lambda item: -item[0])
     if not scored:
         print("- no rule matched the keywords\n")
+        _print_platform(desktop)
         return
     for _, row in scored[:limit]:
         avoid = row["Don't"]
@@ -285,6 +365,7 @@ def _print_ux(query, limit=6):
         print(f"    do: {_trim(row['Do'], 200)}")
         print(f"    don't: {_trim(avoid, 200)}")
     print()
+    _print_platform(desktop)
 
 
 def _print_motion():
@@ -319,6 +400,9 @@ def main(argv=None):
     parser.add_argument("query", help="keywords in English or Chinese, e.g. 'saas dashboard dark' or '暗色 仪表盘'")
     parser.add_argument("--top", type=int, default=1, help="product types to detail (default 1)")
     parser.add_argument("--ux", action="store_true", help="add matching UX guideline rules")
+    parser.add_argument("--platform", choices=PLATFORM_CHOICES, default="all",
+                        help="target platform for the UX rows and the desktop checklist: "
+                             "all (default), web, mobile, visionos, macos, windows, desktop")
     parser.add_argument("--motion", action="store_true", help="add the motion duration tiers")
     parser.add_argument("--charts", action="store_true", help="add matching chart guidance")
     args = parser.parse_args(argv)
@@ -365,7 +449,11 @@ def main(argv=None):
     _print_typography(query, style_rows, _load("typography.csv"))
     _print_reasoning(product_type, _load("ui-reasoning.csv"))
     if args.ux:
-        _print_ux(query)
+        _print_ux(query, platform=args.platform)
+    elif args.platform != "all":
+        # A platform was asked for without --ux: print the checklist anyway,
+        # because that is the part the platform choice was about.
+        _print_platform(args.platform if args.platform != "desktop" else "desktop")
     if args.motion:
         _print_motion()
     if args.charts:

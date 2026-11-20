@@ -22,6 +22,7 @@ Concretely, it changes four things about how an agent works on UI:
 | Decide a visual direction for a new or bland UI | `SKILL.md` steps 1-4, `references/principles.md`, `references/directions.md` |
 | Choose colors that pass contrast, including dark theme | `references/color-and-type.md` + `scripts/wcag.py` (hex, rgb, oklch) |
 | Look up precedents for a product type | `scripts/design_lookup.py` over eight vendored datasets, with palettes auto contrast-checked |
+| Get the desktop platform checklist for a target OS | `design_lookup.py --platform macos|windows|desktop`: window chrome, platform units, control sizes, materials and accelerators from `references/native-feel.md`, alongside the web UX rows |
 | Find generic "AI slop" tells and craft defects in code | `scripts/slop_scan.py`, 20 checks (17 line rules plus focus, reduced-motion and raw-colour checks), severity-ranked, exit 1 on blocking |
 | Capture the real rendered UI at several sizes and scales | `scripts/visual_capture.py`, waits for a settled frame, reports console errors and blank frames |
 | Capture dark theme, full page, element and hover/focus states | `scripts/visual_capture.py` over CDP: real `prefers-color-scheme` emulation, clipped and interaction views; falls back to plain screenshots and says so |

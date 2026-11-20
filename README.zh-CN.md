@@ -22,6 +22,7 @@
 | 为新的或平淡的界面定视觉方向 | `SKILL.md` 步骤 1–4、`references/principles.md`、`references/directions.md` |
 | 选出通过对比度的配色，含暗色主题 | `references/color-and-type.md` + `scripts/wcag.py`（hex、rgb、oklch） |
 | 按产品类型查先例 | `scripts/design_lookup.py`，基于八个数据集，配色自动做对比度检查 |
+| 取目标桌面平台的清单 | `design_lookup.py --platform macos|windows|desktop`：窗口镶边、平台单位、控件尺寸、材质与快捷键（来自 `references/native-feel.md`），与 web UX 规则并列 |
 | 找出源码里的通用"AI 味"和工程缺陷 | `scripts/slop_scan.py`，20 项检查（17 条行规则 + 焦点、reduced-motion、裸色值三项跨行检查），按严重度分级，有阻断项时退出码 1 |
 | 按多种尺寸与缩放抓真实渲染 | `scripts/visual_capture.py`，等画面稳定，报告 console 错误与空白帧 |
 | 审计渲染页面里每一对可见文字 | `scripts/page_audit.py`：可测的给判定，渐变/图片/遮挡显式归入 `uncertain` |
