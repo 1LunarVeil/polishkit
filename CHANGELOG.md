@@ -2,6 +2,21 @@
 
 All notable changes to this project are recorded here. The format follows Keep a Changelog, and versions follow Semantic Versioning.
 
+## [2.2.9] - 2026-11-20
+
+Fixes B3's first screen — the page the new expression audit was built to find — and corrects one metric that was charging a hero for width it never claimed.
+
+### Fixed
+
+- **B3 · the subject was below the fold.** The page a shopkeeper opens to read had its revenue chart and product list starting at y=475 of a 900px screen: 228px of padding-heavy hero, 102px of quiet KPIs and a 30px decorative score stood between the display figure and the work. Hero padding cut from 36/30 to 20/14, the KPI block pulled up, the score shrunk from 30px to 18px and the panel grid from 22px to 14px. The panels now begin at **y=411**, and the first screen holds the complete revenue chart (all seven bars, axis, target line, note) and the complete product list. Verified in the capture, not just in the numbers.
+- **`expression_audit` column fill measured a narrow column far down the page.** The strip ran from the loud element to 400px past its bottom, which charged a hero figure for a 183px-wide lane while the band's other content spread horizontally beside it. The strip now runs to the fold. B3's reading moved from 41.9% to 40.4% — the number barely moved, and that is the honest outcome: this page's loud element does sit in a narrow column, and the metric says so without pretending it describes the whole band.
+
+### Verified
+
+- All five audits on the edited B3: text-spacing 0 FAIL, reflow 0 FAIL (190 uncertain, all table and chart exceptions), page_audit 137 pass / 0 fail / 16 uncertain, keyboard 48 pass / 0 fail, spacing clean.
+- The capture after the fix reads as intended: figure, three KPIs, the whole chart, the whole product list.
+- 397 tests pass; the four gates are green.
+
 ## [2.2.8] - 2026-11-20
 
 `expression_audit` was rewritten after the maintainer's critique: a single "type ratio" score was a weak proxy that said how loud a page is, never whether the loud thing deserved to be loud.

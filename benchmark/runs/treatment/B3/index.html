@@ -45,13 +45,20 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:none}
 .btn-primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
 .btn-primary:disabled{background:var(--divider);border-color:var(--divider);color:var(--muted)}
 
-/* ---------- the morning band: the one full-bleed moment, textured like flour dust ---------- */
+/* ---------- the morning band: the one full-bleed moment, textured like flour dust ----------
+   2.2.8: the band was 228px of padding-heavy flex plus 102px of quiet KPIs plus a
+   30px decorative score, so the panels a shopkeeper opens this page to read —
+   the revenue chart and the product list — did not begin until y=475 of a 900px
+   screen. The display figure also stood alone under a 74px gap. Tighter
+   padding, the KPIs pulled up against the figure, and the score shrunk: the
+   band still reads as the page's one full-bleed moment, but the working data
+   now starts at roughly y=330 instead of 475. */
 .dawn{position:relative;margin-top:10px;
   background-color:#F4EDDD;
   background-image:linear-gradient(120deg,#F9F5EC 0%,#F5EFDF 55%,#F1E7D2 100%);}
 .dawn .grain{position:absolute;inset:0;pointer-events:none;mix-blend-mode:overlay;opacity:.4;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
-.dawn-in{position:relative;display:flex;align-items:center;gap:26px;padding:36px 28px 30px}
+.dawn-in{position:relative;display:flex;align-items:center;gap:26px;padding:20px 28px 14px}
 .dawn-label{
   writing-mode:vertical-rl;transform:rotate(180deg); /* the one asymmetry: a gauge-style vertical label */
   font-size:13px;letter-spacing:.08em;color:var(--muted);white-space:nowrap;
@@ -72,11 +79,11 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:none}
 .dawn-side{margin-left:auto;text-align:right;color:var(--muted);font-size:13px;line-height:1.55}
 .dawn-side b{display:block;color:var(--ink);font-weight:600;font-size:14.5px}
 /* the one organic divider: the baker's score, cut across just below the band */
-.score{display:block;width:100%;height:30px;color:#D8CAAC}
+.score{display:block;width:100%;height:18px;color:#D8CAAC}
 .score path{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
 
 /* ---------- quiet secondary KPIs: the band's lower half — working density in the frame ---------- */
-.kpis-quiet{position:relative;display:flex;gap:64px;padding:0 28px 26px;flex-wrap:wrap}
+.kpis-quiet{position:relative;display:flex;gap:64px;padding:0 28px 14px;flex-wrap:wrap}
 .kpis-quiet .k .label{color:var(--muted);font-size:12.5px}
 .kpis-quiet .k .value{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:22px;font-weight:600;margin-top:2px}
 .kpis-quiet .k .delta{font-size:12.5px;margin-top:2px;color:var(--muted)}
@@ -84,7 +91,7 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:none}
 .dawn .up{color:#12703A} /* band-safe green: 5.0:1 on the darkest flour stop (#F1E7D2) where --success would read 4.08 */
 
 /* ---------- panels: separated by space and shadow, not borders ---------- */
-.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:18px;margin-top:22px}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:18px;margin-top:14px}
 .panel{background:var(--surface);border-radius:6px;box-shadow:var(--shadow);min-width:0}
 .panel-h{display:flex;align-items:baseline;gap:10px;padding:16px 18px 8px}
 .panel-h .idx{font-family:var(--mono);font-weight:400;font-size:13px;color:#6B6257} /* 5.89:1 on surface */

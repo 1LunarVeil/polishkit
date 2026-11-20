@@ -166,10 +166,16 @@ COLLECTOR_JS = r"""(function () {
     }).sort(function (a, b) { return a.top - b.top; });
     var gapBelow = below.length ? Math.round(below[0].top - loud.bottom) : null;
 
-    // Column fill: of the vertical strip from the loud element's top to 400px
-    // past its bottom (clamped to the fold), how much is covered by text.
+    // Column fill: of the vertical strip the loud element occupies, how much is
+    // covered by text before the fold. The strip stops at the fold rather than
+    // running a fixed 400px past the element: a hero figure sits in a band
+    // whose content spreads horizontally, and measuring its narrow column far
+    // down the page charged it for width it never claimed. B3's figure is 183px
+    // wide in a 1440px canvas — the KPIs beside it are what fill that band, and
+    // a column-only reading called the band 42% empty when it was the page's
+    // densest region.
     var stripTop = loud.top;
-    var stripBottom = Math.min(VH, loud.bottom + 400);
+    var stripBottom = VH;
     var stripHeight = Math.max(1, stripBottom - stripTop);
     var inColumn = onScreen.filter(function (it) {
       return it.top >= stripTop && it.top < stripBottom &&
