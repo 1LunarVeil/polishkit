@@ -56,6 +56,8 @@ Flat 100% solid fills at hero scale read as wireframes.
 5. Is any hero-scale field dead flat?
 6. Would removing the signature element leave the page generic? If yes, the signature is not crafted yet — go back.
 
+Items 1 (partly) has numbers, so `scripts/expression_audit.py` measures it: the type ratio against the 3× floor, the weight span against the light/heavy ends, the count of distinct sizes, and the tracking and line-height at display size. It reports those as numbers and lists items 2–6 as manual, because a rectangle cannot tell you whether a page has one asymmetry or a good focal point. Nothing it reports gates a build — taste does not belong in an exit code — and that restraint is the point: the benchmark's human verdicts are what caught the pages this file was written for.
+
 ## 刻意不采用
 
 - Random rotation of body text or content blocks (reads broken, not lively).

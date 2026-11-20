@@ -31,6 +31,7 @@ Concretely, it changes four things about how an agent works on UI:
 | Prove the layout survives a user's text-spacing overrides | `scripts/text_spacing.py`: applies WCAG 1.4.12's four values and reports clipped cards, `max-height` boxes, single-line labels losing text and text runs that only collide after the override |
 | Prove the layout reflows at 320 CSS px | `scripts/reflow.py`: loads the page at three widths, reports horizontal scrolling (1.4.10) and the elements that cause it, honours the two-dimensional exception, and takes a 1.4.4 text-scale reading |
 | Audit Chinese line-breaking as rendered | `scripts/cjk_breaks.py`: walks each rendered line and reports clreq §6.1.1 violations (a closing bracket starting a line, an opening bracket ending one) plus the `word-break: break-all` that usually causes them |
+| Measure the expression layer instead of asserting it | `scripts/expression_audit.py`: type ratio against the 3× floor, weight span, size steps, display tracking and line-height — plus the five items it says it cannot judge. All review severity; taste never gates a build |
 | Read contrast through a draft lens; test hue-dependent meaning | `wcag.py --apca` (draft APCA Lc, supplementary) and `scripts/color_sim.py` (Machado 2009 CVD simulation with a pair-collapse check) |
 | Prove what a change actually did to the screen | `scripts/image_diff.py`, zero-dependency PNG decode, changed region and ratio, plus a baseline directory report |
 | Review an existing UI and get prioritized findings | `references/critique.md` (ten pillars) and `/design-review` |
@@ -150,7 +151,7 @@ If you installed the skill into an agent, run the same scripts from the installe
 - `page_audit.py URL` walks the rendered page and audits every visible text pair: measurable pass/fail, and an explicit `uncertain` class for gradients, images, blend modes and occlusion instead of a guessed verdict.
 - `keyboard_audit.py URL` presses Tab for real, stop by stop, and screenshots each stop focused and unfocused. It reports controls the keyboard cannot reach (2.1.1, including `tabindex="-1"` on something interactive), traps (2.1.2; a modal dialog's cycle is a review, not a failure), a missing or unperceivable focus ring measured against the control it surrounds (2.4.7 / 1.4.11), focus hidden under author content (2.4.11), and text contrast that only fails on focus or hover (1.4.3). 2.4.13's area and same-pixel readings are printed as AAA evidence and never gate the exit status. `--measure N` bounds how many stops are photographed and the report names the ones walked but not measured; exit 1 means a measurable keyboard or focus FAIL.
 - `text_spacing.py URL` applies WCAG 1.4.12's four user overrides and compares the two states: line height 1.5×, paragraph gap 2×, letter spacing 0.12×, word spacing 0.16×. It reports clipped boxes (including the usual case where the clipping box is an ancestor), `max-height` blocks that now need more room, single-line labels that lose another em of text, and sibling text runs that collide only after the override. A page need not ship those values; it must survive them. Exit 1 on a measurable failure.
-- `tools/crosscheck.py URL ...` runs `page_audit`, `keyboard_audit`, `text_spacing`, `reflow` and `cjk_breaks` against each page and prints one table: failures and uncertain counts per clause. It exists so a page that is clean in one dimension and unmeasured in another is visible without reading three reports in a row. An audit that cannot run shows as `UNVERIFIED`, never as a zero.
+- `tools/crosscheck.py URL ...` runs `page_audit`, `keyboard_audit`, `text_spacing`, `reflow`, `cjk_breaks` and `expression_audit` against each page and prints one table: failures and uncertain counts per clause. It exists so a page that is clean in one dimension and unmeasured in another is visible without reading three reports in a row. An audit that cannot run shows as `UNVERIFIED`, never as a zero.
 - `color_sim.py COLOR ...` simulates protanopia, deuteranopia and tritanopia (Machado 2009); `--check FG BG` reports whether a pair's contrast collapses under simulation.
 - `image_diff.py A.png B.png` decodes PNG with the standard library and reports the changed pixel count, ratio and bounding box; two directories run a baseline report. `--stats` summarises one or two images instead.
 
@@ -185,7 +186,7 @@ skills/polishkit/
     sources.md              where each rule came from, and what was rejected
   scripts/                  wcag, design_lookup, slop_scan, token_lint, visual_capture,
                             image_diff, page_audit, keyboard_audit, text_spacing, reflow,
-                            cjk_breaks,
+                            cjk_breaks, expression_audit,
                             color_sim, cdp
   data/                     eight MIT-licensed CSV files from ui-ux-pro-max
 commands/                   optional slash commands

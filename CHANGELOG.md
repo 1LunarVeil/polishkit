@@ -2,6 +2,36 @@
 
 All notable changes to this project are recorded here. The format follows Keep a Changelog, and versions follow Semantic Versioning.
 
+## [2.2.7] - 2026-11-20
+
+The expression layer stops being a claim and becomes a measurement — for the parts of it a rectangle can measure.
+
+### Added
+
+- **`scripts/expression_audit.py`** — reports the numeric items from `references/expression.md` and names the ones it cannot judge.
+  - **TYPE-RATIO** largest carried text against body size, measured against the file's 3× floor; under 2.5× is called flat.
+  - **WEIGHT-SPAN** lightest and heaviest rendered weights, with the 400–600 middle called out as having no contrast.
+  - **SIZE-STEPS** how many distinct sizes carry text; two is too few, more than twelve reads as drift.
+  - **DISPLAY-SETTING** tracking and line-height at display size, reported against the file's −0.03…−0.01em and 1.0–1.2 ranges.
+  - **FAMILIES** every distinct `font-family` declaration with its sample count, listed rather than counted against a threshold.
+  - It also prints the five expression items no geometry can settle — one asymmetry, one full-bleed moment, one focal point, dead-flat hero fields, whether the signature is doing any work — so a passing report never reads as "the page is beautiful".
+  - **Nothing it reports gates a build.** Every finding is review severity and the exit status is always 0 unless the audit could not run at all. A tool that let taste break CI would reproduce the failure mode the benchmark's human-verdict section warns about.
+- `tools/crosscheck.py` runs it as a sixth column. `tests/test_expression_audit.py`: 33 browser-free tests.
+
+### Fixed
+
+- **`expression_audit` counted font stacks as families.** Reporting first names produced five "families" on a page with three roles, because `Segoe UI Light` is a weight of `Segoe UI`, `Cascadia Code`/`Consolas` is one mono stack, and a `Noto Sans SC` CJK fallback is a fourth role rather than a fourth family. The metric now lists declarations with sample counts and only raises a review above six.
+- **A page that set tracking to exactly −0.03em was flagged as outside −0.03 to −0.01.** Float error, closed with a 0.005em tolerance.
+- **`body_size: 0` fell through to the 16px fallback** instead of reporting an undefined ratio, because `0 or 16` is 16. A measured zero is not a missing value.
+- **`weight_verdict(400, 600)` returned pass.** The middle band is inclusive at both ends: 400 is the default body weight and 600 is not a real bold.
+
+### Verification
+
+- 391 tests pass (358 + 33).
+- Five benchmark pages, all review-only: type ratios 4.75–6.74× (B1 6.29, B2 6.74, B3 5.00, B5 4.75), weight spans reaching both ends on each, 7–11 size steps, no family findings.
+- A deliberately inert probe page reports 1.25× body, weights 400–400 and no text at display size — the tool discriminates instead of only agreeing with good pages.
+- CI: the 2.2.6 run reported failure with four matrix jobs green and both macOS jobs cancelled at the 15-minute mark with no steps recorded. Runners never picked them up; an empty commit re-triggered the matrix.
+
 ## [2.2.6] - 2026-11-19
 
 The CJK runtime check that `cjk-typography.md` described but no tool measured.

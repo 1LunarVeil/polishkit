@@ -29,6 +29,7 @@
 | 证明布局能撑住用户的文本间距覆盖 | `scripts/text_spacing.py`：注入 WCAG 1.4.12 的四项值，报告被裁切的卡片、`max-height` 盒子、丢掉文字的省略号标签，以及只在覆盖后才重叠的文字块 |
 | 证明布局在 320 CSS px 下能回流 | `scripts/reflow.py`：在三个宽度下加载页面，报告横向滚动（1.4.10）及其成因元素，遵守二维版面例外，并给出 1.4.4 的文字缩放读数 |
 | 按渲染结果审计中文断行 | `scripts/cjk_breaks.py`：逐行遍历，报告 clreq §6.1.1 禁则违规（收尾标点起行、起始括号收行），以及通常导致它们的 `word-break: break-all` |
+| 测量表达层而非声称它 | `scripts/expression_audit.py`：字阶比对 3× 地板、字重跨度、字号档数、display 的字距与行高——以及它明确说无法判断的五项。全部 review 级；审美永不参与门禁 |
 | 证明一次改动到底改到了哪 | `scripts/image_diff.py`，零依赖解 PNG，输出变化区域与比例 |
 | 评审既有界面并给出分级结论 | `references/critique.md`（十个维度）与 `/design-review` |
 | 跑完全部机械检查并给出合并结论 | `/polish-audit`：源码检查 + 两项渲染审计，阻断/重要/待复核/不确定/未检查分列 |
@@ -177,7 +178,7 @@ skills/polishkit/
     sources.md              每条规则的来源，以及刻意未采用的内容
   scripts/                  wcag、design_lookup、slop_scan、token_lint、visual_capture、
                             image_diff、page_audit、keyboard_audit、text_spacing、reflow、
-                            cjk_breaks、
+                            cjk_breaks、expression_audit、
                             color_sim、cdp
   data/                     ui-ux-pro-max 的八个 MIT CSV 文件（另有自有的 zh-keywords.csv）
 commands/                   可选的斜杠命令

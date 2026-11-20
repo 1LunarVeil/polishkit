@@ -74,13 +74,15 @@ class ReportTests(unittest.TestCase):
                 "keyboard": {"verified": True, "fail": 1, "uncertain": 0},
                 "spacing": {"verified": True, "fail": 0, "uncertain": 0},
                 "reflow": {"verified": True, "fail": 0, "uncertain": 2},
-                "cjk": {"verified": True, "fail": 0, "uncertain": 0}}},
+                "cjk": {"verified": True, "fail": 0, "uncertain": 0},
+                "expr": {"verified": True, "fail": 0, "uncertain": 3}}},
             {"url": "http://b/", "audits": {
                 "page": {"verified": False, "reason": "no browser"},
                 "keyboard": {"verified": True, "fail": 0, "uncertain": 0},
                 "spacing": {"verified": True, "fail": 0, "uncertain": 0},
                 "reflow": {"verified": True, "fail": 0, "uncertain": 0},
-                "cjk": {"verified": True, "fail": 0, "uncertain": 0}}},
+                "cjk": {"verified": True, "fail": 0, "uncertain": 0},
+                "expr": {"verified": True, "fail": 0, "uncertain": 3}}},
         ]
 
     def test_unverified_audits_are_named_not_zeroed(self):
@@ -100,7 +102,8 @@ class ReportTests(unittest.TestCase):
 
     def test_all_four_audits_are_registered(self):
         names = [name for name, _module, _covers in crosscheck.AUDITS]
-        self.assertEqual(names, ["page", "keyboard", "spacing", "reflow", "cjk"])
+        self.assertEqual(names,
+                         ["page", "keyboard", "spacing", "reflow", "cjk", "expr"])
 
 
 if __name__ == "__main__":

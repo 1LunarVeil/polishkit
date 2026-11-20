@@ -48,7 +48,7 @@ python scripts/token_lint.py <source paths>
 
 Cover every state, not only the happy path (`references/components-and-states.md`) — but the default render shows the working data. Error and empty states are reachable behind controls or routes, never what the first paint shows. Keep copy in the product's languages and test the longest translation.
 
-Before calling it done, render the hero and the signature once and look (`python scripts/visual_capture.py <url> --out shots`), then polish the weakest visual decision you can see, running the expression checklist in `references/expression.md`: type drama (display ≥ 3× body, weights at both ends of the family), one deliberate asymmetry or full-bleed moment, exactly one focal point earned by two levers, texture on hero-scale fields. A passing scanner is not the finish line — the page has to survive its own screenshot and hold the eye.
+Measure the checklist's numeric items instead of asserting them: `python scripts/expression_audit.py <url>` reports the type ratio against the 3× floor, the weight span, the size steps and the display tracking and line-height, and names the five items it cannot judge. Nothing it reports gates a build; it exists so `"display is 3× body"` is a measurement rather than a claim. Then : type drama (display ≥ 3× body, weights at both ends of the family), one deliberate asymmetry or full-bleed moment, exactly one focal point earned by two levers, texture on hero-scale fields. A passing scanner is not the finish line — the page has to survive its own screenshot and hold the eye.
 
 ## 7. Verify before reporting
 
@@ -109,5 +109,5 @@ Every default (font, palette, radius, shadow, layout, icon set) must be chosen f
 - `references/critique.md`: review procedure, ten pillars, severity, output format.
 - `references/visual-review.md`: how to render, capture, read and re-diff the UI.
 - `references/sources.md`: where each rule came from and what was deliberately not used.
-- `scripts/wcag.py`, `scripts/design_lookup.py`, `scripts/slop_scan.py`, `scripts/token_lint.py`, `scripts/visual_capture.py`, `scripts/image_diff.py`, `scripts/color_sim.py`, `scripts/cdp.py`, `scripts/page_audit.py`, `scripts/keyboard_audit.py`, `scripts/text_spacing.py`, `scripts/reflow.py`, `scripts/cjk_breaks.py`: read-only, no third-party packages, no network (the capture and audit tools talk to a loopback browser you already have). Use `py -3` if `python` is not on PATH.
+- `scripts/wcag.py`, `scripts/design_lookup.py`, `scripts/slop_scan.py`, `scripts/token_lint.py`, `scripts/visual_capture.py`, `scripts/image_diff.py`, `scripts/color_sim.py`, `scripts/cdp.py`, `scripts/page_audit.py`, `scripts/keyboard_audit.py`, `scripts/text_spacing.py`, `scripts/reflow.py`, `scripts/cjk_breaks.py`, `scripts/expression_audit.py`: read-only, no third-party packages, no network (the capture and audit tools talk to a loopback browser you already have). Use `py -3` if `python` is not on PATH.
 - `data/`: MIT-licensed CSV data vendored from ui-ux-pro-max (see `data/PROVENANCE.md`).

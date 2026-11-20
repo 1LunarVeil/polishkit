@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "skills" / "polishkit" / "scripts"))
 
 import cjk_breaks  # noqa: E402
+import expression_audit  # noqa: E402
 import keyboard_audit  # noqa: E402
 import page_audit  # noqa: E402
 import reflow  # noqa: E402
@@ -48,9 +49,11 @@ def main():
     text_spacing.visual_capture.find_browser = lambda: None
     reflow.visual_capture.find_browser = lambda: None
     cjk_breaks.visual_capture.find_browser = lambda: None
+    expression_audit.visual_capture.find_browser = lambda: None
 
     failures = []
-    for tool in (page_audit, keyboard_audit, text_spacing, reflow, cjk_breaks):
+    for tool in (page_audit, keyboard_audit, text_spacing, reflow, cjk_breaks,
+             expression_audit):
         code, output = run_quietly(tool.main, ["http://127.0.0.1:9/"])
         try:
             payload = json.loads(output)
@@ -68,7 +71,7 @@ def main():
         for failure in failures:
             print(f"FAIL {failure}", file=sys.stderr)
         return 1
-    print("all five audits claim nothing without a browser")
+    print("all six audits claim nothing without a browser")
     return 0
 
 
