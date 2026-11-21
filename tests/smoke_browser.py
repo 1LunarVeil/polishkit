@@ -147,25 +147,35 @@ def main():
         # invocation and passed the next with nothing changed. The warmup
         # pays that cost once, with a 30-second budget.
         warm_started = time.monotonic()
-        try:
-            with cdp.PageSession(f"{base}/clean", load_timeout=30.0) as page:
-                state = page.session.send(
-                    "Runtime.evaluate",
-                    {"expression": "document.readyState", "returnByValue": True},
-                    session=page.session_id)["result"].get("value")
-        except cdp.BrowserError as exc:
-            # Fail fast with the reason: the four audits below would repeat
-            # the same browser failure, slower, twice each.
-            print(f"FAIL warmup did not load the fixture page: {exc}", file=sys.stderr)
+        state = None
+        last = "no BrowserError; the roundtrip itself succeeded"
+        for attempt in (1, 2, 3):
+            # Launch-class failures (a runner VM's antivirus scanning the
+            # freshly unpacked browser, a transient navigation abort) are the
+            # flaky class; the audits' 10-second budgets are sized for a warm
+            # machine. Three fresh roundtrips absorb them. A warmup that
+            # cannot load the page after three tries is worth dying on: the
+            # four audits below would repeat it, slower, twice each.
+            try:
+                with cdp.PageSession(f"{base}/clean", load_timeout=30.0) as page:
+                    state = page.session.send(
+                        "Runtime.evaluate",
+                        {"expression": "document.readyState", "returnByValue": True},
+                        session=page.session_id)["result"].get("value")
+                break
+            except cdp.BrowserError as exc:
+                last = str(exc)
+                print(f"smoke_browser: warmup attempt {attempt} failed: {exc}",
+                      file=sys.stderr)
+        if state != "complete":
+            print(f"FAIL warmup did not load the fixture page after three "
+                  f"attempts: {last}", file=sys.stderr)
             server.shutdown()
             server.server_close()
             thread.join(timeout=5)
             return 1
         print(f"smoke_browser: warmup readyState={state} in "
               f"{time.monotonic() - warm_started:.1f}s")
-        if state != "complete":
-            failures.append(f"warmup page did not reach complete "
-                            f"(readyState={state!r})")
         code, page = _run_with_retry(page_audit.main, [f"{base}/defect", "--json"])
         summary = page.get("summary", {})
         if code != 1 or not page.get("verified"):
