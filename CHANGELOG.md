@@ -2,6 +2,12 @@
 
 All notable changes to this project are recorded here. The format follows Keep a Changelog, and versions follow Semantic Versioning.
 
+## [Unreleased]
+
+### Added
+
+- **Fail-positive tests for the `tools/build_dist.py` gates** — CONTRIBUTING's rule applied to the gates written before it. A staging tree with drifted manifests, edited files or a forbidden directory at any depth; a marketplace entry disagreeing with the manifest; a mirror missing, diverging or gaining files; a hook ledger leaked into the publish tree; and a catalog entry with the wrong version, description or source, missing or duplicated — each must exit 1, with a matching-pass control beside every failing case. The stamp's pull-both-manifests-to-the-source behavior and build()'s refusal to clear an unmarked tree are pinned too.
+
 ## [2.2.15] - 2026-11-21
 
 The browser smoke stayed red on CI with a pinned browser while passing on the same build locally; the maintainer's log paste settled it. Two runner facts, two fixes.

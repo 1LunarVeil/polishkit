@@ -50,6 +50,7 @@ A gate that has never been seen failing is not a gate — it is a hope. CI alrea
 
 - `benchmark_tables --check` has tests that tamper with a generated block, stack a duplicate end marker, and grow an unmapped metric — each must exit 1 (or raise), plus a test that running the generator twice is byte-identical.
 - `palette_correct --check` has tests that revert a corrected cell to its failing value and delete the dataset — each must exit 1.
+- `build_dist`'s gates have failing cases too: a staging tree with drifted manifests, edited files or a forbidden directory at any depth; a marketplace entry disagreeing with the manifest; a mirror missing, diverging or gaining files; a hook ledger leaked into the publish tree; a catalog entry with the wrong version, description or source, missing or duplicated — each must exit 1. The stamp pulling both derived manifests to the source, and build()'s refusal to clear an unmarked tree, are pinned as well.
 
 The rule exists because of a real bug: 2.2.12's table generator appended its block's end marker without consuming the old one, so every `--write` run left one more stray marker in both READMEs — and the drift check, which read only up to the first end marker, stayed green throughout. A verification blind spot is not found by adding more verification on top; it is found by proving each verifier can fail. When you add a check, the same commit carries the case that makes it fail, or the test says why a failure cannot be simulated.
 
