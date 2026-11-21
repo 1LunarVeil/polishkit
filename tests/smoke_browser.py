@@ -35,6 +35,7 @@ sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "skills" / "polishkit" / "scripts"))
 
+import cdp  # noqa: E402
 import keyboard_audit  # noqa: E402
 import page_audit  # noqa: E402
 import visual_capture  # noqa: E402
@@ -139,6 +140,23 @@ def main():
     base = f"http://127.0.0.1:{server.server_address[1]}"
     failures = []
     try:
+        # One throwaway roundtrip before anything is asserted. A CI VM's
+        # first Chrome launch pays for antivirus scanning of the binary and
+        # its DLLs, and the audits' 10-second budgets are sized for a warm
+        # machine — a Windows runner timed out waiting for load on its first
+        # invocation and passed the next with nothing changed. The warmup
+        # pays that cost once, with a 30-second budget.
+        warm_started = time.monotonic()
+        with cdp.PageSession(f"{base}/clean", load_timeout=30.0) as page:
+            state = page.session.send(
+                "Runtime.evaluate",
+                {"expression": "document.readyState", "returnByValue": True},
+                session=page.session_id)["result"].get("value")
+        print(f"smoke_browser: warmup readyState={state} in "
+              f"{time.monotonic() - warm_started:.1f}s")
+        if state != "complete":
+            failures.append(f"warmup page did not reach complete "
+                            f"(readyState={state!r})")
         code, page = _run_with_retry(page_audit.main, [f"{base}/defect", "--json"])
         summary = page.get("summary", {})
         if code != 1 or not page.get("verified"):
