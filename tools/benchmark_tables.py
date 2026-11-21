@@ -221,7 +221,9 @@ def main(argv=None):
 
     for readme, block in blocks.items():
         updated = _replace_block(readme.read_text(encoding="utf-8"), block)
-        readme.write_text(updated, encoding="utf-8", newline="\n")
+        # Path.write_text gained newline= in 3.10; the suite's floor is 3.9.
+        with readme.open("w", encoding="utf-8", newline="\n") as handle:
+            handle.write(updated)
         print(f"  wrote {readme.name}")
     print("README benchmark tables regenerated from benchmark/RESULTS.md")
     return 0
