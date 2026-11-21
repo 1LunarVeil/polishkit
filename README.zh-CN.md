@@ -236,7 +236,7 @@ python -B -m unittest discover -s tests -v
 | 文本间距 fail | **11** | 0 |
 | 回流 fail | **34** | 0 |
 | CJK 断行 fail | **1** | 0 |
-<!-- benchmark:generated:end --><!-- benchmark:generated:end -->
+<!-- benchmark:generated:end -->
 
 读这些零时要带上报告的前提：n=5、单次运行、单一底模。测量、修复与复测用的是本插件同一套工具——单人维护没有独立评审方——所以这些数字是"地板守住了"的证据，不是独立审计。treatment 列是修复后的一代；2.0 原始产物在四个当时测不了的维度上有 48 处真实缺陷（第二张表）。
 

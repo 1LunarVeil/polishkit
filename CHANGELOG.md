@@ -2,6 +2,19 @@
 
 All notable changes to this project are recorded here. The format follows Keep a Changelog, and versions follow Semantic Versioning.
 
+## [2.2.13] - 2026-11-21
+
+A second review round caught the first round's own tool drifting. No new capability; this is a corrections release.
+
+### Fixed
+
+- **The benchmark-table generator drifted on every run, and its drift check stayed green.** `tools/benchmark_tables.py --write` appended its block's end marker without consuming the one it replaced, so every run left one more stray `<!-- benchmark:generated:end -->` in both READMEs — 2.2.12 shipped with the duplicate already present (two markers on one line, invisible in rendering). The check read only up to the first end marker, so it could not see the accumulation: the gate was blind to the only drift its own tool manufactured. The splice now consumes the marker it replaces, `--check` counts markers instead of trusting the first span, the shipped files are cleaned, and the generator is pinned byte-identical across two consecutive runs.
+- **The two `--check` gates got the failing cases they never had**, per a new CONTRIBUTING rule: every check needs a test that can make it fail (the scanner's planted-defect fixture is the precedent). `benchmark_tables --check` must fail on a tampered block, a doubled end marker and an unmapped metric; `palette_correct --check` must fail on a reverted cell and a missing dataset.
+
+### Verified
+
+- 459 tests pass (450 before this round; +9 covering generator idempotence and the fail-positive cases for both gates).
+
 ## [2.2.12] - 2026-11-21
 
 An external review named three trust defects and six structural risks. This release fixes what a single-maintainer project can fix on its own and states the rest more plainly than before.

@@ -44,6 +44,15 @@ This matters because the version number is a claim about capability. Reserve the
 6. For a new rendered check, prove it against a page that has the defect and a page that does not. A check that never fires and a check that fires on healthy pages are both defects, and neither shows up in a unit test.
 7. Update `CHANGELOG.md` under an Unreleased heading, and bump the version in `.zcode-plugin/plugin.json` — the only manifest with a hand-set version. `tools/build_dist.py` stamps the same name/version/description into `.claude-plugin/plugin.json` and the marketplace entry in `.claude-plugin/marketplace.json` on the next build, and `--check` verifies them.
 
+## Every check needs a test that can make it fail
+
+A gate that has never been seen failing is not a gate — it is a hope. CI already proves the scanner fires: the planted-defect fixture must exit 1. The same burden applies to every drift gate and contract check:
+
+- `benchmark_tables --check` has tests that tamper with a generated block, stack a duplicate end marker, and grow an unmapped metric — each must exit 1 (or raise), plus a test that running the generator twice is byte-identical.
+- `palette_correct --check` has tests that revert a corrected cell to its failing value and delete the dataset — each must exit 1.
+
+The rule exists because of a real bug: 2.2.12's table generator appended its block's end marker without consuming the old one, so every `--write` run left one more stray marker in both READMEs — and the drift check, which read only up to the first end marker, stayed green throughout. A verification blind spot is not found by adding more verification on top; it is found by proving each verifier can fail. When you add a check, the same commit carries the case that makes it fail, or the test says why a failure cannot be simulated.
+
 ## Style
 
 - Write in complete sentences. Say what the rule is, then why it matters.

@@ -244,7 +244,7 @@ The suite covers the contrast math against published reference values, the draft
 | Text-spacing failures | **11** | 0 |
 | Reflow failures | **34** | 0 |
 | CJK line-breaking failures | **1** | 0 |
-<!-- benchmark:generated:end --><!-- benchmark:generated:end -->
+<!-- benchmark:generated:end -->
 
 Read the zeros with the report's own caveats: n=5, single run, one base model. The pages were measured, repaired and re-measured with this plugin's tools — a single-maintainer project has no independent reviewer — so the numbers are evidence that the floor held, not an independent audit. The treatment column is the repaired generation; the 2.0 originals carry 48 real defects on the dimensions the 2.0 tooling could not see (second table).
 

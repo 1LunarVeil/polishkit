@@ -14,9 +14,13 @@ it once. What is pinned here:
 """
 
 import csv
+import contextlib
+import io
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.dont_write_bytecode = True
 
@@ -30,6 +34,12 @@ import wcag  # noqa: E402
 
 DATA = ROOT / "skills" / "polishkit" / "data"
 
+
+def _quiet(call):
+    """Run a tool main() with its report output captured, not printed."""
+    buffer = io.StringIO()
+    with contextlib.redirect_stdout(buffer):
+        return call()
 
 def _rows(path):
     with path.open(encoding="utf-8-sig", newline="") as handle:
@@ -110,6 +120,48 @@ class AlphaCompositingTests(unittest.TestCase):
     def test_parse_color_still_returns_three_channels(self):
         self.assertEqual(len(wcag.parse_color("rgba(255,0,0,0.5)")), 3)
         self.assertEqual(len(wcag.parse_color("#ff0000")), 3)
+
+
+class CheckMustBeAbleToFailTests(unittest.TestCase):
+    """--check re-derives the dataset and compares byte for byte; these tests
+    prove it can actually fail, per the CONTRIBUTING rule that every check
+    needs a test that makes it fail (the scanner's planted-defect fixture is
+    the precedent)."""
+
+    def _patched_copy(self, tmp_path, tamper):
+        """Write a copy of the shipped dataset, optionally reintroducing the
+        original failing border of row 1; return (path, expectation)."""
+        fieldnames, rows = palette_correct._read_rows(palette_correct.CORRECTED)
+        if tamper:
+            originals = {row["No"]: row for row in ORIGINAL}
+            rows[0]["Border"] = originals[rows[0]["No"]]["Border"]
+        copy = tmp_path / "palettes-corrected.csv"
+        copy.write_text(palette_correct._serialize(fieldnames, rows), encoding="utf-8")
+        return copy
+
+    def test_check_passes_on_an_exact_copy(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            copy = self._patched_copy(Path(tmp), tamper=False)
+            with mock.patch.object(palette_correct, "CORRECTED", copy):
+                self.assertEqual(_quiet(lambda: palette_correct.main(["--check"])), 0)
+
+    def test_check_fails_on_a_reverted_cell(self):
+        # Row 1's border went #E2E8F0 (1.09:1) -> corrected; putting the
+        # failing value back must trip the gate, not sail through.
+        shipped = palette_correct.CORRECTED.read_text(encoding="utf-8")
+        with tempfile.TemporaryDirectory() as tmp:
+            copy = self._patched_copy(Path(tmp), tamper=True)
+            self.assertNotEqual(copy.read_text(encoding="utf-8"), shipped,
+                                "the tamper did not land; the next assertion is void")
+            with mock.patch.object(palette_correct, "CORRECTED", copy):
+                self.assertEqual(_quiet(lambda: palette_correct.main(["--check"])), 1,
+                                 "--check passed on a dataset with a failing pair")
+
+    def test_check_fails_on_a_missing_dataset(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            missing = Path(tmp) / "absent.csv"
+            with mock.patch.object(palette_correct, "CORRECTED", missing):
+                self.assertEqual(_quiet(lambda: palette_correct.main(["--check"])), 1)
 
 
 class RepairAlgorithmTests(unittest.TestCase):

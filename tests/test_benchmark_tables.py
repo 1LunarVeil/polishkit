@@ -9,9 +9,13 @@ test fails until the generated views match the report, which is the only way
 "every number is a script output" stays true for the headline table.
 """
 
+import contextlib
+import io
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.dont_write_bytecode = True
 
@@ -19,6 +23,13 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
 import benchmark_tables  # noqa: E402
+
+
+def _quiet(call):
+    """Run a tool main() with its report output captured, not printed."""
+    buffer = io.StringIO()
+    with contextlib.redirect_stdout(buffer):
+        return call()
 
 
 class ResultsParsingTests(unittest.TestCase):
@@ -84,6 +95,124 @@ class DriftRegressionTests(unittest.TestCase):
             self.assertIn("2.0", block)
         self.assertIn("| Keyboard failures | **2** | 0 |", self.en)
         self.assertIn("| 键盘 fail | **2** | 0 |", self.zh)
+
+
+class IdempotenceTests(unittest.TestCase):
+    """The 2.2.12 generator accumulated one end marker per --write run while
+    --check stayed green: the block carries its own end marker and the splice
+    kept the old one too. These tests pin the splice and the shipped state."""
+
+    def _scaffold(self, tmp):
+        results = tmp / "RESULTS.md"
+        results.write_text(benchmark_tables.RESULTS.read_text(encoding="utf-8"),
+                           encoding="utf-8")
+        readmes = []
+        for name in ("README.md", "README.zh-CN.md"):
+            target = tmp / name
+            target.write_text((ROOT / name).read_text(encoding="utf-8"), encoding="utf-8")
+            readmes.append(target)
+        return results, tuple(readmes)
+
+    def test_replacing_twice_is_byte_identical(self):
+        text = (ROOT / "README.md").read_text(encoding="utf-8")
+        start = text.find(benchmark_tables.START)
+        end = text.find(benchmark_tables.END) + len(benchmark_tables.END)
+        block = text[start:end]
+        filler_before, filler_after = text[:start], text[end:]
+
+        once = benchmark_tables._replace_block(filler_before + benchmark_tables.START
+                                               + "\n<!-- benchmark:generated:end -->\n"
+                                               + filler_after, block)
+        twice = benchmark_tables._replace_block(once, block)
+        self.assertEqual(once, twice, "a second --write run must change nothing")
+        self.assertEqual(once.count(benchmark_tables.END), 1)
+
+    def test_shipped_readmes_carry_exactly_one_marker_of_each_kind(self):
+        for readme in benchmark_tables.READMES:
+            text = readme.read_text(encoding="utf-8")
+            self.assertEqual(text.count(benchmark_tables.START), 1, str(readme))
+            self.assertEqual(text.count(benchmark_tables.END), 1,
+                             f"{readme}: a stray end marker means a --write run "
+                             f"failed to consume the one it replaced")
+
+    def test_write_through_main_is_idempotent(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            results, readmes = self._scaffold(tmp_path)
+            with mock.patch.object(benchmark_tables, "RESULTS", results), \
+                 mock.patch.object(benchmark_tables, "READMES", readmes):
+                self.assertEqual(_quiet(lambda: benchmark_tables.main(["--write"])), 0)
+                first = [readme.read_bytes() for readme in readmes]
+                self.assertEqual(_quiet(lambda: benchmark_tables.main(["--write"])), 0)
+                self.assertEqual([readme.read_bytes() for readme in readmes], first,
+                                 "the second --write must be byte-identical to the first")
+                self.assertEqual(_quiet(lambda: benchmark_tables.main(["--check"])), 0)
+
+
+class CheckMustBeAbleToFailTests(unittest.TestCase):
+    """A gate that has never been seen failing is not a gate. These tests
+    tamper with the inputs and demand exit 1 — the same burden CI already
+    puts on the scanner's planted-defect fixture."""
+
+    def _scaffold(self, tmp):
+        results = tmp / "RESULTS.md"
+        results.write_text(benchmark_tables.RESULTS.read_text(encoding="utf-8"),
+                           encoding="utf-8")
+        readmes = []
+        for name in ("README.md", "README.zh-CN.md"):
+            target = tmp / name
+            target.write_text((ROOT / name).read_text(encoding="utf-8"), encoding="utf-8")
+            readmes.append(target)
+        return results, tuple(readmes)
+
+    def test_check_fails_when_a_block_is_tampered(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            results, readmes = self._scaffold(tmp_path)
+            # Reintroduce the drift this tool exists to catch, inside the
+            # generated block: 105 -> 101.
+            row = "| Rendered-page contrast failures (WCAG 1.4.3) | **48** | 105 | **0** |"
+            readme_text = readmes[0].read_text(encoding="utf-8")
+            self.assertIn(row, readme_text)
+            readmes[0].write_text(readme_text.replace(row, row.replace("105", "101"), 1),
+                                  encoding="utf-8")
+            with mock.patch.object(benchmark_tables, "RESULTS", results), \
+                 mock.patch.object(benchmark_tables, "READMES", readmes):
+                self.assertEqual(_quiet(lambda: benchmark_tables.main(["--check"])), 1,
+                                 "--check passed on a tampered block")
+
+    def test_check_fails_on_a_doubled_end_marker(self):
+        # The exact 2.2.12 defect: --write left its own end marker next to the
+        # old one, and the check, which sliced to the first end marker, could
+        # not see it. The marker count is now part of the gate.
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            results, readmes = self._scaffold(tmp_path)
+            doubled = readmes[0].read_text(encoding="utf-8").replace(
+                benchmark_tables.END, benchmark_tables.END + benchmark_tables.END, 1)
+            readmes[0].write_text(doubled, encoding="utf-8")
+            with mock.patch.object(benchmark_tables, "RESULTS", results), \
+                 mock.patch.object(benchmark_tables, "READMES", readmes):
+                self.assertEqual(_quiet(lambda: benchmark_tables.main(["--check"])), 1,
+                                 "--check passed with a stacked end marker")
+
+    def test_check_fails_when_results_gains_an_unmapped_row(self):
+        # RESULTS.md growing a metric the mapping does not know must be an
+        # error, never a silently dropped row.
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            results, readmes = self._scaffold(tmp_path)
+            # Grow the report table itself, the way 2.2.10 did: an unmapped
+            # metric must be an error, never a silently dropped row.
+            anchor = "| slop_scan important 发现 | 30 | 45 | **1** |"
+            results_text = results.read_text(encoding="utf-8")
+            self.assertIn(anchor, results_text)
+            results.write_text(results_text.replace(
+                anchor, anchor + "\n| 新指标（9.9.9） | 1 | 2 | 3 |", 1), encoding="utf-8")
+            with mock.patch.object(benchmark_tables, "RESULTS", results), \
+                 mock.patch.object(benchmark_tables, "READMES", readmes):
+                with self.assertRaises(SystemExit):
+                    benchmark_tables.main(["--check"])
 
 
 class MappingTests(unittest.TestCase):

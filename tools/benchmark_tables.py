@@ -164,7 +164,12 @@ def _replace_block(text, block):
     if start == -1 or end == -1 or end < start:
         raise SystemExit(f"benchmark_tables: markers not found — wrap the "
                          f"generated tables in {START} ... {END}")
-    return text[:start] + block + text[end:]
+    # The block carries its own end marker, so the splice must consume the one
+    # it replaces. Returning text[end:] kept the old marker and every --write
+    # run accumulated one more — while --check, which slices to the first end
+    # marker, stayed green. The drift gate was blind to the only drift its own
+    # tool manufactured, and 2.2.12 shipped with the duplicate already in it.
+    return text[:start] + block + text[end + len(END):]
 
 
 def _current_block(text):
@@ -195,12 +200,21 @@ def main(argv=None):
     if args.check:
         drifted = []
         for readme, block in blocks.items():
-            current = _current_block(readme.read_text(encoding="utf-8"))
-            if current != block:
+            text = readme.read_text(encoding="utf-8")
+            # Count the markers, not just the first span: a second --write bug
+            # of the 2.2.12 kind would stack end markers invisibly past the
+            # slice below, and a gate that cannot see its own tool's drift is
+            # worse than no gate.
+            starts, ends = text.count(START), text.count(END)
+            if starts != 1 or ends != 1:
+                drifted.append(f"{readme.name}: {starts} start / {ends} end "
+                               f"markers (expected exactly 1 of each)")
+                continue
+            if _current_block(text) != block:
                 drifted.append(readme.name)
         if drifted:
-            for name in drifted:
-                print(f"  - {name}: benchmark tables differ from RESULTS.md", file=sys.stderr)
+            for problem in drifted:
+                print(f"  - {problem}", file=sys.stderr)
             return 1
         print("README benchmark tables match benchmark/RESULTS.md")
         return 0
