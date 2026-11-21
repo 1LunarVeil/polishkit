@@ -30,6 +30,7 @@ import hashlib
 import http.client
 import json
 import os
+import shlex
 import shutil
 import socket
 import struct
@@ -546,6 +547,31 @@ def wait_for_event(session, method, timeout, match=None):
             pass
 
 
+def extra_chrome_args(environ=None):
+    """Extra Chrome arguments from POLISHKIT_CHROME_EXTRA_ARGS, shlex-parsed.
+
+    Space-separated, appended after the fixed flags and before the startup
+    URL. It exists for environments whose kernels block unprivileged user
+    namespaces — Ubuntu 24.04's AppArmor restriction aborts a stock Chrome
+    (exit -6) before the debug port opens, and Chrome for Testing ships no
+    AppArmor profile to escape it. CI passes --no-sandbox there, explicitly;
+    the plugin itself never weakens the sandbox on machines that did not ask.
+    """
+    raw = (environ if environ is not None else os.environ).get(
+        "POLISHKIT_CHROME_EXTRA_ARGS", "")
+    return shlex.split(raw)
+
+
+def chrome_launch_command(browser, profile, url="about:blank"):
+    """The fixed launch command every CDP session starts from."""
+    return [
+        browser, "--headless=new", "--disable-gpu", "--no-first-run",
+        "--no-default-browser-check", "--disable-extensions",
+        f"--user-data-dir={profile}", "--remote-debugging-port=0",
+        *extra_chrome_args(), url,
+    ]
+
+
 class PageSession:
     """One browser, one tab, loaded and ready — with a guaranteed teardown.
 
@@ -579,6 +605,31 @@ class PageSession:
         self.target_id = None
         self.session_id = None
 
+    def _wait_for_load(self):
+        """Wait for the navigation's load event, with one honest fallback.
+
+        Runner VMs occasionally never deliver Page.loadEventFired for a page
+        that has in fact finished loading — CI showed a load timeout on one
+        invocation and a pass on the next with nothing changed. The event is
+        transport trivia; the page's own document.readyState is the fact, so
+        a complete page counts as loaded. Anything else is still an error,
+        with the state named.
+        """
+        loaded = wait_for_event(
+            self.session, "Page.loadEventFired", self.load_timeout,
+            match=lambda message: message.get("sessionId") == self.session_id)
+        if loaded is not None:
+            return
+        state = self.session.send(
+            "Runtime.evaluate",
+            {"expression": "document.readyState", "returnByValue": True},
+            session=self.session_id)["result"].get("value")
+        if state == "complete":
+            return
+        raise BrowserError(
+            f"page did not fire load within {self.load_timeout:g}s "
+            f"(document.readyState is {state!r})")
+
     def __enter__(self):
         import tempfile  # noqa: PLC0415 - cheap, and keeps the import list tight
 
@@ -593,11 +644,7 @@ class PageSession:
         # Record the profile before Popen: if Popen itself raises, the
         # directory exists and only _teardown knows to remove it.
         self.profile = path
-        command = [
-            browser, "--headless=new", "--disable-gpu", "--no-first-run",
-            "--no-default-browser-check", "--disable-extensions",
-            f"--user-data-dir={path}", "--remote-debugging-port=0", "about:blank",
-        ]
+        command = chrome_launch_command(browser, path)
         try:
             self.process = subprocess.Popen(  # noqa: S603 - absolute path, list form
                 command, shell=False, stdin=subprocess.DEVNULL,
@@ -626,12 +673,7 @@ class PageSession:
                 }, session=self.session_id)
             navigation = self.session.send("Page.navigate", {"url": self.url},
                                            session=self.session_id)
-            loaded = wait_for_event(
-                self.session, "Page.loadEventFired", self.load_timeout,
-                match=lambda message: message.get("sessionId") == self.session_id)
-            if loaded is None:
-                raise BrowserError(
-                    f"page did not fire load within {self.load_timeout:g}s")
+            self._wait_for_load()
             # A failed navigation still fires load: Chrome renders its own error
             # page, which is a real document with real text. Auditing it would
             # report findings about Chrome's UI as though they were the site's —
@@ -765,17 +807,7 @@ def run_roundtrip(out_dir=None):
     timings = {}
     try:
         started = time.monotonic()
-        command = [
-            browser,
-            "--headless=new",
-            "--disable-gpu",
-            "--no-first-run",
-            "--no-default-browser-check",
-            "--disable-extensions",
-            f"--user-data-dir={profile}",
-            "--remote-debugging-port=0",
-            "about:blank",
-        ]
+        command = chrome_launch_command(browser, profile)
         process = subprocess.Popen(  # noqa: S603 - absolute browser path, list form, no shell
             command, shell=False, stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,

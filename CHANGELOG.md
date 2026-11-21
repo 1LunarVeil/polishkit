@@ -2,6 +2,23 @@
 
 All notable changes to this project are recorded here. The format follows Keep a Changelog, and versions follow Semantic Versioning.
 
+## [2.2.15] - 2026-11-21
+
+The browser smoke stayed red on CI with a pinned browser while passing on the same build locally; the maintainer's log paste settled it. Two runner facts, two fixes.
+
+### Added
+
+- **`POLISHKIT_CHROME_EXTRA_ARGS`** — space-separated extra Chrome arguments appended before the startup URL, parsed with shlex. It exists because Ubuntu 24.04's AppArmor restriction on unprivileged user namespaces aborts a stock Chrome (exit -6) before the debug port opens, and Chrome for Testing ships no AppArmor profile to escape it. CI passes `--no-sandbox` there, explicitly and job-scoped — the plugin itself never weakens the sandbox on machines that did not ask.
+
+### Fixed
+
+- **A load event that never arrives is no longer a verdict about the page.** A Windows runner timed out waiting for `Page.loadEventFired` on one invocation and passed the next with nothing changed. `PageSession` now asks the page itself: a `document.readyState` of `complete` counts as loaded; anything else still fails, with the state named.
+
+### Verified
+
+- 468 tests pass under Python 3.9 and 3.11 (+6: extra-argument parsing and placement, and the load fallback's three directions).
+- The browser smoke passes locally against Chrome for Testing 158.0.8127.36 both with and without the extra argument.
+
 ## [2.2.14] - 2026-11-21
 
 The browser smoke went green once and then failed three times with no code change — the runners' preinstalled Chrome is not something a measurement can trust. This release makes the browser as pinned as the environment fingerprint.

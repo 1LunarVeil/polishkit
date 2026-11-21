@@ -159,6 +159,7 @@ def _base_command(browser, profile_dir, width, height, scale):
         f"--user-data-dir={profile_dir}",
         f"--window-size={width},{height}",
         f"--force-device-scale-factor={scale}",
+        *cdp.extra_chrome_args(),
     ]
 
 
@@ -273,7 +274,8 @@ def _start_cdp_browser(browser):
     command = [
         browser, "--headless=new", "--disable-gpu", "--no-first-run",
         "--no-default-browser-check", "--disable-extensions",
-        f"--user-data-dir={profile}", "--remote-debugging-port=0", "about:blank",
+        f"--user-data-dir={profile}", "--remote-debugging-port=0",
+        *cdp.extra_chrome_args(), "about:blank",
     ]
     process = subprocess.Popen(  # noqa: S603 - absolute browser path, list form, no shell
         command, shell=False, stdin=subprocess.DEVNULL,

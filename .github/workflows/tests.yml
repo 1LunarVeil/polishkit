@@ -175,6 +175,11 @@ jobs:
           if [ "$RUNNER_OS" = "Linux" ]; then
             unzip -q chrome.zip -d chrome-cft
             echo "POLISHKIT_BROWSER=$GITHUB_WORKSPACE/chrome-cft/chrome-linux64/chrome" >> "$GITHUB_ENV"
+            # Ubuntu 24.04 restricts unprivileged user namespaces (AppArmor),
+            # which aborts a stock Chrome with SIGABRT before the debug port
+            # opens; Chrome for Testing ships no AppArmor profile. Explicit,
+            # job-scoped, and only on this throwaway runner.
+            echo "POLISHKIT_CHROME_EXTRA_ARGS=--no-sandbox" >> "$GITHUB_ENV"
           else
             unzip -q chrome.zip -d chrome-cft
             echo "POLISHKIT_BROWSER=$GITHUB_WORKSPACE/chrome-cft/chrome-win64/chrome.exe" >> "$GITHUB_ENV"
