@@ -141,8 +141,12 @@ jobs:
 
   # The unit matrix runs without a browser by design; the integration path
   # (Chrome launched, WebSocket driven, screenshots decoded) had zero CI
-  # coverage until the external review pointed at it. The runners ship
-  # Chrome, so a defect fixture and a clean fixture are both measured here.
+  # coverage until the external review pointed at it. The runners'
+  # preinstalled Chrome then failed this job three runs in a row (ubuntu) and
+  # once (windows) with no code change — so instead of trusting whatever the
+  # image ships, the job downloads a pinned Chrome for Testing build and the
+  # audits find it through POLISHKIT_BROWSER. Deterministic the same way the
+  # benchmark's ENVIRONMENT.json pins everything else.
   browser-smoke:
     strategy:
       fail-fast: false
@@ -157,6 +161,24 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
+
+      - name: Install a pinned Chrome for Testing
+        shell: bash
+        run: |
+          set -e
+          curl -fsSL "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json" -o cft.json
+          if [ "$RUNNER_OS" = "Linux" ]; then platform=linux64; else platform=win64; fi
+          url=$(python -c "import json; d=json.load(open('cft.json')); print([item['url'] for item in d['channels']['Stable']['downloads']['chrome'] if item['platform'] == '$platform'][0])")
+          echo "chrome for testing url: $url"
+          curl -fsSL "$url" -o chrome.zip
+          mkdir chrome-cft
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            unzip -q chrome.zip -d chrome-cft
+            echo "POLISHKIT_BROWSER=$GITHUB_WORKSPACE/chrome-cft/chrome-linux64/chrome" >> "$GITHUB_ENV"
+          else
+            unzip -q chrome.zip -d chrome-cft
+            echo "POLISHKIT_BROWSER=$GITHUB_WORKSPACE/chrome-cft/chrome-win64/chrome.exe" >> "$GITHUB_ENV"
+          fi
 
       - name: Real-browser smoke (page_audit + keyboard_audit over CDP)
         run: python -B tests/smoke_browser.py

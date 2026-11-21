@@ -2,6 +2,24 @@
 
 All notable changes to this project are recorded here. The format follows Keep a Changelog, and versions follow Semantic Versioning.
 
+## [2.2.14] - 2026-11-21
+
+The browser smoke went green once and then failed three times with no code change — the runners' preinstalled Chrome is not something a measurement can trust. This release makes the browser as pinned as the environment fingerprint.
+
+### Added
+
+- **`POLISHKIT_BROWSER`** — an environment variable that pins the browser every capture tool and audit uses, ahead of all discovery paths. A stale value fails loudly rather than silently falling back to whatever the machine has. It exists for the same reason `benchmark/ENVIRONMENT.json` does: a measurement is only comparable when the browser build is fixed, and CI now pins a Chrome for Testing build with it.
+
+### Fixed
+
+- **CI's browser-smoke job no longer trusts the runners' preinstalled Chrome.** It failed three runs in a row on ubuntu (and once on windows) with no code change, and the failure reason was not retrievable without repository-admin access to logs. The job downloads a pinned Chrome for Testing build (stable channel, resolved at run time from the Chrome for Testing endpoint) and points `POLISHKIT_BROWSER` at it. The smoke itself retries a launch failure once (exit 2 — the flaky class) and prints the browser build it used; wrong verdicts are never retried.
+- **`benchmark_tables.py --write` works on the 3.9 floor** — see 2.2.13.
+
+### Verified
+
+- 462 tests pass under Python 3.9 and 3.11 (+3 for the browser-override discovery).
+- The browser smoke ran five times locally without a miss; on CI it now runs against a pinned browser build instead of the image's.
+
 ## [2.2.13] - 2026-11-21
 
 A second review round caught the first round's own tool drifting. No new capability; this is a corrections release.

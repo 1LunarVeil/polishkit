@@ -81,7 +81,21 @@ class UrlRejected(ValueError):
 
 
 def find_browser():
-    """Return an absolute path to a Chromium-family browser, or None."""
+    """Return an absolute path to a Chromium-family browser, or None.
+
+    POLISHKIT_BROWSER, when set to an existing file, wins over every
+    candidate path. CI pins a Chrome-for-Testing build with it — the
+    runners' preinstalled Chrome failed the browser smoke three runs in a
+    row — and anyone juggling several Chromium builds can do the same. A
+    stale path fails loudly instead of silently falling back to whatever
+    the machine happens to have.
+    """
+    override = os.environ.get("POLISHKIT_BROWSER")
+    if override:
+        if not Path(override).is_file():
+            raise ValueError(f"POLISHKIT_BROWSER={override!r} does not exist; "
+                             f"set it to a browser executable or unset it")
+        return str(Path(override).resolve())
     if os.name == "nt":
         for path in WINDOWS_CANDIDATES:
             expanded = os.path.expandvars(path)

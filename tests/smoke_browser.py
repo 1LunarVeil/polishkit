@@ -23,6 +23,7 @@ Exit 0 = both directions behaved; 1 = a finding mismatched; 2 = no browser
 
 import io
 import json
+import subprocess
 import sys
 import threading
 import time
@@ -120,9 +121,17 @@ def _run_with_retry(main, argv, attempts=2):
 
 
 def main():
-    if visual_capture.find_browser() is None:
+    browser = visual_capture.find_browser()
+    if browser is None:
         print("smoke_browser: no Chromium-family browser found; nothing to prove", file=sys.stderr)
         return 2
+    print(f"smoke_browser: using browser {browser}")
+    try:
+        reported = subprocess.run([browser, "--version"], capture_output=True,
+                                  text=True, timeout=60).stdout.strip()
+        print(f"smoke_browser: {reported}")
+    except (OSError, subprocess.TimeoutExpired):
+        pass  # the audits will say what is wrong with a browser that won't even talk
 
     server = ThreadingHTTPServer(("127.0.0.1", 0), _FixtureHandler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
