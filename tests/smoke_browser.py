@@ -147,11 +147,20 @@ def main():
         # invocation and passed the next with nothing changed. The warmup
         # pays that cost once, with a 30-second budget.
         warm_started = time.monotonic()
-        with cdp.PageSession(f"{base}/clean", load_timeout=30.0) as page:
-            state = page.session.send(
-                "Runtime.evaluate",
-                {"expression": "document.readyState", "returnByValue": True},
-                session=page.session_id)["result"].get("value")
+        try:
+            with cdp.PageSession(f"{base}/clean", load_timeout=30.0) as page:
+                state = page.session.send(
+                    "Runtime.evaluate",
+                    {"expression": "document.readyState", "returnByValue": True},
+                    session=page.session_id)["result"].get("value")
+        except cdp.BrowserError as exc:
+            # Fail fast with the reason: the four audits below would repeat
+            # the same browser failure, slower, twice each.
+            print(f"FAIL warmup did not load the fixture page: {exc}", file=sys.stderr)
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=5)
+            return 1
         print(f"smoke_browser: warmup readyState={state} in "
               f"{time.monotonic() - warm_started:.1f}s")
         if state != "complete":

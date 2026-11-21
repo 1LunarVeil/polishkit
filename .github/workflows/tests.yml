@@ -166,9 +166,15 @@ jobs:
         shell: bash
         run: |
           set -e
-          curl -fsSL "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json" -o cft.json
+          # A deliberately fixed build, not the Stable channel. Stable moved
+          # from 157 to 158 mid-day on 2026-11-21 — the exact moment this job
+          # started failing — and 158 aborts localhost navigations on the
+          # Windows runner (net::ERR_ABORTED) that 157 served all day. A pin
+          # that moves is not a pin; bump this version deliberately, after
+          # running tests/smoke_browser.py against the new build.
+          version=157.0.8103.79
           if [ "$RUNNER_OS" = "Linux" ]; then platform=linux64; else platform=win64; fi
-          url=$(python -c "import json; d=json.load(open('cft.json')); print([item['url'] for item in d['channels']['Stable']['downloads']['chrome'] if item['platform'] == '$platform'][0])")
+          url="https://storage.googleapis.com/chrome-for-testing-public/$version/$platform/chrome-$platform.zip"
           echo "chrome for testing url: $url"
           curl -fsSL "$url" -o chrome.zip
           mkdir chrome-cft
