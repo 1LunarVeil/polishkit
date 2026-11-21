@@ -25,6 +25,7 @@ import io
 import json
 import sys
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -94,7 +95,28 @@ def _run(main, argv):
     try:
         return code, json.loads(raw)
     except ValueError:
-        return code, {"verified": False, "reason": f"output was not JSON: {raw[:400]!r}"}
+        return code, {"verified": False,
+                      "reason": f"output was not JSON: {raw[:800]!r}"}
+
+
+def _why(payload):
+    reason = payload.get("reason")
+    return f" reason={reason}" if reason else ""
+
+
+def _run_with_retry(main, argv, attempts=2):
+    """Exit 2 ("no audit performed") is the launch-failure class — a runner's
+    Chrome can fail to start under transient resource pressure, and two CI
+    runs proved it flaky on exactly that path. One retry absorbs it. A wrong
+    verdict (exit 0 or 1) is an assertion about the page, never retried: a
+    smoke test that retries its own failures proves nothing."""
+    code = payload = None
+    for _ in range(attempts):
+        code, payload = _run(main, argv)
+        if code != 2:
+            return code, payload
+        time.sleep(3)
+    return code, payload
 
 
 def main():
@@ -108,19 +130,21 @@ def main():
     base = f"http://127.0.0.1:{server.server_address[1]}"
     failures = []
     try:
-        code, page = _run(page_audit.main, [f"{base}/defect", "--json"])
+        code, page = _run_with_retry(page_audit.main, [f"{base}/defect", "--json"])
         summary = page.get("summary", {})
         if code != 1 or not page.get("verified"):
-            failures.append(f"page_audit defect page: exit {code}, verified {page.get('verified')}")
+            failures.append(f"page_audit defect page: exit {code}, "
+                            f"verified {page.get('verified')}{_why(page)}")
         if summary.get("fail", 0) < 1:
             failures.append(f"page_audit defect page: planted contrast pair did not fail "
                             f"(summary: {summary})")
         print(f"page_audit /defect: exit {code}, contrast fail {summary.get('fail')}")
 
-        code, keys = _run(keyboard_audit.main, [f"{base}/defect", "--json"])
+        code, keys = _run_with_retry(keyboard_audit.main, [f"{base}/defect", "--json"])
         summary = keys.get("summary", {})
         if code != 1 or not keys.get("verified"):
-            failures.append(f"keyboard_audit defect page: exit {code}, verified {keys.get('verified')}")
+            failures.append(f"keyboard_audit defect page: exit {code}, "
+                            f"verified {keys.get('verified')}{_why(keys)}")
         if summary.get("unreachable", 0) < 1:
             failures.append(f"keyboard_audit defect page: the tabindex=-1 control was not "
                             f"reported unreachable (summary: {summary})")
@@ -130,19 +154,21 @@ def main():
         print(f"keyboard_audit /defect: exit {code}, fail {summary.get('fail')}, "
               f"unreachable {summary.get('unreachable')}, no_indicator {summary.get('no_indicator')}")
 
-        code, page = _run(page_audit.main, [f"{base}/clean", "--json"])
+        code, page = _run_with_retry(page_audit.main, [f"{base}/clean", "--json"])
         summary = page.get("summary", {})
         if code != 0 or not page.get("verified"):
-            failures.append(f"page_audit clean page: exit {code}, verified {page.get('verified')}")
+            failures.append(f"page_audit clean page: exit {code}, "
+                            f"verified {page.get('verified')}{_why(page)}")
         if summary.get("fail", 0) != 0:
             failures.append(f"page_audit clean page: {summary.get('fail')} failure(s) on a clean page "
                             f"(summary: {summary})")
         print(f"page_audit /clean: exit {code}, contrast fail {summary.get('fail')}")
 
-        code, keys = _run(keyboard_audit.main, [f"{base}/clean", "--json"])
+        code, keys = _run_with_retry(keyboard_audit.main, [f"{base}/clean", "--json"])
         summary = keys.get("summary", {})
         if code != 0 or not keys.get("verified"):
-            failures.append(f"keyboard_audit clean page: exit {code}, verified {keys.get('verified')}")
+            failures.append(f"keyboard_audit clean page: exit {code}, "
+                            f"verified {keys.get('verified')}{_why(keys)}")
         if summary.get("fail", 0) != 0:
             failures.append(f"keyboard_audit clean page: {summary.get('fail')} failure(s) on a clean page "
                             f"(summary: {summary})")
